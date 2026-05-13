@@ -1,0 +1,263 @@
+/* ============================================================
+   ALIVET — Design System Global v1.0
+   Importar en todos los HTML después de Bootstrap:
+   <link rel="stylesheet" href="/css/styles.css">
+   ============================================================ */
+
+/* ── TOKENS ────────────────────────────────────────────────── */
+:root {
+  --agro-green:        #06A049;
+  --agro-green-dark:   #047a37;
+  --agro-green-light:  #e8f5ee;
+  --agro-green-muted:  #d1fae5;
+  --agro-earth:        #7C5C3A;
+  --agro-bg:           #F4F7F4;
+  --agro-white:        #FFFFFF;
+  --agro-text:         #1E2D24;
+  --agro-text-muted:   #6B7280;
+  --agro-border:       rgba(0, 0, 0, 0.07);
+  --agro-shadow-sm:    0 2px 14px rgba(0, 0, 0, 0.07);
+  --agro-shadow-md:    0 4px 24px rgba(0, 0, 0, 0.10);
+  --agro-shadow-green: 0 8px 28px rgba(6, 160, 73, 0.22);
+  --agro-radius-sm:    10px;
+  --agro-radius-md:    14px;
+  --agro-radius-lg:    18px;
+  /* Alias para compatibilidad con páginas existentes */
+  --verde:             #06A049;
+  --verde-oscuro:      #047a37;
+  --fondo:             #F4F7F4;
+}
+
+/* ── BASE ───────────────────────────────────────────────────── */
+body {
+  background-color: var(--agro-bg);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--agro-text);
+}
+
+/* ── HEADER COMPARTIDO ──────────────────────────────────────── */
+.main-header {
+  background: linear-gradient(135deg, var(--agro-green) 0%, var(--agro-green-dark) 100%) !important;
+  padding: 12px 0;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.14);
+}
+
+/* Buscador del header (index) */
+.search-input {
+  border-radius: 12px 0 0 12px;
+  border: none;
+  font-size: 0.9rem;
+  padding: 10px 16px;
+}
+.search-input:focus { outline: none; box-shadow: none; }
+.search-btn {
+  border-radius: 0 12px 12px 0;
+  background: white;
+  color: var(--agro-green);
+  border: none;
+  padding: 0 18px;
+  transition: background 0.2s;
+}
+.search-btn:hover { background: #d4f0e0; }
+
+/* ── FOOTER COMPARTIDO ──────────────────────────────────────── */
+.footer-agro {
+  background: linear-gradient(135deg, var(--agro-green-dark) 0%, #024d22 100%);
+  color: white;
+  padding: 44px 0;
+  margin-top: 60px;
+}
+.footer-agro a { color: rgba(255,255,255,0.85); text-decoration: none; }
+.footer-agro a:hover { color: white; }
+
+/* ── BADGE CARRITO ──────────────────────────────────────────── */
+.badge-carrito {
+  position: absolute; top: -5px; right: -8px;
+  background: #ff3b3b; color: white; border-radius: 50%;
+  width: 20px; height: 20px; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── CARD AGRO ──────────────────────────────────────────────── */
+.card-agro {
+  background: var(--agro-white);
+  border: 1px solid var(--agro-border) !important;
+  border-radius: var(--agro-radius-lg) !important;
+  box-shadow: var(--agro-shadow-sm);
+}
+.card-agro:not(.no-hover):hover {
+  box-shadow: var(--agro-shadow-md);
+}
+
+/* ── BTN AGRO ───────────────────────────────────────────────── */
+.btn-agro {
+  background: linear-gradient(135deg, var(--agro-green) 0%, var(--agro-green-dark) 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: var(--agro-radius-sm) !important;
+  font-weight: 600;
+  transition: transform 0.18s ease, box-shadow 0.2s ease;
+}
+.btn-agro:hover, .btn-agro:focus {
+  transform: translateY(-1px);
+  box-shadow: var(--agro-shadow-green) !important;
+}
+.btn-agro:active { transform: none; box-shadow: none !important; }
+
+/* ── INPUT AGRO ─────────────────────────────────────────────── */
+.input-agro,
+.form-agro .form-control,
+.form-agro .form-select,
+.form-agro .input-group .form-control {
+  border-radius: var(--agro-radius-sm) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  background-color: #fafafa !important;
+  font-size: 0.9rem;
+  padding: 9px 13px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-agro:focus,
+.form-agro .form-control:focus,
+.form-agro .form-select:focus {
+  border-color: var(--agro-green) !important;
+  box-shadow: 0 0 0 3px rgba(6, 160, 73, 0.10) !important;
+  background-color: white !important;
+  outline: none;
+}
+/* Labels en formularios */
+.form-agro .form-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--agro-text-muted);
+  margin-bottom: 5px;
+}
+.form-agro .input-group .btn {
+  border-radius: 0 var(--agro-radius-sm) var(--agro-radius-sm) 0 !important;
+}
+
+/* ── BADGE AGRO ─────────────────────────────────────────────── */
+.badge-agro {
+  border-radius: 20px;
+  padding: 4px 11px;
+  font-weight: 600;
+  font-size: 0.74rem;
+  letter-spacing: 0.3px;
+}
+.badge-agro-success  { background: var(--agro-green-light);  color: var(--agro-green-dark); }
+.badge-agro-warning  { background: #fef9c3;  color: #854d0e; }
+.badge-agro-danger   { background: #fee2e2;  color: #991b1b; }
+.badge-agro-info     { background: #dbeafe;  color: #1e40af; }
+.badge-agro-neutral  { background: #f3f4f6;  color: #374151; }
+
+/* ── PÁGINAS DE AUTENTICACIÓN ───────────────────────────────── */
+.auth-bg {
+  min-height: 100vh;
+  background: linear-gradient(145deg, var(--agro-green-light) 0%, #f5f0e8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+.auth-card {
+  background: white;
+  border-radius: var(--agro-radius-lg);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.12);
+  border: none;
+  width: 100%;
+  max-width: 460px;
+  padding: 44px 40px;
+}
+@media (max-width: 480px) { .auth-card { padding: 30px 22px; } }
+.auth-card .auth-logo     { height: 70px; margin-bottom: 12px; }
+.auth-card .auth-title    { font-size: 1.5rem; font-weight: 800; color: var(--agro-text); letter-spacing: -0.3px; }
+.auth-card .auth-subtitle { color: var(--agro-text-muted); font-size: 0.9rem; }
+.auth-card .form-label {
+  font-size: 0.75rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--agro-text-muted); margin-bottom: 5px;
+}
+.auth-card .form-control,
+.auth-card .form-select {
+  border-radius: var(--agro-radius-sm) !important;
+  border: 1.5px solid #e2e8f0 !important;
+  background-color: #fafafa !important;
+  padding: 10px 14px;
+  font-size: 0.92rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.auth-card .form-control:focus,
+.auth-card .form-select:focus {
+  border-color: var(--agro-green) !important;
+  box-shadow: 0 0 0 3px rgba(6,160,73,0.10) !important;
+  background-color: white !important;
+}
+.auth-card .btn-agro { padding: 11px 0; font-size: 0.95rem; letter-spacing: 0.2px; }
+.auth-divider { color: var(--agro-text-muted); font-size: 0.85rem; position: relative; text-align: center; margin: 16px 0; }
+.auth-divider::before {
+  content: ''; position: absolute; top: 50%; left: 0; right: 0;
+  height: 1px; background: #e5e7eb; z-index: 0;
+}
+.auth-divider span { background: white; padding: 0 12px; position: relative; z-index: 1; }
+
+/* ── STEPPER DE CHECKOUT ─────────────────────────────────────── */
+.checkout-steps { display: flex; align-items: center; justify-content: center; gap: 0; }
+.checkout-step  { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.step-bubble {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #e5e7eb; color: #9ca3af;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.88rem;
+  border: 2.5px solid #e5e7eb; transition: all 0.25s;
+}
+.step-bubble.activo  { background: var(--agro-green); color: white; border-color: var(--agro-green); }
+.step-bubble.pasado  { background: var(--agro-green-light); color: var(--agro-green-dark); border-color: var(--agro-green); }
+.step-label { font-size: 0.66rem; font-weight: 600; color: #9ca3af; margin-top: 5px; text-align: center; }
+.step-label.activo { color: var(--agro-green); }
+.step-line  { flex: 1; height: 3px; background: #e5e7eb; border-radius: 2px; margin-bottom: 20px; }
+.step-line.activa { background: var(--agro-green); }
+
+/* ── DASHBOARD ──────────────────────────────────────────────── */
+.dash-table { border-collapse: separate; border-spacing: 0; }
+.dash-table thead th {
+  background: var(--agro-green-light);
+  color: var(--agro-green-dark);
+  font-size: 0.76rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  border: none; padding: 12px 16px;
+}
+.dash-table thead th:first-child { border-radius: 10px 0 0 0; }
+.dash-table thead th:last-child  { border-radius: 0 10px 0 0; }
+.dash-table tbody tr:nth-child(even) { background: #f9fafb; }
+.dash-table tbody tr:hover { background: var(--agro-green-light); }
+.dash-table td {
+  border: none; border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle; padding: 10px 16px; font-size: 0.875rem;
+}
+.btn-action {
+  width: 30px; height: 30px; padding: 0;
+  border-radius: 8px; font-size: 0.8rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 0.15s;
+}
+.btn-action:hover { transform: scale(1.1); }
+
+/* ── TOAST COMPARTIDO ───────────────────────────────────────── */
+.toast-carrito {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: none;
+  background: linear-gradient(135deg, var(--agro-green), var(--agro-green-dark));
+  color: white; padding: 13px 22px; border-radius: var(--agro-radius-md); font-weight: 500;
+  box-shadow: var(--agro-shadow-green);
+  animation: agro-slide-in 0.3s ease;
+}
+@keyframes agro-slide-in {
+  from { transform: translateX(120px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .main-header .d-flex.w-50 { width: 100% !important; margin: 8px 0; }
+  .main-header .container-fluid { flex-wrap: wrap; }
+}

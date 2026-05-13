@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroVeterinaria ALIVET</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* ── TOKENS ── */
+        :root {
+            --verde:          #06A049;
+            --verde-oscuro:   #047a37;
+            --verde-claro:    #e8f5ee;
+            --tierra:         #8B6F47;
+            --fondo:          #f3f7f4;
+            --texto-primario: #1a2e1f;
+            --texto-muted:    #6b7280;
+            --sombra-card:    0 2px 14px rgba(0,0,0,0.07);
+            --sombra-hover:   0 18px 44px rgba(6,160,73,0.16);
+            --radio-card:     18px;
+        }
+
+        /* ── BASE ── */
+        body { background-color: var(--fondo); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        /* ── HEADER ── */
+        .main-header {
+            background: linear-gradient(135deg, var(--verde) 0%, var(--verde-oscuro) 100%);
+            padding: 12px 0;
+        }
+        .search-input {
+            border-radius: 12px 0 0 12px; border: none;
+            font-size: 0.9rem; padding: 10px 16px;
+        }
+        .search-input:focus { outline: none; box-shadow: none; }
+        .search-btn {
+            border-radius: 0 12px 12px 0; background: white;
+            color: var(--verde); border: none; padding: 0 18px;
+            transition: background 0.2s;
+        }
+        .search-btn:hover { background: #d4f0e0; }
+
+        /* ── HERO ── */
+        .hero-banner {
+            background: linear-gradient(rgba(4,60,22,0.6), rgba(4,60,22,0.6)),
+                url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80') center/cover;
+            height: 250px; display: flex; align-items: center; justify-content: center;
+        }
+        .promo-box {
+            background: rgba(255,255,255,0.97); padding: 28px 44px;
+            border-radius: 18px; text-align: center;
+            box-shadow: 0 10px 36px rgba(0,0,0,0.22); border: none;
+        }
+
+        /* ── FILTROS TOOLBAR ── */
+        .filtros-toolbar {
+            background: white; border-radius: 16px; padding: 20px 24px 16px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.055);
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+        .filtros-toolbar .form-label {
+            color: var(--texto-muted); font-size: 0.72rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px;
+        }
+        .filtros-toolbar .form-select,
+        .filtros-toolbar .form-control {
+            border-radius: 10px; border: 1.5px solid #e2e8f0;
+            font-size: 0.875rem; padding: 8px 12px;
+            background-color: #fafafa;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .filtros-toolbar .form-select:focus,
+        .filtros-toolbar .form-control:focus {
+            border-color: var(--verde);
+            box-shadow: 0 0 0 3px rgba(6,160,73,0.1);
+            background-color: white;
+        }
+        .btn-filtrar {
+            background: linear-gradient(135deg, var(--verde), var(--verde-oscuro));
+            color: white; border: none; border-radius: 10px;
+            font-weight: 600; font-size: 0.875rem;
+            transition: transform 0.15s, box-shadow 0.2s;
+        }
+        .btn-filtrar:hover {
+            color: white; transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(6,160,73,0.38);
+        }
+        .btn-limpiar { border-radius: 10px; font-size: 0.875rem; }
+
+        /* ── FILTRO ANIMAL ── */
+        .filtro-animal-wrap {
+            border-top: 1px solid #f0f4f0; margin-top: 14px; padding-top: 14px;
+        }
+        .filtro-animal .btn {
+            border-radius: 22px; padding: 5px 15px; font-size: 0.82rem;
+            font-weight: 500; border: 1.5px solid #c7ead5;
+            color: var(--verde-oscuro); background: white; transition: 0.18s;
+        }
+        .filtro-animal .btn:hover,
+        .filtro-animal .btn.active {
+            background-color: var(--verde); color: white; border-color: var(--verde);
+        }
+
+        /* ── PRODUCT CARD ── */
+        .product-card {
+            background: white; border: 1px solid rgba(0,0,0,0.05);
+            border-radius: var(--radio-card); overflow: hidden; height: 100%;
+            box-shadow: var(--sombra-card);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--sombra-hover);
+        }
+        .product-img-container {
+            height: 188px; overflow: hidden; position: relative;
+            background: linear-gradient(145deg, #f4faf5, #eaf3eb);
+        }
+        .product-img { height: 100%; width: 100%; object-fit: cover; transition: transform 0.5s ease; }
+        .product-card:hover .product-img { transform: scale(1.07); }
+
+        /* Badge de stock premium */
+        .stock-badge-low {
+            position: absolute; top: 10px; left: 10px; z-index: 2;
+            background: linear-gradient(135deg, #ff3b3b, #c0111b);
+            color: white; font-size: 0.66rem; font-weight: 800;
+            padding: 3px 9px; border-radius: 20px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(192,17,27,0.45);
+        }
+
+        /* Tipografía de tarjeta */
+        .producto-categoria {
+            font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.9px; color: var(--tierra); margin-bottom: 3px;
+        }
+        .producto-nombre {
+            font-size: 0.875rem; font-weight: 700; color: var(--texto-primario);
+            line-height: 1.35; margin-bottom: 10px;
+            display: -webkit-box; -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical; overflow: hidden; min-height: 2.4em;
+        }
+        .producto-precio {
+            font-size: 1.18rem; font-weight: 800;
+            color: var(--verde-oscuro); letter-spacing: -0.4px;
+        }
+
+        /* Botón agregar — rectangular premium */
+        .btn-add {
+            background: linear-gradient(135deg, var(--verde) 0%, var(--verde-oscuro) 100%);
+            color: white; border: none; border-radius: 10px;
+            padding: 9px 14px; font-weight: 600; font-size: 0.82rem;
+            cursor: pointer; width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: transform 0.18s ease, box-shadow 0.2s ease;
+            letter-spacing: 0.2px;
+        }
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(6,160,73,0.42);
+        }
+        .btn-add:active { transform: translateY(0); box-shadow: none; }
+
+        /* ── HEADING PRODUCTOS ── */
+        .seccion-titulo {
+            font-weight: 800; color: var(--texto-primario);
+            font-size: 1.4rem; letter-spacing: -0.3px;
+        }
+        .seccion-titulo .badge {
+            background: linear-gradient(135deg, var(--verde), var(--verde-oscuro)) !important;
+            font-size: 0.78rem; border-radius: 20px; padding: 4px 10px; font-weight: 600;
+        }
+
+        /* ── FOOTER ── */
+        .footer-agro {
+            background: linear-gradient(135deg, var(--verde-oscuro) 0%, #024d22 100%);
+            color: white; padding: 44px 0; margin-top: 60px;
+        }
+
+        /* ── BADGE CARRITO ── */
+        .badge-carrito {
+            position: absolute; top: -5px; right: -8px;
+            background: #ff3b3b; color: white; border-radius: 50%;
+            width: 20px; height: 20px; font-size: 11px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ── TOAST ── */
+        .toast-carrito {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: none;
+            background: linear-gradient(135deg, var(--verde), var(--verde-oscuro));
+            color: white; padding: 13px 22px; border-radius: 14px; font-weight: 500;
+            box-shadow: 0 8px 28px rgba(6,160,73,0.42);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(120px); opacity: 0; }
+            to   { transform: translateX(0);     opacity: 1; }
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .main-header .d-flex.w-50 { width: 100% !important; margin: 8px 0; }
+            .main-header .container-fluid { flex-wrap: wrap; }
+            .producto-precio { font-size: 1rem; }
+            .btn-add { font-size: 0.78rem; padding: 7px 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="main-header shadow-sm">
+    <div class="container-fluid px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <a href="/" class="text-decoration-none">
+            <img src="/img/logo.jpeg" alt="Logo" style="height:80px;">
+        </a>
+        <div class="d-flex w-50">
+            <input type="text" id="inputBuscador" class="form-control search-input" placeholder="¿Qué estás buscando hoy?">
+            <button class="btn search-btn px-3"><i class="bi bi-search"></i></button>
+        </div>
+        <div class="d-flex gap-4 align-items-center">
+            <a href="/carrito.html" class="text-white position-relative">
+                <i class="bi bi-cart3 fs-4"></i>
+                <span id="cart-count" class="badge-carrito">0</span>
+            </a>
+            <a href="/login.html" class="text-white" id="btn-usuario">
+                <i class="bi bi-person-circle fs-4"></i>
+            </a>
+        </div>
+    </div>
+</header>
+
+<section class="hero-banner">
+    <div class="promo-box shadow">
+        <h2 class="text-danger fw-bold">VENTA DE PRODUCTOS</h2>
+        <p class="mb-0 text-dark fs-5">Cuidamos la salud de tus animales como tú lo harías</p>
+        <p class="mb-0 fs-4">🐶🐄🐱🐔</p>
+    </div>
+</section>
+
+<main class="container my-4">
+
+    <!-- FILTROS -->
+    <div class="filtros-toolbar mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Categoría</label>
+                <select id="filtroCategoria" class="form-select">
+                    <option value="">Todas las categorías</option>
+                    <option value="1">Alimentos</option>
+                    <option value="2">Medicamentos</option>
+                    <option value="3">Accesorios</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Precio mín.</label>
+                <input type="number" id="filtroPrecioMin" class="form-control" placeholder="S/. 0">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Precio máx.</label>
+                <input type="number" id="filtroPrecioMax" class="form-control" placeholder="S/. 999">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-filtrar btn-sm w-100" onclick="aplicarFiltros()">
+                    <i class="bi bi-funnel me-1"></i>Filtrar
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-limpiar btn-outline-secondary btn-sm w-100" onclick="limpiarFiltros()">
+                    <i class="bi bi-x-circle me-1"></i>Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtro tipo animal -->
+        <div class="filtro-animal-wrap">
+            <div class="filtro-animal d-flex gap-2 flex-wrap" id="contenedor-animales">
+                <span class="align-self-center text-muted" style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Animal:</span>
+                <button class="btn btn-outline-success btn-sm active" onclick="filtrarAnimal(0, this)">
+                    🐾 Todos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="seccion-titulo mb-4">
+        Nuestros Productos
+        <span id="contador-productos" class="badge bg-success ms-2">0</span>
+    </h3>
+
+    <div class="row g-4" id="lista-productos">
+        <div class="text-center py-5">
+            <div class="spinner-border text-success" role="status"></div>
+            <p>Cargando productos...</p>
+        </div>
+    </div>
+</main>
+
+<footer class="footer-agro">
+    <div class="container text-center text-md-start">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <h5 class="fw-bold border-bottom pb-2">CONTÁCTANOS</h5>
+                <p><i class="bi bi-telephone-fill me-2"></i>954 800 966</p>
+                <p><i class="bi bi-envelope-fill me-2"></i>contacto@agroventa.com</p>
+            </div>
+            <div class="col-md-4 mb-3">
+                <h5 class="fw-bold border-bottom pb-2">DIRECCIÓN</h5>
+                <p>Jr. Calixto N°276 y jr.Amazonas N°753<br>Huancayo, Junín - Perú.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <h5 class="fw-bold border-bottom pb-2">EMPRESA</h5>
+                <a href="/nosotros.html" class="text-white text-decoration-none d-block mb-2">Sobre Nosotros</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Toast notificación carrito -->
+<div class="toast-carrito" id="toastCarrito">
+    <i class="bi bi-cart-check me-2"></i>
+    <span id="toast-mensaje">Producto agregado al carrito</span>
+</div>
+
+<script src="/js/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

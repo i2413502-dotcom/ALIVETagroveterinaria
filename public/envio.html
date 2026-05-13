@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datos de Envío - AgroVeterinaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        :root { --verde: #06A049; --verde-oscuro: #047a37; }
+        body { background-color: #f0f4f1; font-family: 'Segoe UI', sans-serif; }
+        .main-header { background-color: var(--verde); padding: 10px 0; }
+        .card-envio { border-radius: 15px; }
+        .btn-agro { background-color: var(--verde); color: white; }
+        .btn-agro:hover { background-color: var(--verde-oscuro); color: white; }
+        .paso { 
+            display: flex; align-items: center; justify-content: center;
+            width: 35px; height: 35px; border-radius: 50%; 
+            background: #ddd; color: #666; font-weight: bold;
+        }
+        .paso.activo { background: var(--verde); color: white; }
+        .linea { flex: 1; height: 3px; background: #ddd; }
+        .linea.activa { background: var(--verde); }
+        .costo-envio-badge {
+            background: #e8f5e9; border: 2px solid var(--verde);
+            border-radius: 10px; padding: 10px 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<header class="main-header shadow-sm">
+    <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
+        <a href="/" class="text-decoration-none">
+            <img src="/img/logo.jpeg" alt="Logo" style="height:70px;">
+        </a>
+        <h5 class="text-white mb-0 fw-bold">Finalizar Compra</h5>
+        <div style="width:70px;"></div>
+    </div>
+</header>
+
+<main class="container my-4">
+
+    <!-- PASOS -->
+    <div class="d-flex align-items-center justify-content-center mb-3 gap-2">
+        <div class="paso activo">1</div>
+        <div class="linea activa"></div>
+        <div class="paso activo">2</div>
+        <div class="linea"></div>
+        <div class="paso">3</div>
+        <div class="linea"></div>
+        <div class="paso">4</div>
+    </div>
+    <div class="d-flex justify-content-between mb-4 px-5">
+        <small class="text-success fw-bold">Envío</small>
+        <small class="text-success fw-bold">Comprobante</small>
+        <small class="text-muted">Pago</small>
+        <small class="text-muted">Confirmación</small>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- FORMULARIO ENVIO -->
+        <div class="col-md-7">
+            <div class="card card-envio shadow-sm p-4">
+                <h5 class="fw-bold text-success mb-4">
+                    <i class="bi bi-truck me-2"></i>Datos de Envío
+                </h5>
+
+                <form id="envioForm" class="form-agro">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Nombre completo</label>
+                            <input type="text" class="form-control" id="nombreEnvio" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Teléfono</label>
+                            <input type="tel" class="form-control" id="telefono"
+                                   placeholder="Ej: 987654321" required
+                                   pattern="[0-9]{9}" maxlength="9">
+                        </div>
+                    </div>
+
+                    <!-- UBIGEO -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Departamento</label>
+                            <select class="form-select" id="departamento" required 
+                                    onchange="cargarProvincias()">
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Provincia</label>
+                            <select class="form-select" id="provincia" required 
+                                    onchange="cargarDistritos()" disabled>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Distrito</label>
+                            <select class="form-select" id="distrito" required
+                                    onchange="actualizarDistritoActual()" disabled>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Zona de envío -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Zona de Envío</label>
+                            <select class="form-select" id="zona-envio" required
+                                    onchange="actualizarCostoEnvio()">
+                                <option value="">Seleccione zona...</option>
+                                <option value="1">Zona Centro — S/. 5.00</option>
+                                <option value="2">Zona Norte — S/. 8.00</option>
+                                <option value="3">Zona Sur — S/. 10.00</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Costo de envío -->
+                    <div class="costo-envio-badge mb-3" id="costo-envio-badge">
+                        <i class="bi bi-truck me-2 text-success"></i>
+                        <strong>Costo de envío:</strong>
+                        <span class="text-success fw-bold fs-5 ms-2" id="costo-envio-texto">S/. 0.00</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Dirección exacta</label>
+                        <input type="text" class="form-control" id="direccion"
+                               placeholder="Ej: Jr. Lima 123, Piso 2" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Referencias <span class="text-muted fw-normal">(opcional)</span></label>
+                        <textarea class="form-control" id="referencias" rows="2"
+                                  placeholder="Ej: Casa de color azul, frente al parque"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-agro w-100 py-2">
+                        Continuar al comprobante
+                        <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+
+                    <a href="/carrito.html" class="btn btn-outline-secondary w-100 mt-2">
+                        <i class="bi bi-arrow-left me-2"></i>Volver al carrito
+                    </a>
+                </form>
+            </div>
+        </div>
+
+        <!-- RESUMEN PEDIDO -->
+        <div class="col-md-5">
+            <div class="card card-envio shadow-sm p-4">
+                <h5 class="fw-bold text-success mb-3">
+                    <i class="bi bi-bag me-2"></i>Resumen del Pedido
+                </h5>
+                <div id="resumen-items"></div>
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal productos:</span>
+                    <span id="resumen-subtotal">S/. 0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Costo de envío:</span>
+                    <span id="resumen-envio" class="text-muted">Por seleccionar</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between fw-bold fs-5">
+                    <span>Total:</span>
+                    <span class="text-success" id="resumen-total">S/. 0.00</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script src="/js/envio.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

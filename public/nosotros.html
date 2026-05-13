@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sobre Nosotros</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .header-nosotros {
+            background: linear-gradient(rgba(4,80,30,0.65), rgba(4,80,30,0.65)),
+            url('https://www.quitoinforma.gob.ec/wp-content/uploads/2021/07/Cuidados-de-animales-de-compania-en-calor-800x445.jpg')
+            center/cover;
+            color: white;
+            padding: 80px 20px;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+        }
+        .card-valores {
+            border: none !important;
+            border-radius: 16px !important;
+            border-bottom: 4px solid var(--agro-green) !important;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card-valores:hover { transform: translateY(-8px); box-shadow: 0 12px 32px rgba(6,160,73,0.15) !important; }
+        .card-valores i { color: var(--agro-green); font-size: 2.5rem; }
+        /* Footer override para esta página */
+        .footer-agro { margin-top: 0; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top shadow-sm">
+        <div class="container-fluid px-2">
+            <a class="navbar-brand fs-3" href="/">
+                 <img src="/img/logo.jpeg" alt="Logo" style="height:100px;">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="/">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/nosotros.html">Información</a></li>
+                    <li class="nav-item ms-lg-3">
+                        <a class="btn btn-agro px-4" href="/login.html">
+                            <i class="bi bi-person-circle me-1"></i> Ingresar
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="header-nosotros text-center">
+        <div class="container">
+            <p class="lead fs-4">“Llevamos salud, cuidado y confianza  </p>
+                <p class="lead fs-4">  a todos tus animales, para que crezcan fuertes </p>
+                 <p class="lead fs-4"> y felices en tu campo y hogar.” </p>
+                <p class="lead fs-4">🐾  🐾  🐾  🐾  </p>
+        </div>
+    </header>
+
+    <section class="container py-5">
+        <div class="row align-items-center mb-5">
+            <div class="col-lg-6">
+                <h2 style="color: var(--verde-agro);" class="fw-bold mb-4">¿Quiénes Somos?</h2>
+                <p class="fs-5 text-muted">Somos una empresa dedicada a la comercialización de medicamentos veterinarios para animales mayores y menores como: vacuno, equino, ovino, camélidos, porcinos, así como mascotas y otros más. Como también vende  accesorios para los animales, ofreciendo la venta por mayor y menor con el compromiso del cuidado de la salud de los animales.</p>
+                <p class="fs-5 text-muted">Nos enfocamos en mejorar la salud, el bienestar y el rendimiento productivo de los animales de nuestros clientes, garantizando confianza y excelentes resultados.</p>
+            </div>
+            <div class="col-lg-6">
+                <img src="/img/perro.jpeg" class="img-fluid rounded-4 shadow-lg" alt="Granja y Agricultura">
+                <img src="/img/oveja.jpeg" class="img-fluid rounded-4 shadow-lg" alt="Granja y Agricultura">
+            </div>
+        </div>
+
+        <div class="row g-4 text-center mt-4">
+            <div class="col-md-4">
+                <div class="card h-100 p-4 shadow-sm card-valores">
+                    <i class="bi bi-patch-check"></i>
+                    <h3 class="fw-bold mt-3">Misión</h3>
+                    <p class="text-muted"> Brindar medicamentos veterinarios y accesorios de calidad para loa animales mayores, menores y mascotas,
+                         ofreciendo una atención responsable y cercana, con el compromiso de cuidar la salud y el bienestar animal.</p>
+                   </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 shadow-sm card-valores">
+                    <i class="bi bi-eye"></i>
+                    <h3 class="fw-bold mt-3">Visión</h3>
+                    <p class="text-muted">Ser una agroveterinario recocida en la zona por un buen servicio, productos confiables y apoyo constante a los productores y dueños de los animales.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 p-4 shadow-sm card-valores">
+                    <i class="bi bi-heart"></i>
+                    <h3 class="fw-bold mt-3">Valores</h3>
+                    <p class="text-muted">Honestidad, compromiso ambiental y pasión por lo que hacemos.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container py-5">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold" style="color: var(--verde-agro);">
+            📍 Nuestra Ubicación
+        </h2>
+        <p class="text-muted">
+            Visítanos en cualquiera de nuestras dos sedes en Huancayo.
+        </p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Dirección 1 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="fw-bold">Jr. Calixto N°276</h5>
+                    <p class="text-muted">Huancayo, Junín - Perú</p>
+                    <iframe 
+                        src="https://www.google.com/maps?q=Jr.+Calixto+276,+Huancayo,+Junín,+Perú&output=embed"
+                        width="100%" 
+                        height="250" 
+                        style="border:0; border-radius:15px;" 
+                        allowfullscreen="" 
+                        loading="lazy">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dirección 2 -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h5 class="fw-bold">Jr. Amazonas N°753</h5>
+                    <p class="text-muted">Huancayo, Junín - Perú</p>
+                    <iframe 
+                        src="https://www.google.com/maps?q=Jr.+Amazonas+753,+Huancayo,+Junín,+Perú&output=embed"
+                        width="100%" 
+                        height="250" 
+                        style="border:0; border-radius:15px;" 
+                        allowfullscreen="" 
+                        loading="lazy">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+    <footer class="footer-agro">
+        <div class="container text-center">
+            <p class="mb-1 fw-bold fs-5">AgroVeterinaria ALIVET</p>
+            <p class="mb-0 text-white-50">© 2026 Todos los derechos reservados · Huancayo, Junín - Perú</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

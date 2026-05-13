@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AgroVeterinaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .sidebar {
+            width: 250px; min-height: 100vh;
+            background: linear-gradient(180deg, var(--agro-green-dark) 0%, #024d22 100%);
+            position: fixed; top: 0; left: 0; overflow-y: auto;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.82); padding: 11px 18px;
+            border-radius: 10px; margin: 2px 10px;
+            font-size: 0.9rem; font-weight: 500; transition: 0.2s;
+        }
+        .sidebar .nav-link:hover  { background: rgba(255,255,255,0.14); color: white; }
+        .sidebar .nav-link.active { background: rgba(255,255,255,0.22); color: white; font-weight: 600; }
+        .main-content { margin-left: 250px; padding: 28px; }
+        .stat-card {
+            border-radius: 16px !important; border: none !important;
+            box-shadow: var(--agro-shadow-sm) !important;
+            transition: transform 0.25s, box-shadow 0.25s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--agro-shadow-md) !important; }
+        .stat-icon {
+            width: 56px; height: 56px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+        }
+        .table-container {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: var(--agro-shadow-sm);
+        }
+        .topbar {
+            background: white; padding: 14px 28px;
+            margin: -28px -28px 28px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .chart-card {
+            background: white; border-radius: 16px; padding: 22px;
+            height: 100%; box-shadow: var(--agro-shadow-sm);
+        }
+        .badge-nuevo { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
+        /* Aplicar dash-table a todas las tablas del dashboard */
+        .table-container table,
+        .chart-card table { border-collapse: separate !important; border-spacing: 0 !important; width: 100%; }
+        .table-container thead th,
+        .chart-card thead th {
+            background: var(--agro-green-light) !important;
+            color: var(--agro-green-dark) !important;
+            font-size: 0.75rem !important; font-weight: 700 !important;
+            text-transform: uppercase !important; letter-spacing: 0.5px !important;
+            border: none !important; padding: 11px 14px !important;
+        }
+        .table-container tbody tr:nth-child(even) { background: #fafafa !important; }
+        .table-container tbody tr:hover { background: var(--agro-green-light) !important; }
+        .table-container td {
+            border: none !important; border-bottom: 1px solid #f3f4f6 !important;
+            padding: 9px 14px !important; font-size: 0.875rem !important;
+            vertical-align: middle !important;
+        }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar p-3">
+    <div class="text-center mb-4 pt-2">
+        <img src="/img/logo.jpeg" alt="Logo" style="height:70px; border-radius:10px;">
+        <h6 class="text-white mt-2 fw-bold">Panel Admin</h6>
+    </div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link active" href="#" onclick="mostrarSeccion('inicio',this)">
+                <i class="bi bi-house me-2"></i>Inicio
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSeccion('pedidos',this)" id="link-pedidos">
+                <i class="bi bi-bag me-2"></i>Pedidos
+                <span class="badge bg-danger ms-1 d-none" id="badge-nuevos">0</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSeccion('productos',this)">
+                <i class="bi bi-box me-2"></i>Productos
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSeccion('clientes',this)">
+                <i class="bi bi-people me-2"></i>Clientes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSeccion('categorias',this)">
+                <i class="bi bi-tags me-2"></i>Categorías
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSeccion('animales',this)">
+                <i class="bi bi-heart me-2"></i>Tipos de Animal
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#" onclick="mostrarSeccion('colaboradores',this)">
+                <i class="bi bi-person-badge me-2"></i>Colaboradores
+            </a>
+        </li>
+        <li class="nav-item mt-3">
+            <a class="nav-link text-danger" href="#" onclick="cerrarSesion()">
+                <i class="bi bi-box-arrow-left me-2"></i>Cerrar Sesión
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-success mb-0" id="titulo-seccion">Dashboard</h5>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted">Bienvenido, <strong id="nombre-admin">Admin</strong></span>
+            <i class="bi bi-person-circle fs-4 text-success"></i>
+        </div>
+    </div>
+
+    <!-- ══════════════ INICIO ══════════════ -->
+    <div id="seccion-inicio">
+        <!-- Tarjetas estadísticas -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm p-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-success bg-opacity-10">
+                            <i class="bi bi-people text-success"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Clientes</p>
+                            <h3 class="fw-bold mb-0" id="stat-clientes">-</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm p-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-warning bg-opacity-10">
+                            <i class="bi bi-clock text-warning"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Pedidos Pendientes</p>
+                            <h3 class="fw-bold mb-0" id="stat-pendientes">-</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm p-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-primary bg-opacity-10">
+                            <i class="bi bi-box text-primary"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Productos Activos</p>
+                            <h3 class="fw-bold mb-0" id="stat-productos">-</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm p-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-info bg-opacity-10">
+                            <i class="bi bi-cash-stack text-info"></i>
+                        </div>
+                        <div>
+                            <p class="text-muted mb-0 small">Total Ventas</p>
+                            <h3 class="fw-bold mb-0 fs-5" id="stat-ventas">-</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-8">
+                <div class="chart-card shadow-sm">
+                    <h6 class="fw-bold text-success mb-3">
+                        <i class="bi bi-graph-up me-2"></i>Ventas por Mes (últimos 6 meses)
+                    </h6>
+                    <canvas id="chartVentas" height="100"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-card shadow-sm">
+                    <h6 class="fw-bold text-success mb-3">
+                        <i class="bi bi-trophy me-2"></i>Productos Más Vendidos
+                    </h6>
+                    <canvas id="chartProductos" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="chart-card shadow-sm">
+                    <h6 class="fw-bold text-success mb-3">
+                        <i class="bi bi-boxes me-2"></i>Stock Actual de Productos
+                    </h6>
+                    <canvas id="chartStock" height="150"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="table-container shadow-sm">
+                    <h6 class="fw-bold text-success mb-3">
+                        <i class="bi bi-clock-history me-2"></i>Pedidos Recientes
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle table-sm">
+                            <thead class="table-light">
+                                <tr><th>#</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Acción</th></tr>
+                            </thead>
+                            <tbody id="tabla-pedidos-recientes">
+                                <tr><td colspan="5" class="text-center">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ PEDIDOS ══════════════ -->
+    <div id="seccion-pedidos" class="d-none">
+        <div class="table-container shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-success mb-0"><i class="bi bi-bag me-2"></i>Todos los Pedidos</h6>
+                <button class="btn btn-outline-success btn-sm" onclick="cargarPedidos()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>#</th><th>Cliente</th><th>Dirección</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr>
+                    </thead>
+                    <tbody id="tabla-pedidos">
+                        <tr><td colspan="7" class="text-center">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ PRODUCTOS ══════════════ -->
+    <div id="seccion-productos" class="d-none">
+        <div class="table-container shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-success mb-0"><i class="bi bi-box me-2"></i>Inventario de Productos</h6>
+                <button class="btn btn-success btn-sm" onclick="mostrarModalProducto()">
+                    <i class="bi bi-plus-lg me-1"></i>Nuevo Producto
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>#</th><th>Imagen</th><th>Producto</th><th>Categoría</th><th>Animal</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="tabla-productos">
+                        <tr><td colspan="9" class="text-center">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ CLIENTES ══════════════ -->
+    <div id="seccion-clientes" class="d-none">
+        <div class="table-container shadow-sm">
+            <h6 class="fw-bold text-success mb-3"><i class="bi bi-people me-2"></i>Clientes Registrados</h6>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>#</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Documento</th><th>Fecha Registro</th></tr>
+                    </thead>
+                    <tbody id="tabla-clientes">
+                        <tr><td colspan="6" class="text-center">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ CATEGORÍAS ══════════════ -->
+    <div id="seccion-categorias" class="d-none">
+        <div class="table-container shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-success mb-0"><i class="bi bi-tags me-2"></i>Categorías de Producto</h6>
+                <button class="btn btn-success btn-sm" onclick="mostrarModalCategoria()">
+                    <i class="bi bi-plus-lg me-1"></i>Nueva Categoría
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>#</th><th>Nombre</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="tabla-categorias">
+                        <tr><td colspan="5" class="text-center">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ ANIMALES ══════════════ -->
+    <div id="seccion-animales" class="d-none">
+        <div class="table-container shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-success mb-0"><i class="bi bi-heart me-2"></i>Tipos de Animal</h6>
+                <button class="btn btn-success btn-sm" onclick="mostrarModalAnimal()">
+                    <i class="bi bi-plus-lg me-1"></i>Nuevo Animal
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>#</th><th>Nombre</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="tabla-animales">
+                        <tr><td colspan="4" class="text-center">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ COLABORADORES ══════════════ -->
+    <div id="seccion-colaboradores" class="d-none">
+        <div class="table-container shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-success mb-0"><i class="bi bi-person-badge me-2"></i>Colaboradores</h6>
+                <button class="btn btn-success btn-sm" onclick="mostrarModalColaborador()">
+                    <i class="bi bi-plus-lg me-1"></i>Nuevo Colaborador
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>#</th><th>Nombre</th><th>Usuario</th><th>DNI</th><th>Cargo</th><th>Correo</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="tabla-colaboradores">
+                        <tr><td colspan="8" class="text-center">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div><!-- fin main-content -->
+
+<!-- ════════════════════════════════════════════
+     MODALES
+════════════════════════════════════════════ -->
+<!-- MODAL PRODUCTO -->
+<div class="modal fade" id="modalProducto" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-success" id="modal-titulo">Nuevo Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="prod-id">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="prod-nombre" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Precio (S/.) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="prod-precio" step="0.01" min="0" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Stock <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="prod-stock" min="0" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción</label>
+                    <textarea class="form-control" id="prod-descripcion" rows="2"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
+                        <select class="form-select" id="prod-categoria" required>
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Tipo de Animal <span class="text-danger">*</span></label>
+                        <select class="form-select" id="prod-animal" required>
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- IMAGEN -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Imagen del Producto</label>
+                    <ul class="nav nav-tabs mb-2" id="tabsImagen">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="switchTab('archivo',this); return false;">
+                                <i class="bi bi-upload me-1"></i>Subir desde PC
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="switchTab('url',this); return false;">
+                                <i class="bi bi-link me-1"></i>URL / Nombre
+                            </a>
+                        </li>
+                    </ul>
+                    <div id="tab-archivo">
+                        <input type="file" class="form-control" id="prod-imagen-file" accept="image/*"
+                               onchange="previsualizarImagen(this)">
+                        <div id="preview-container" class="mt-2 d-none">
+                            <img id="preview-img" src="" alt="preview"
+                                 style="max-height:120px; border-radius:8px; border:1px solid #ddd;">
+                        </div>
+                    </div>
+                    <div id="tab-url" class="d-none">
+                        <input type="text" class="form-control" id="prod-imagen-url"
+                               placeholder="Ej: producto.jpg  o  https://...">
+                    </div>
+                    <input type="hidden" id="prod-imagen-final">
+                </div>
+
+                <!-- CAMPOS MEDICAMENTO -->
+                <div id="campos-medicamento" style="display:none">
+                    <hr class="my-2">
+                    <p class="fw-bold text-muted small mb-2">
+                        <i class="bi bi-clipboard2-pulse me-1"></i>DATOS DEL MEDICAMENTO
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Marca</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="prod-marca-med" placeholder="Ej: Bayer, PetCare...">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Presentación</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="prod-presentacion" placeholder="Ej: Caja x 10 tabletas, 30ml...">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Fecha de Vencimiento</label>
+                            <input type="date" class="form-control form-control-sm"
+                                    id="prod-vencimiento" min="">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Composición</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="prod-composicion" placeholder="Ej: Ivermectina 1%...">
+                        </div>
+                        <div class="col-12 mb-2">
+                            <label class="form-label fw-bold small">Modo de Uso</label>
+                            <textarea class="form-control form-control-sm" id="prod-modo-uso"
+                                      rows="2" placeholder="Ej: Administrar 1 tableta cada 8 horas..."></textarea>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <label class="form-label fw-bold small">
+                                <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>Ficha Técnica (PDF en Google Drive)
+                            </label>
+                            <div class="input-group input-group-sm mb-1">
+                                <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                                <input type="url" id="prod-ficha-tecnica"
+                                       class="form-control form-control-sm"
+                                       placeholder="Pega aquí el enlace de Google Drive del PDF...">
+                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                        onclick="verFichaTecnica()">
+                                    <i class="bi bi-eye"></i> Ver
+                                </button>
+                            </div>
+                            <div id="ficha-preview" class="d-none mt-1">
+                                <a id="ficha-link" href="#" target="_blank"
+                                   class="btn btn-sm btn-danger w-100">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i>Abrir Ficha Técnica en Drive
+                                </a>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Sube el PDF a la carpeta <strong>"Fichas Tecnicas Agroveterinaria"</strong> en Drive
+                                → clic derecho → <strong>"Compartir enlace"</strong> → copia y pega aquí.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CAMPOS ACCESORIO -->
+                <div id="campos-accesorio" style="display:none">
+                    <hr class="my-2">
+                    <p class="fw-bold text-muted small mb-2">
+                        <i class="bi bi-tags me-1"></i>ATRIBUTOS DEL ACCESORIO
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Marca</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="prod-marca-acc" placeholder="Ej: Kong, Trixie...">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Colores disponibles</label>
+                            <div class="d-flex gap-1 flex-wrap mb-1" id="colores-tags"></div>
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="color-nuevo" class="form-control"
+                                       placeholder="Ej: Rojo"
+                                       onkeydown="if(event.key==='Enter'){agregarTag('color');event.preventDefault();}">
+                                <button class="btn btn-outline-secondary" type="button"
+                                        onclick="agregarTag('color')">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" id="prod-colores">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Tallas disponibles</label>
+                            <div class="d-flex gap-1 flex-wrap mb-1" id="tallas-tags"></div>
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="talla-nueva" class="form-control"
+                                       placeholder="Ej: S, M, L, XL"
+                                       onkeydown="if(event.key==='Enter'){agregarTag('talla');event.preventDefault();}">
+                                <button class="btn btn-outline-secondary" type="button"
+                                        onclick="agregarTag('talla')">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" id="prod-tallas">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Especificaciones</label>
+                            <textarea class="form-control form-control-sm" id="prod-ficha-acc"
+                                      rows="3" placeholder="Ej: Material, dimensiones..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CAMPOS ALIMENTO -->
+                <div id="campos-alimento" style="display:none">
+                    <hr class="my-2">
+                    <p class="fw-bold text-muted small mb-2">
+                        <i class="bi bi-egg-fried me-1"></i>INFORMACIÓN DEL ALIMENTO
+                    </p>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Marca</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="prod-marca-ali" placeholder="Ej: Purina, Royal Canin...">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Peso / Presentación</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="prod-peso-ali" placeholder="Ej: 1kg, 5kg, 500g...">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Fecha de Vencimiento</label>
+                            <input type="date" class="form-control form-control-sm"
+                                   id="prod-vencimiento-ali" min="">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Composición</label>
+                            <input type="text" class="form-control form-control-sm"
+                                   id="prod-composicion-ali" placeholder="Ej: Pollo, arroz, vitaminas...">
+                        </div>
+                        <div class="col-12 mb-2">
+                            <label class="form-label fw-bold small">Información Nutricional</label>
+                            <textarea class="form-control form-control-sm" id="prod-ficha-ali"
+                                      rows="2" placeholder="Ej: Proteína 28%, Grasa 15%..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- fin modal-body -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarProducto()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CATEGORIA -->
+
+
+<!-- MODAL CATEGORIA -->
+<div class="modal fade" id="modalCategoria" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-success" id="modal-cat-titulo">Nueva Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cat-id">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="cat-nombre" placeholder="Ej: Vitaminas" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción</label>
+                    <textarea class="form-control" id="cat-descripcion" rows="2"></textarea>
+                </div>
+                <!-- Estado SOLO se muestra al editar -->
+                <div class="mb-3 d-none" id="campo-cat-estado">
+                    <label class="form-label fw-bold">Estado</label>
+                    <select class="form-select" id="cat-estado">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarCategoria()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ANIMAL -->
+<div class="modal fade" id="modalAnimal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-success" id="modal-ani-titulo">Nuevo Tipo de Animal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ani-id">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre del Animal <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="ani-nombre" placeholder="Ej: Conejo, Hamster..." required>
+                </div>
+                <!-- Estado SOLO se muestra al editar -->
+                <div class="mb-3 d-none" id="campo-ani-estado">
+                    <label class="form-label fw-bold">Estado</label>
+                    <select class="form-select" id="ani-estado">
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarAnimal()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL COLABORADOR -->
+<div class="modal fade" id="modalColaborador" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-success" id="modal-col-titulo">Nuevo Colaborador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="col-id">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Nombres <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="col-nombres" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Apellido Paterno</label>
+                        <input type="text" class="form-control" id="col-apellido-p">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Apellido Materno</label>
+                        <input type="text" class="form-control" id="col-apellido-m">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">DNI <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="col-dni" maxlength="8">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Teléfono</label>
+                        <input type="text" class="form-control" id="col-telefono" maxlength="15">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Correo <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="col-correo" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Usuario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="col-usuario" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Cargo <span class="text-danger">*</span></label>
+                        <select class="form-select" id="col-cargo" required>
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3" id="campo-col-estado-wrap" style="display:none">
+                        <label class="form-label fw-bold">Estado</label>
+                        <select class="form-select" id="col-estado">
+                            <option value="ACTIVO">Activo</option>
+                            <option value="INACTIVO">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Contraseña: solo al crear -->
+                <div id="campo-col-password">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="col-password">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Confirmar Contraseña <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="col-password2">
+                        </div>
+                    </div>
+                </div>
+                <!-- Reset contraseña: solo al editar -->
+                <div id="campo-col-reset" class="d-none">
+                    <div class="alert alert-info py-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        ¿Deseas restablecer la contraseña?
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="mostrarResetPassword()">
+                            Cambiar contraseña
+                        </button>
+                    </div>
+                    <div id="reset-pass-form" class="d-none">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <input type="password" class="form-control" id="col-nueva-password" placeholder="Nueva contraseña">
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <input type="password" class="form-control" id="col-nueva-password2" placeholder="Confirmar contraseña">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="guardarColaborador()">
+                    <i class="bi bi-check-lg me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module" src="/js/notificaciones.js"></script>
+</body>
+</html>
