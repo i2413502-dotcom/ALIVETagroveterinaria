@@ -64,6 +64,12 @@
             padding: 9px 14px !important; font-size: 0.875rem !important;
             vertical-align: middle !important;
         }
+        /* Botón Cerrar Sesión: alerta suave sobre el sidebar oscuro */
+        .sidebar .nav-link.btn-logout {
+            background: rgba(255,255,255,0.10); color: #ffd6d6 !important;
+            font-weight: 600; border: 1px solid rgba(255,107,107,0.4);
+        }
+        .sidebar .nav-link.btn-logout:hover { background: #e74c3c; color: #fff !important; border-color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -111,8 +117,18 @@
                 <i class="bi bi-person-badge me-2"></i>Colaboradores
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/reportes.html">
+                <i class="bi bi-graph-up-arrow me-2"></i>Reportes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/ventas.html">
+                <i class="bi bi-receipt-cutoff me-2"></i>Ventas
+            </a>
+        </li>
         <li class="nav-item mt-3">
-            <a class="nav-link text-danger" href="#" onclick="cerrarSesion()">
+            <a class="nav-link btn-logout" href="#" onclick="cerrarSesion()">
                 <i class="bi bi-box-arrow-left me-2"></i>Cerrar Sesión
             </a>
         </li>
@@ -243,9 +259,21 @@
         <div class="table-container shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-success mb-0"><i class="bi bi-bag me-2"></i>Todos los Pedidos</h6>
-                <button class="btn btn-outline-success btn-sm" onclick="cargarPedidos()">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success btn-sm" onclick="cargarPedidos()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i>Exportar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('pedidos','excel');return false;"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Excel</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('pedidos','pdf');return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('pedidos','powerbi');return false;"><i class="bi bi-bar-chart-line text-warning me-2"></i>Power BI</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -265,9 +293,21 @@
         <div class="table-container shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-success mb-0"><i class="bi bi-box me-2"></i>Inventario de Productos</h6>
-                <button class="btn btn-success btn-sm" onclick="mostrarModalProducto()">
-                    <i class="bi bi-plus-lg me-1"></i>Nuevo Producto
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="mostrarModalProducto()">
+                        <i class="bi bi-plus-lg me-1"></i>Nuevo Producto
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i>Exportar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('productos','excel');return false;"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Excel</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('productos','pdf');return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('productos','powerbi');return false;"><i class="bi bi-bar-chart-line text-warning me-2"></i>Power BI</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -279,13 +319,26 @@
                     </tbody>
                 </table>
             </div>
+            <div id="paginacion-productos" class="d-flex justify-content-center align-items-center gap-2 mt-3 flex-wrap"></div>
         </div>
     </div>
 
     <!-- ══════════════ CLIENTES ══════════════ -->
     <div id="seccion-clientes" class="d-none">
         <div class="table-container shadow-sm">
-            <h6 class="fw-bold text-success mb-3"><i class="bi bi-people me-2"></i>Clientes Registrados</h6>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-success mb-0"><i class="bi bi-people me-2"></i>Clientes Registrados</h6>
+                <div class="dropdown">
+                    <button class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-download me-1"></i>Exportar
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" onclick="exportarTabla('clientes','excel');return false;"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Excel</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportarTabla('clientes','pdf');return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="exportarTabla('clientes','powerbi');return false;"><i class="bi bi-bar-chart-line text-warning me-2"></i>Power BI</a></li>
+                    </ul>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
@@ -304,9 +357,21 @@
         <div class="table-container shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-success mb-0"><i class="bi bi-tags me-2"></i>Categorías de Producto</h6>
-                <button class="btn btn-success btn-sm" onclick="mostrarModalCategoria()">
-                    <i class="bi bi-plus-lg me-1"></i>Nueva Categoría
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="mostrarModalCategoria()">
+                        <i class="bi bi-plus-lg me-1"></i>Nueva Categoría
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i>Exportar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('categorias','excel');return false;"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Excel</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('categorias','pdf');return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('categorias','powerbi');return false;"><i class="bi bi-bar-chart-line text-warning me-2"></i>Power BI</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -326,9 +391,21 @@
         <div class="table-container shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-success mb-0"><i class="bi bi-heart me-2"></i>Tipos de Animal</h6>
-                <button class="btn btn-success btn-sm" onclick="mostrarModalAnimal()">
-                    <i class="bi bi-plus-lg me-1"></i>Nuevo Animal
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="mostrarModalAnimal()">
+                        <i class="bi bi-plus-lg me-1"></i>Nuevo Animal
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i>Exportar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('animales','excel');return false;"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Excel</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('animales','pdf');return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('animales','powerbi');return false;"><i class="bi bi-bar-chart-line text-warning me-2"></i>Power BI</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -348,9 +425,21 @@
         <div class="table-container shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold text-success mb-0"><i class="bi bi-person-badge me-2"></i>Colaboradores</h6>
-                <button class="btn btn-success btn-sm" onclick="mostrarModalColaborador()">
-                    <i class="bi bi-plus-lg me-1"></i>Nuevo Colaborador
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="mostrarModalColaborador()">
+                        <i class="bi bi-plus-lg me-1"></i>Nuevo Colaborador
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i>Exportar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('colaboradores','excel');return false;"><i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>Excel</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('colaboradores','pdf');return false;"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportarTabla('colaboradores','powerbi');return false;"><i class="bi bi-bar-chart-line text-warning me-2"></i>Power BI</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -380,6 +469,21 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="prod-id">
+                <!-- Categoría y Tipo de Animal primero: definen los campos dinámicos que se muestran -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
+                        <select class="form-select" id="prod-categoria" required>
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Tipo de Animal <span class="text-danger">*</span></label>
+                        <select class="form-select" id="prod-animal" required>
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
@@ -397,20 +501,6 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">Descripción</label>
                     <textarea class="form-control" id="prod-descripcion" rows="2"></textarea>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
-                        <select class="form-select" id="prod-categoria" required>
-                            <option value="">-- Seleccionar --</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Tipo de Animal <span class="text-danger">*</span></label>
-                        <select class="form-select" id="prod-animal" required>
-                            <option value="">-- Seleccionar --</option>
-                        </select>
-                    </div>
                 </div>
                 <!-- IMAGEN -->
                 <div class="mb-3">

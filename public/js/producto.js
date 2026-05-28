@@ -51,9 +51,8 @@ function construirFichaTecnica(p) {
        class="btn btn-sm btn-danger">
         <i class="bi bi-file-earmark-pdf-fill me-1"></i>Ver Ficha Técnica (PDF)
     </a>
-</td></tr>` : '',
-
-            filaVence
+</td></tr>` : ''
+            // Vencimiento OCULTO para medicamentos (no se muestra al cliente)
         ].filter(Boolean).join('');
 
         if (!filas) return '';

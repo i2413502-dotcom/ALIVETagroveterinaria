@@ -51,6 +51,9 @@
             border-bottom: 1px solid #e9ecef; }
         .prod-item:last-child { border-bottom: none; }
         .prod-img { width: 45px; height: 45px; object-fit: cover; border-radius: 8px; }
+        /* Botón Cerrar Sesión: alerta suave de marca */
+        .nav-perfil .logout-link { background: #fdecee; color: #c0392b !important; font-weight: 600; }
+        .nav-perfil .logout-link:hover { background: #c0392b; color: #fff !important; }
     </style>
 </head>
 <body>
@@ -100,7 +103,7 @@
                         </a>
                     </li>
                     <li class="nav-item mt-2">
-                        <a class="nav-link text-danger" href="#" onclick="cerrarSesion()">
+                        <a class="nav-link logout-link" href="#" onclick="cerrarSesion()">
                             <i class="bi bi-box-arrow-left me-2"></i>Cerrar sesión
                         </a>
                     </li>
@@ -135,7 +138,9 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Teléfono</label>
-                                <input type="tel" class="form-control" id="datos-telefono" maxlength="9">
+                                <input type="tel" class="form-control" id="datos-telefono"
+                                       inputmode="numeric" pattern="9[0-9]{8}" maxlength="9"
+                                       title="9 dígitos, debe empezar con 9">
                             </div>
                         </div>
                         <div class="row mb-3">

@@ -18,18 +18,6 @@ function seleccionarMetodo(metodo) {
     }
 }
 
-function formatearTarjeta(input) {
-    let valor = input.value.replace(/\D/g, '');
-    valor = valor.match(/.{1,4}/g)?.join(' ') || valor;
-    input.value = valor;
-}
-
-function formatearVencimiento(input) {
-    let valor = input.value.replace(/\D/g, '');
-    if (valor.length >= 2) valor = valor.slice(0,2) + '/' + valor.slice(2);
-    input.value = valor;
-}
-
 async function procesarPago() {
     if (!metodoSeleccionado) {
         document.getElementById('mensaje-metodo').classList.remove('d-none');
@@ -40,21 +28,14 @@ async function procesarPago() {
 
     if (metodoSeleccionado === 'yape') {
         codigoTransaccion = document.getElementById('codigo-yape').value.trim();
-        if (!codigoTransaccion) {
-            alert('Ingresa el número de operación Yape');
+        if (!/^\d{6,}$/.test(codigoTransaccion)) {
+            alert('Ingresa un número de operación Yape válido (solo dígitos, mínimo 6).');
             return;
         }
     } else {
-        const numero = document.getElementById('numero-tarjeta').value.trim();
-        const nombre = document.getElementById('nombre-tarjeta').value.trim();
-        const venc = document.getElementById('vencimiento').value.trim();
-        const cvv = document.getElementById('cvv').value.trim();
-
-        if (!numero || !nombre || !venc || !cvv) {
-            alert('Por favor completa todos los datos de la tarjeta');
-            return;
-        }
-        codigoTransaccion = 'TARJ-' + Date.now();
+        // Pago con tarjeta deshabilitado: no se recolectan datos de tarjeta (pasarela segura externa)
+        alert('El pago con tarjeta estará disponible mediante una pasarela segura. Por ahora usa Yape.');
+        return;
     }
 
     // Obtener todos los datos guardados

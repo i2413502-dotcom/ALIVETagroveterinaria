@@ -51,6 +51,18 @@ const register = async (req, res) => {
             return res.status(400).json({ mensaje: "Campos obligatorios faltantes" });
         }
 
+        // Validación estricta de documento (última línea de defensa)
+        if (tipoDocumento === 'DNI' && !/^\d{8}$/.test(numeroDocumento || '')) {
+            return res.status(400).json({ mensaje: "El DNI debe tener exactamente 8 dígitos numéricos" });
+        }
+        if (tipoDocumento === 'RUC' && !/^\d{11}$/.test(numeroDocumento || '')) {
+            return res.status(400).json({ mensaje: "El RUC debe tener exactamente 11 dígitos numéricos" });
+        }
+        // Validación de teléfono (9 dígitos, empieza con 9)
+        if (telefono && !/^9\d{8}$/.test(telefono)) {
+            return res.status(400).json({ mensaje: "El teléfono debe tener 9 dígitos y empezar con 9" });
+        }
+
         const existe = await authModel.findByEmail(correo);
         if (existe) return res.status(400).json({ mensaje: "Correo ya registrado" });
 
@@ -206,7 +218,12 @@ const guardarDireccionHabitual = async (req, res) => {
         if (!token) return res.status(401).json({ mensaje: 'No autorizado' });
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const { direccion, referencia } = req.body;
+        const { direccion, referencia, telefono } = req.body;
+
+        // Validación de teléfono (si llega desde el checkout)
+        if (telefono && !/^9\d{8}$/.test(telefono)) {
+            return res.status(400).json({ mensaje: 'El teléfono debe tener 9 dígitos y empezar con 9' });
+        }
 
         const [clienteRows] = await db.query(
             'SELECT id_cliente FROM cliente WHERE id_persona = ?', [decoded.id]
@@ -217,6 +234,14 @@ const guardarDireccionHabitual = async (req, res) => {
             'UPDATE cliente SET direccion_habitual = ?, referencia_habitual = ? WHERE id_persona = ?',
             [direccion || null, referencia || null, decoded.id]
         );
+
+        // Persistir el teléfono en el perfil del cliente (antes solo vivía en el pedido)
+        if (telefono) {
+            await db.query(
+                'UPDATE persona SET telefono = ? WHERE id_persona = ?',
+                [telefono, decoded.id]
+            );
+        }
 
         res.json({ mensaje: 'Dirección guardada' });
     } catch (err) {
@@ -233,8 +258,13 @@ const actualizarPerfil = async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const { nombres, apellido_paterno, apellido_materno, telefono } = req.body;
 
+        // Validación de teléfono (9 dígitos, empieza con 9)
+        if (telefono && !/^9\d{8}$/.test(telefono)) {
+            return res.status(400).json({ mensaje: "El teléfono debe tener 9 dígitos y empezar con 9" });
+        }
+
         await db.query(
-            `UPDATE persona SET nombres=?, apellido_paterno=?, 
+            `UPDATE persona SET nombres=?, apellido_paterno=?,
              apellido_materno=?, telefono=? WHERE id_persona=?`,
             [nombres, apellido_paterno, apellido_materno, telefono, decoded.id]
         );

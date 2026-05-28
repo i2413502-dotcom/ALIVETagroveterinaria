@@ -21,15 +21,20 @@ const storage = multer.diskStorage({
     }
 });
 
+// Solo se aceptan estos MIME types (rechazo ANTES de escribir en disco)
+const MIMES_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
+
 const upload = multer({
     storage,
     fileFilter: (req, file, cb) => {
-        const tipos = /jpeg|jpg|png|webp|gif/;
-        const extValida = tipos.test(path.extname(file.originalname).toLowerCase());
-        if (extValida) {
+        const mimeOk = MIMES_PERMITIDOS.includes(file.mimetype);
+        const extOk  = /\.(jpe?g|png|webp)$/i.test(file.originalname);
+        if (mimeOk && extOk) {
             cb(null, true);
         } else {
-            cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, webp, gif)'), false);
+            const err = new Error('Formato no permitido. Solo se aceptan imágenes JPEG, PNG o WEBP.');
+            err.code = 'INVALID_FILE_TYPE';
+            cb(err, false);
         }
     },
     limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
@@ -62,6 +67,8 @@ app.use('/api/pedidos',       require('./routes/pedido.routes.js'));
 app.use('/api/clientes',      require('./routes/cliente.routes.js'));
 app.use('/api/ubigeo',        require('./routes/ubigeo.routes.js'));
 app.use('/api/colaboradores', require('./routes/colaborador.routes.js'));
+app.use('/api/reportes',      require('./routes/reporte.routes.js'));
+app.use('/api/ventas',        require('./routes/venta.routes.js'));
 app.use('/',                  require('./routes/dashboard.routes.js'));
 app.use('/api/inventario',    require('./routes/inventario.routes.js'));
 
@@ -121,7 +128,10 @@ app.use((err, req, res, next) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ mensaje: 'La imagen no debe superar los 5MB' });
     }
-    
+    if (err.code === 'INVALID_FILE_TYPE') {
+        return res.status(400).json({ mensaje: err.message });
+    }
+
     res.status(500).json({ mensaje: 'Error interno del servidor' });
 });
 

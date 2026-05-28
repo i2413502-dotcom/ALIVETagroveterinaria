@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - AgroVeterinaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .sidebar {
+            width: 250px; min-height: 100vh;
+            background: linear-gradient(180deg, var(--agro-green-dark) 0%, #024d22 100%);
+            position: fixed; top: 0; left: 0; overflow-y: auto;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.82); padding: 11px 18px;
+            border-radius: 10px; margin: 2px 10px;
+            font-size: 0.9rem; font-weight: 500; transition: 0.2s;
+        }
+        .sidebar .nav-link:hover  { background: rgba(255,255,255,0.14); color: white; }
+        .sidebar .nav-link.active { background: rgba(255,255,255,0.22); color: white; font-weight: 600; }
+        .sidebar .nav-link.btn-logout {
+            background: rgba(255,255,255,0.10); color: #ffd6d6 !important;
+            font-weight: 600; border: 1px solid rgba(255,107,107,0.4);
+        }
+        .sidebar .nav-link.btn-logout:hover { background: #e74c3c; color: #fff !important; border-color: #e74c3c; }
+        .main-content { margin-left: 250px; padding: 28px; }
+        .stat-card {
+            border-radius: 16px !important; border: none !important;
+            box-shadow: var(--agro-shadow-sm) !important;
+            transition: transform 0.25s, box-shadow 0.25s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--agro-shadow-md) !important; }
+        .stat-icon {
+            width: 56px; height: 56px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+        }
+        .table-container, .chart-card {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: var(--agro-shadow-sm); height: 100%;
+        }
+        .topbar {
+            background: white; padding: 14px 28px;
+            margin: -28px -28px 28px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .table-container thead th {
+            background: var(--agro-green-light) !important;
+            color: var(--agro-green-dark) !important;
+            font-size: 0.75rem !important; font-weight: 700 !important;
+            text-transform: uppercase !important; letter-spacing: 0.5px !important;
+            border: none !important; padding: 11px 14px !important;
+        }
+        .table-container tbody tr:nth-child(even) { background: #fafafa !important; }
+        .table-container td {
+            border: none !important; border-bottom: 1px solid #f3f4f6 !important;
+            padding: 9px 14px !important; font-size: 0.875rem !important; vertical-align: middle !important;
+        }
+        .export-card {
+            background: white; border-radius: 16px; padding: 26px; text-align: center;
+            box-shadow: var(--agro-shadow-sm); height: 100%;
+            transition: transform 0.25s, box-shadow 0.25s;
+        }
+        .export-card:hover { transform: translateY(-4px); box-shadow: var(--agro-shadow-md); }
+        .export-icon { font-size: 2.6rem; }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar p-3">
+    <div class="text-center mb-4 pt-2">
+        <img src="/img/logo.jpeg" alt="Logo" style="height:70px; border-radius:10px;">
+        <h6 class="text-white mt-2 fw-bold">Panel Admin</h6>
+    </div>
+    <ul class="nav flex-column">
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html"><i class="bi bi-house me-2"></i>Inicio</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=pedidos"><i class="bi bi-bag me-2"></i>Pedidos</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=productos"><i class="bi bi-box me-2"></i>Productos</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=clientes"><i class="bi bi-people me-2"></i>Clientes</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=categorias"><i class="bi bi-tags me-2"></i>Categorías</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=animales"><i class="bi bi-heart me-2"></i>Tipos de Animal</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=colaboradores"><i class="bi bi-person-badge me-2"></i>Colaboradores</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/reportes.html"><i class="bi bi-graph-up-arrow me-2"></i>Reportes</a></li>
+        <li class="nav-item"><a class="nav-link" href="/ventas.html"><i class="bi bi-receipt-cutoff me-2"></i>Ventas</a></li>
+        <li class="nav-item mt-3">
+            <a class="nav-link btn-logout" href="#" onclick="cerrarSesion()">
+                <i class="bi bi-box-arrow-left me-2"></i>Cerrar Sesión
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="main-content">
+
+    <div class="topbar d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-success mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Reportes y Analítica</h5>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted">Bienvenido, <strong id="nombre-admin">Admin</strong></span>
+            <i class="bi bi-person-circle fs-4 text-success"></i>
+        </div>
+    </div>
+
+    <!-- ══ FILA 1: KPIs ══ -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-success bg-opacity-10"><i class="bi bi-cash-coin text-success"></i></div>
+                    <div>
+                        <p class="text-muted mb-0 small">Ventas Hoy</p>
+                        <h3 class="fw-bold mb-0 fs-4" id="kpi-ventas-hoy">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-info bg-opacity-10"><i class="bi bi-graph-up text-info"></i></div>
+                    <div>
+                        <p class="text-muted mb-0 small">Ventas del Mes</p>
+                        <h3 class="fw-bold mb-0 fs-4" id="kpi-ventas-mes">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-primary bg-opacity-10"><i class="bi bi-box text-primary"></i></div>
+                    <div>
+                        <p class="text-muted mb-0 small">Productos Activos</p>
+                        <h3 class="fw-bold mb-0" id="kpi-productos">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-danger bg-opacity-10"><i class="bi bi-exclamation-triangle text-danger"></i></div>
+                    <div>
+                        <p class="text-muted mb-0 small">Alertas de Stock</p>
+                        <h3 class="fw-bold mb-0" id="kpi-alertas">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ FILA 2: Gráfico + Tabla ══ -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-7">
+            <div class="chart-card">
+                <h6 class="fw-bold text-success mb-3"><i class="bi bi-bar-chart me-2"></i>Ventas por Categoría</h6>
+                <canvas id="chartCategorias" height="140"></canvas>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="table-container">
+                <h6 class="fw-bold text-success mb-3"><i class="bi bi-exclamation-triangle me-2"></i>Productos con Stock Bajo</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr><th>Producto</th><th>Categoría</th><th class="text-center">Stock</th><th class="text-center">Mín.</th></tr>
+                        </thead>
+                        <tbody id="tabla-stock-bajo">
+                            <tr><td colspan="4" class="text-center">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ FILA 3: Exportar Datos ══ -->
+    <h5 class="fw-bold text-success mb-3"><i class="bi bi-download me-2"></i>Exportar Datos</h5>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="export-card">
+                <div class="export-icon text-danger"><i class="bi bi-file-earmark-pdf"></i></div>
+                <h6 class="fw-bold mt-2">Reporte de Ventas</h6>
+                <p class="text-muted small">Documento PDF con el detalle tabular de ventas.</p>
+                <button class="btn btn-danger w-100" onclick="exportar('ventas-pdf','reporte-ventas.pdf', this)">
+                    <i class="bi bi-download me-1"></i>Descargar PDF
+                </button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="export-card">
+                <div class="export-icon text-success"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+                <h6 class="fw-bold mt-2">Inventario Completo</h6>
+                <p class="text-muted small">Excel con todos los productos y su stock.</p>
+                <button class="btn btn-success w-100" onclick="exportar('productos-excel','inventario.xlsx', this)">
+                    <i class="bi bi-download me-1"></i>Descargar Excel
+                </button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="export-card">
+                <div class="export-icon text-warning"><i class="bi bi-bar-chart-line"></i></div>
+                <h6 class="fw-bold mt-2">Datos para Power BI</h6>
+                <p class="text-muted small">Excel crudo (solo datos) para analítica externa.</p>
+                <button class="btn btn-outline-secondary w-100" onclick="exportar('ventas-powerbi','ventas-powerbi.xlsx', this)">
+                    <i class="bi bi-download me-1"></i>Descargar datos
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- fin main-content -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/reportes.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

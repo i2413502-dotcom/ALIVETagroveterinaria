@@ -15,6 +15,8 @@ let productosLista = [], categoriasLista = [], animalesLista = [], colaboradores
 let chartVentas = null, chartProductos = null, chartStock = null;
 let intervaloPedidos = null;
 let ultimosPedidosIds = new Set();
+let paginaProductos = 1;
+const LIMITE_PRODUCTOS = 20;
 
 // ═══════════════════════════════════════════════════
 //  ACCESO
@@ -57,6 +59,30 @@ function cerrarSesion() {
     if (intervaloPedidos) clearInterval(intervaloPedidos);
     ['token','rol','nombre'].forEach(k => localStorage.removeItem(k));
     window.location.href = '/login.html';
+}
+
+// Exportar el contenido de un tab (entidad) en el formato dado: excel | pdf | powerbi
+async function exportarTabla(entidad, formato) {
+    try {
+        const res = await fetch(`/api/reportes/exportar/${entidad}/${formato}`);
+        if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            throw new Error(e.mensaje || 'No se pudo exportar');
+        }
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const ext  = formato === 'pdf' ? 'pdf' : 'xlsx';
+        const suf  = formato === 'powerbi' ? '-powerbi' : '';
+        a.href = url;
+        a.download = `${entidad}${suf}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Error al exportar: ' + err.message);
+    }
 }
 
 // ═══════════════════════════════════════════════════
@@ -292,11 +318,15 @@ async function actualizarEstado(id, estado) {
 // ═══════════════════════════════════════════════════
 async function cargarProductos() {
     try {
-        const res = await fetch('/api/productos');
-        productosLista = await res.json();
+        // incluirInactivos=1 → el panel admin ve también los desactivados (el catálogo público no)
+        // Paginación del lado del servidor (igual que el catálogo público)
+        const res  = await fetch(`/api/productos?incluirInactivos=1&pagina=${paginaProductos}&limite=${LIMITE_PRODUCTOS}`);
+        const data = await res.json();
+        productosLista = data.productos || [];
         const tbody = document.getElementById('tabla-productos');
         if (!productosLista.length) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No hay productos</td></tr>';
+            renderPaginacionProductos({ pagina: 1, totalPaginas: 1, total: 0 });
             return;
         }
         tbody.innerHTML = productosLista.map(p => {
@@ -306,56 +336,113 @@ async function cargarProductos() {
             const imgSrc = p.imagen
                 ? (p.imagen.startsWith('http') ? p.imagen : `/img/productos/${p.imagen}`)
                 : '/img/logo.jpeg';
+
+            const inactivo = p.estado === 'INACTIVO';
+
+            // Enlace a ficha técnica (fuera del botón de editar)
+            const fichaBtn = p.ficha_tecnica ? `
+                    <a href="${convertirUrlDrive(p.ficha_tecnica)}" target="_blank"
+                       class="btn btn-sm btn-outline-secondary me-1" title="Ver Ficha Técnica">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                    </a>` : '';
+
+            // Botón cambiar estado: si está activo → desactivar; si está inactivo → activar
+            const toggleBtn = inactivo
+                ? `<button class="btn btn-sm btn-outline-success me-1" title="Activar producto"
+                           onclick="cambiarEstadoProducto(${p.id_producto}, 'ACTIVO')">
+                        <i class="bi bi-toggle-off"></i>
+                   </button>`
+                : `<button class="btn btn-sm btn-outline-warning me-1" title="Desactivar producto"
+                           onclick="cambiarEstadoProducto(${p.id_producto}, 'INACTIVO')">
+                        <i class="bi bi-toggle-on"></i>
+                   </button>`;
+
             return `
-            <tr>
+            <tr class="${inactivo ? 'opacity-50' : ''}">
                 <td>${p.id_producto}</td>
                 <td><img src="${imgSrc}" alt="img" style="width:45px;height:45px;object-fit:cover;border-radius:8px;"></td>
-                <td><strong>${p.nombre}</strong></td>
+                <td><strong>${p.nombre}</strong>${inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
                 <td>${p.categoria || '-'}</td>
                 <td>${p.tipo_animal || '-'}</td>
                 <td class="text-success fw-bold">S/. ${parseFloat(p.precio_venta).toFixed(2)}</td>
                 <td>${p.stock_actual}</td>
                 <td>${stockEstado}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarProducto(${p.id_producto})">
-                        ${p.ficha_tecnica ? `
-<a href="${convertirUrlDrive(p.ficha_tecnica)}" target="_blank"
-   class="btn btn-sm btn-outline-danger ms-1" title="Ver Ficha Técnica">
-    <i class="bi bi-file-earmark-pdf"></i>
-</a>` : ''}
+                <td class="text-nowrap">
+                    ${fichaBtn}
+                    <button class="btn btn-sm btn-outline-primary me-1" title="Editar producto" onclick="editarProducto(${p.id_producto})">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${p.id_producto})">
+                    ${toggleBtn}
+                    <button class="btn btn-sm btn-outline-danger" title="Eliminar permanentemente" onclick="eliminarProducto(${p.id_producto})">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
             </tr>`;
         }).join('');
+        renderPaginacionProductos(data);
     } catch (err) { console.error('Error cargando productos:', err); }
+}
+
+// Paginación de la tabla de productos (servidor)
+function renderPaginacionProductos(data) {
+    const cont = document.getElementById('paginacion-productos');
+    if (!cont) return;
+    const totalPaginas = data.totalPaginas || 1;
+    const actual       = data.pagina || 1;
+    if (totalPaginas <= 1) { cont.innerHTML = ''; return; }
+
+    let html = `<span class="text-muted small me-2">Página ${actual} de ${totalPaginas} (${data.total} productos)</span>`;
+    html += `<button class="btn btn-sm btn-outline-success" ${actual === 1 ? 'disabled' : ''} onclick="irPaginaProductos(${actual - 1})">← Anterior</button>`;
+    const ini = Math.max(1, actual - 2);
+    const fin = Math.min(totalPaginas, ini + 4);
+    for (let i = ini; i <= fin; i++) {
+        html += `<button class="btn btn-sm ${i === actual ? 'btn-success' : 'btn-outline-success'}" onclick="irPaginaProductos(${i})">${i}</button>`;
+    }
+    html += `<button class="btn btn-sm btn-outline-success" ${actual === totalPaginas ? 'disabled' : ''} onclick="irPaginaProductos(${actual + 1})">Siguiente →</button>`;
+    cont.innerHTML = html;
+}
+
+function irPaginaProductos(p) {
+    paginaProductos = p;
+    cargarProductos();
+}
+
+// Reset COMPLETO del formulario de producto (inputs, selects y campos dinámicos)
+function limpiarFormularioProducto() {
+    const ids = [
+        'prod-id','prod-nombre','prod-descripcion','prod-precio','prod-stock',
+        'prod-imagen-file','prod-imagen-url','prod-imagen-final',
+        'prod-categoria','prod-animal',
+        // medicamento
+        'prod-marca-med','prod-presentacion','prod-vencimiento','prod-composicion','prod-modo-uso','prod-ficha-tecnica',
+        // accesorio
+        'prod-marca-acc','prod-ficha-acc',
+        // alimento
+        'prod-marca-ali','prod-peso-ali','prod-vencimiento-ali','prod-composicion-ali','prod-ficha-ali'
+    ];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+
+    document.getElementById('preview-container')?.classList.add('d-none');
+    document.getElementById('ficha-preview')?.classList.add('d-none');
+    const fuente = document.getElementById('ficha-fuente'); if (fuente) fuente.innerHTML = '';
+
+    limpiarTags();
+
+    // Ocultar las secciones dinámicas por categoría
+    ['campos-medicamento','campos-accesorio','campos-alimento'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
 }
 
 async function mostrarModalProducto() {
     document.getElementById('modal-titulo').innerText = 'Nuevo Producto';
-    document.getElementById('prod-id').value          = '';
-    document.getElementById('prod-nombre').value      = '';
-    document.getElementById('prod-descripcion').value = '';
-    document.getElementById('prod-precio').value      = '';
-    document.getElementById('prod-stock').value       = '';
-    document.getElementById('prod-imagen-file').value = '';
-    document.getElementById('prod-imagen-url').value  = '';
-    document.getElementById('prod-imagen-final').value= '';
-    document.getElementById('preview-container').classList.add('d-none');
-    document.getElementById('prod-categoria')?.addEventListener('change', actualizarCamposCategoria);
     await cargarSelectCategorias();
     await cargarSelectAnimales();
-    limpiarTags();
-    actualizarCamposCategoria();
+    limpiarFormularioProducto();
     // Establecer fecha mínima de hoy en los inputs de fecha
-const hoyStr = new Date().toISOString().split('T')[0];
-const venc    = document.getElementById('prod-vencimiento');
-const vencAli = document.getElementById('prod-vencimiento-ali');
-if (venc)    venc.setAttribute('min', hoyStr);
-if (vencAli) vencAli.setAttribute('min', hoyStr);
+    const hoyStr = new Date().toISOString().split('T')[0];
+    document.getElementById('prod-vencimiento')?.setAttribute('min', hoyStr);
+    document.getElementById('prod-vencimiento-ali')?.setAttribute('min', hoyStr);
     modalProducto.show();
 }
 
@@ -565,7 +652,7 @@ if (fechaVenc) {
             modalProducto.hide();
             document.body.classList.remove('modal-open');
             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-            limpiarTags();
+            limpiarFormularioProducto();
             cargarProductos();
             cargarEstadisticas();
             cargarGraficoStock();
@@ -603,11 +690,40 @@ async function buscarFicha() {
 // Agregar listener al selector de categoría
 document.getElementById('prod-categoria')?.addEventListener('change', actualizarCamposCategoria);
 
+// Cambiar estado lógico del producto (activar/desactivar)
+async function cambiarEstadoProducto(id, nuevoEstado) {
+    const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'desactivar';
+    if (!confirm(`¿Seguro que deseas ${accion} este producto?`)) return;
+    try {
+        const res = await fetch(`/api/productos/${id}/estado`, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ estado: nuevoEstado })
+        });
+        if (res.ok) {
+            cargarProductos();
+            cargarEstadisticas();
+            cargarGraficoStock();
+        } else {
+            const e = await res.json();
+            alert(e.mensaje || 'Error al cambiar el estado');
+        }
+    } catch (err) { alert('Error al cambiar el estado'); }
+}
+
+// Borrado físico permanente (irreversible). El backend lo bloquea si tiene pedidos.
 async function eliminarProducto(id) {
-    if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
+    if (!confirm('⚠️ ¿Eliminar PERMANENTEMENTE este producto?\nEsta acción no se puede deshacer y borra también su imagen.')) return;
     try {
         const res = await fetch(`/api/productos/${id}`, { method:'DELETE' });
-        if (res.ok) { cargarProductos(); cargarEstadisticas(); cargarGraficoStock(); }
+        if (res.ok) {
+            cargarProductos();
+            cargarEstadisticas();
+            cargarGraficoStock();
+        } else {
+            const e = await res.json();
+            alert(e.mensaje || 'No se pudo eliminar el producto');
+        }
     } catch (err) { alert('Error al eliminar'); }
 }
 
@@ -1076,4 +1192,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Polling de nuevos pedidos cada 30 segundos
     intervaloPedidos = setInterval(verificarNuevosPedidos, 30000);
+
+    // Si llega ?seccion=, abrir esa sección del panel (navegación desde Reportes/Ventas)
+    const seccionURL = new URLSearchParams(location.search).get('seccion');
+    if (seccionURL) {
+        const link = document.querySelector(`.sidebar .nav-link[onclick*="'${seccionURL}'"]`);
+        mostrarSeccion(seccionURL, link);
+    }
 });

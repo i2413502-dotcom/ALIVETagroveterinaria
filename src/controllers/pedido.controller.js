@@ -20,6 +20,15 @@ exports.crearPedido = async (req, res) => {
 
         const { carrito, datosEnvio, datosComprobante, metodoPago, codigoTransaccion } = req.body;
 
+        // Seguridad de pago: solo Yape (con N° de operación válido). No se aceptan datos de tarjeta sin pasarela.
+        if (metodoPago === 'yape') {
+            if (!/^\d{6,}$/.test(String(codigoTransaccion || '').trim())) {
+                return res.status(400).json({ mensaje: 'Número de operación Yape inválido (solo dígitos, mínimo 6).' });
+            }
+        } else {
+            return res.status(400).json({ mensaje: 'Método de pago no disponible. Usa Yape.' });
+        }
+
         const id_tipo_comprobante = datosComprobante.tipo === 'factura' ? 2 : 1;
         const id_tipo_pago        = metodoPago === 'yape' ? 1 : 2;
 

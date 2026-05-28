@@ -21,12 +21,12 @@ const findColaborador = async (idPersona) => {
     return rows[0];
 };
 
-const createPersona = async ({ nombres, apellidoPaterno, apellidoMaterno, correo, password }) => {
+const createPersona = async ({ nombres, apellidoPaterno, apellidoMaterno, telefono, correo, password }) => {
     const [result] = await db.query(
-        `INSERT INTO persona 
-         (nombres, apellido_paterno, apellido_materno, correo, password, estado, fecha_creacion) 
-         VALUES (?, ?, ?, ?, ?, 'ACTIVO', NOW())`,
-        [nombres, apellidoPaterno, apellidoMaterno, correo, password]
+        `INSERT INTO persona
+         (nombres, apellido_paterno, apellido_materno, telefono, correo, password, estado, fecha_creacion)
+         VALUES (?, ?, ?, ?, ?, ?, 'ACTIVO', NOW())`,
+        [nombres, apellidoPaterno, apellidoMaterno, telefono || null, correo, password]
     );
     return result.insertId;
 };

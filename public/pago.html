@@ -98,37 +98,23 @@
                         <p class="mb-0 small">Concepto: Tu nombre + número de pedido</p>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Código de Seguridad</label>
-                        <input type="text" class="form-control" id="codigo-yape" 
-                               placeholder="Ej: 734">
+                        <label class="form-label fw-bold">Número de operación Yape</label>
+                        <input type="text" class="form-control" id="codigo-yape"
+                               inputmode="numeric" placeholder="Ej: 00123456">
+                        <small class="text-muted">Lo encuentras en la constancia de tu Yape.</small>
                     </div>
                 </div>
 
-                <!-- Form Tarjeta -->
+                <!-- Form Tarjeta: sin recolección de datos de tarjeta (pasarela segura externa) -->
                 <div id="form-tarjeta" class="d-none">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Número de tarjeta</label>
-                        <input type="text" class="form-control" id="numero-tarjeta" 
-                               placeholder="0000 0000 0000 0000" maxlength="19"
-                               oninput="formatearTarjeta(this)">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nombre en la tarjeta</label>
-                        <input type="text" class="form-control" id="nombre-tarjeta" 
-                               placeholder="Como aparece en la tarjeta">
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">Vencimiento</label>
-                            <input type="text" class="form-control" id="vencimiento" 
-                                   placeholder="MM/AA" maxlength="5"
-                                   oninput="formatearVencimiento(this)">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label fw-bold">CVV</label>
-                            <input type="text" class="form-control" id="cvv" 
-                                   placeholder="000" maxlength="3">
-                        </div>
+                    <div class="alert alert-info mb-0">
+                        <h6 class="fw-bold"><i class="bi bi-shield-lock me-2"></i>Pago con tarjeta</h6>
+                        <p class="mb-0 small">
+                            Próximamente el pago con tarjeta se procesará mediante una
+                            <strong>pasarela segura</strong> (Mercado Pago / Izipay / Niubiz).
+                            Por seguridad <strong>no almacenamos datos de tarjetas</strong>.
+                            Por ahora completa tu compra con <strong>Yape</strong>.
+                        </p>
                     </div>
                 </div>
 

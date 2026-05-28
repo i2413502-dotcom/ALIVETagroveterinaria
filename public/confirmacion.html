@@ -27,6 +27,18 @@
         .btn-agro { background-color: var(--verde); color: white; }
         .btn-agro:hover { background-color: var(--verde-oscuro); color: white; }
         .detalle-item { border-bottom: 1px solid #eee; padding: 8px 0; }
+        /* ── Comprobante estilo SUNAT ── */
+        .boleta { border: 1px solid #333; border-radius: 8px; padding: 18px; }
+        .boleta-box { border: 2px solid #333; border-radius: 6px; padding: 8px; }
+        .boleta table { width: 100%; border-collapse: collapse; }
+        .boleta th, .boleta td { border: 1px solid #bbb; padding: 6px 8px; font-size: 0.85rem; vertical-align: top; }
+        .boleta thead th { background: #f1f1f1; }
+        @media print {
+            .main-header, .no-print, .check-circle { display: none !important; }
+            body { background: #fff; }
+            .card-confirm { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 0 12px !important; }
+            main { margin: 0 !important; }
+        }
     </style>
 </head>
 <body>
@@ -55,8 +67,8 @@
             </div>
 
             <div class="card card-confirm shadow-sm p-4 mb-4">
-                <h5 class="fw-bold text-success mb-3">
-                    <i class="bi bi-receipt me-2"></i>Detalle del Pedido
+                <h5 class="fw-bold text-success mb-3 no-print">
+                    <i class="bi bi-receipt me-2"></i>Comprobante de Pago
                 </h5>
                 <div id="detalle-pedido"></div>
             </div>
@@ -68,7 +80,7 @@
                 <div id="detalle-envio"></div>
             </div>
 
-            <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <div class="d-flex gap-3 justify-content-center flex-wrap no-print">
                 <button class="btn btn-agro px-4" onclick="window.location.href='/'">
                     <i class="bi bi-house me-2"></i>Volver al inicio
                 </button>

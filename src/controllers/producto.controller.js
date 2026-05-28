@@ -1,5 +1,7 @@
 const Producto = require('../models/producto.model');
 const db = require('../config/db');
+const fs = require('fs');
+const path = require('path');
 
 exports.listar = async (req, res) => {
     try {
@@ -69,13 +71,47 @@ exports.actualizar = async (req, res) => {
     }
 };
 
+// Borrado físico: elimina el registro y su imagen del disco.
+// Bloqueado si el producto está referenciado en pedidos u otros registros.
 exports.eliminar = async (req, res) => {
     try {
-        await Producto.eliminarProducto(req.params.id);
-        res.json({ mensaje: "Producto eliminado" });
+        const producto = await Producto.obtenerProductoPorId(req.params.id);
+        if (!producto) return res.status(404).json({ mensaje: "Producto no encontrado" });
+
+        await Producto.eliminarProductoFisico(req.params.id);
+
+        // Eliminar imagen local del disco (no toca URLs externas)
+        const img = producto.imagen;
+        if (img && !/^https?:\/\//i.test(img)) {
+            const ruta = path.join(__dirname, '..', '..', 'public', 'img', 'productos', img);
+            fs.unlink(ruta, () => {}); // ignora si el archivo no existe
+        }
+
+        res.json({ mensaje: "Producto eliminado permanentemente" });
     } catch (err) {
+        // FK: el producto está asociado a pedidos/carritos → no se puede borrar
+        if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
+            return res.status(409).json({
+                mensaje: 'No se puede eliminar: el producto está asociado a pedidos u otros registros. Usa "Desactivar" para ocultarlo del catálogo.'
+            });
+        }
         console.error("Error en eliminar producto:", err);
         res.status(500).json({ mensaje: "Error al eliminar producto" });
+    }
+};
+
+// Cambiar estado lógico: ACTIVO / INACTIVO (activar/desactivar)
+exports.cambiarEstado = async (req, res) => {
+    try {
+        const { estado } = req.body;
+        if (!['ACTIVO', 'INACTIVO'].includes(estado)) {
+            return res.status(400).json({ mensaje: 'Estado inválido' });
+        }
+        await Producto.cambiarEstadoProducto(req.params.id, estado);
+        res.json({ mensaje: `Producto ${estado === 'ACTIVO' ? 'activado' : 'desactivado'}` });
+    } catch (err) {
+        console.error("Error al cambiar estado:", err);
+        res.status(500).json({ mensaje: "Error al cambiar estado del producto" });
     }
 };
 

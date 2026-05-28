@@ -199,6 +199,7 @@ document.getElementById('envioForm').addEventListener('submit', async (e) => {
     const distSelect = document.getElementById('distrito');
     const zonaSelect = document.getElementById('zona-envio');
 
+    if (!/^9\d{8}$/.test(telefono)) { alert('El teléfono debe tener 9 dígitos y empezar con 9'); return; }
     if (!distSelect.value) { alert('Por favor selecciona un distrito'); return; }
     if (!distritoActual)   { alert('Por favor selecciona un distrito válido'); return; }
     if (!zonaSelect.value) { alert('Por favor selecciona una zona de envío'); return; }
@@ -230,7 +231,7 @@ document.getElementById('envioForm').addEventListener('submit', async (e) => {
         await fetch('/api/auth/guardar-direccion', {
             method:  'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ direccion, referencia: referencias })
+            body: JSON.stringify({ direccion, referencia: referencias, telefono })
         });
     } catch (err) {
         console.error('Error guardando dirección:', err);
@@ -239,9 +240,19 @@ document.getElementById('envioForm').addEventListener('submit', async (e) => {
     window.location.href = '/comprobante.html';
 });
 
+// Filtro de solo dígitos en el teléfono (máx 9)
+function filtrarTelefono() {
+    const tel = document.getElementById('telefono');
+    if (!tel) return;
+    tel.addEventListener('input', () => {
+        tel.value = tel.value.replace(/\D/g, '').slice(0, 9);
+    });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     verificarLogin();
     cargarResumen();
     cargarDepartamentos();
     cargarDatosCliente();
+    filtrarTelefono();
 });

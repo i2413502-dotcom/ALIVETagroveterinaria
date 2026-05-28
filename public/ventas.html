@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas - AgroVeterinaria</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .sidebar {
+            width: 250px; min-height: 100vh;
+            background: linear-gradient(180deg, var(--agro-green-dark) 0%, #024d22 100%);
+            position: fixed; top: 0; left: 0; overflow-y: auto;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.82); padding: 11px 18px;
+            border-radius: 10px; margin: 2px 10px;
+            font-size: 0.9rem; font-weight: 500; transition: 0.2s;
+        }
+        .sidebar .nav-link:hover  { background: rgba(255,255,255,0.14); color: white; }
+        .sidebar .nav-link.active { background: rgba(255,255,255,0.22); color: white; font-weight: 600; }
+        .sidebar .nav-link.btn-logout {
+            background: rgba(255,255,255,0.10); color: #ffd6d6 !important;
+            font-weight: 600; border: 1px solid rgba(255,107,107,0.4);
+        }
+        .sidebar .nav-link.btn-logout:hover { background: #e74c3c; color: #fff !important; border-color: #e74c3c; }
+        .main-content { margin-left: 250px; padding: 28px; }
+        .topbar {
+            background: white; padding: 14px 28px; margin: -28px -28px 28px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .table-container {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: var(--agro-shadow-sm);
+        }
+        .table-container thead th {
+            background: var(--agro-green-light) !important;
+            color: var(--agro-green-dark) !important;
+            font-size: 0.75rem !important; font-weight: 700 !important;
+            text-transform: uppercase !important; letter-spacing: 0.5px !important;
+            border: none !important; padding: 11px 14px !important;
+        }
+        .table-container tbody tr:nth-child(even) { background: #fafafa !important; }
+        .table-container tbody tr:hover { background: var(--agro-green-light) !important; }
+        .table-container td {
+            border: none !important; border-bottom: 1px solid #f3f4f6 !important;
+            padding: 9px 14px !important; font-size: 0.875rem !important; vertical-align: middle !important;
+        }
+        .filtros-bar { background: white; border-radius: 16px; padding: 18px 22px; box-shadow: var(--agro-shadow-sm); }
+        .filtros-bar .form-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #6b7280; }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar p-3">
+    <div class="text-center mb-4 pt-2">
+        <img src="/img/logo.jpeg" alt="Logo" style="height:70px; border-radius:10px;">
+        <h6 class="text-white mt-2 fw-bold">Panel Admin</h6>
+    </div>
+    <ul class="nav flex-column">
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html"><i class="bi bi-house me-2"></i>Inicio</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=pedidos"><i class="bi bi-bag me-2"></i>Pedidos</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=productos"><i class="bi bi-box me-2"></i>Productos</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=clientes"><i class="bi bi-people me-2"></i>Clientes</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=categorias"><i class="bi bi-tags me-2"></i>Categorías</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=animales"><i class="bi bi-heart me-2"></i>Tipos de Animal</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=colaboradores"><i class="bi bi-person-badge me-2"></i>Colaboradores</a></li>
+        <li class="nav-item"><a class="nav-link" href="/reportes.html"><i class="bi bi-graph-up-arrow me-2"></i>Reportes</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/ventas.html"><i class="bi bi-receipt-cutoff me-2"></i>Ventas</a></li>
+        <li class="nav-item mt-3">
+            <a class="nav-link btn-logout" href="#" onclick="cerrarSesion()">
+                <i class="bi bi-box-arrow-left me-2"></i>Cerrar Sesión
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- CONTENIDO -->
+<div class="main-content">
+
+    <div class="topbar d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-success mb-0"><i class="bi bi-receipt-cutoff me-2"></i>Gestión de Ventas</h5>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted">Bienvenido, <strong id="nombre-admin">Admin</strong></span>
+            <i class="bi bi-person-circle fs-4 text-success"></i>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="filtros-bar mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Estado</label>
+                <select id="filtro-estado" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="PAGADO">Pagado</option>
+                    <option value="ENTREGADO">Entregado</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Desde</label>
+                <input type="date" id="filtro-desde" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Hasta</label>
+                <input type="date" id="filtro-hasta" class="form-control">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-success w-100" onclick="aplicarFiltros()">
+                    <i class="bi bi-funnel me-1"></i>Filtrar
+                </button>
+                <button class="btn btn-outline-success w-100" onclick="exportarVentas(this)">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA -->
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>N° Comprobante</th><th>Fecha</th><th>Cliente</th><th>Tipo</th>
+                        <th class="text-end">Total (S/.)</th><th>Método Pago</th><th>Estado</th><th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-ventas">
+                    <tr><td colspan="8" class="text-center">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="paginacion-ventas" class="d-flex justify-content-center align-items-center gap-2 mt-3 flex-wrap"></div>
+    </div>
+
+</div><!-- fin main-content -->
+
+<!-- MODAL DETALLE -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-success"><i class="bi bi-receipt me-2"></i>Detalle de Venta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Cabecera comprobante -->
+                <div class="row mb-3" id="detalle-cabecera"></div>
+                <!-- Productos -->
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Producto</th><th class="text-center">Cant.</th>
+                                <th class="text-end">P. Unit.</th><th class="text-end">Subtotal</th>
+                                <th>Color</th><th>Talla</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detalle-productos"></tbody>
+                    </table>
+                </div>
+                <!-- Totales -->
+                <div class="row justify-content-end">
+                    <div class="col-md-5">
+                        <div class="d-flex justify-content-between"><span>Subtotal:</span><span id="det-subtotal">S/. 0.00</span></div>
+                        <div class="d-flex justify-content-between"><span>IGV (18%):</span><span id="det-igv">S/. 0.00</span></div>
+                        <div class="d-flex justify-content-between fw-bold fs-5 text-success border-top pt-2 mt-1">
+                            <span>Total General:</span><span id="det-total">S/. 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/ventas.js"></script>
+</body>
+</html>

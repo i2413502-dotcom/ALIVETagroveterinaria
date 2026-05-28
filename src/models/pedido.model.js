@@ -65,9 +65,10 @@ exports.crearComprobante = async (id_pedido, tipo) => {
 
 exports.obtenerPedidoCompleto = async (id_pedido) => {
     const [pedido] = await db.query(
-        `SELECT p.*, 
+        `SELECT p.*,
                 per.nombres AS cliente_nombre,
                 per.correo AS cliente_correo,
+                c.numero_documento AS cliente_documento,
                 d.nombre AS nombre_distrito,
                 tc.nombre AS tipo_comprobante
          FROM pedido p

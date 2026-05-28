@@ -259,6 +259,16 @@ document.getElementById('formDatos').addEventListener('submit', async (e) => {
     e.preventDefault();
     const token   = localStorage.getItem('token');
     const mensaje = document.getElementById('mensaje-datos');
+
+    // Validación de teléfono (9 dígitos, empieza con 9)
+    const telefono = document.getElementById('datos-telefono').value.trim();
+    if (telefono && !/^9\d{8}$/.test(telefono)) {
+        mensaje.textContent = 'El teléfono debe tener 9 dígitos y empezar con 9';
+        mensaje.className   = 'alert alert-danger';
+        mensaje.classList.remove('d-none');
+        return;
+    }
+
     try {
         const res = await fetch('/api/auth/actualizar-perfil', {
             method:  'PUT',
@@ -332,6 +342,12 @@ window.addEventListener('DOMContentLoaded', () => {
     verificarLogin();
     cargarPerfil();
     actualizarContadorCarrito();
+
+    // Filtro de solo dígitos en el teléfono (máx 9)
+    const tel = document.getElementById('datos-telefono');
+    if (tel) tel.addEventListener('input', () => {
+        tel.value = tel.value.replace(/\D/g, '').slice(0, 9);
+    });
 
     // Si viene de confirmación, abrir directamente la sección de pedidos
     const seccionPendiente = localStorage.getItem('perfilSeccion');

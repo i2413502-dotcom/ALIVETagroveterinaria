@@ -8,6 +8,19 @@ function cambiarTipoDoc() {
     estado.innerHTML = '';
     limpiarCampos();
 
+    // RUC = empresa (sin apellidos): ocultar, deshabilitar y quitar required.
+    // DNI / sin selección: restaurar apellidos.
+    const esRuc = tipo === 'RUC';
+    const filaApellidos = document.getElementById('fila-apellidos');
+    const apPat = document.getElementById('apellidoPaterno');
+    const apMat = document.getElementById('apellidoMaterno');
+    if (filaApellidos) filaApellidos.style.display = esRuc ? 'none' : '';
+    [apPat, apMat].forEach(el => {
+        if (!el) return;
+        el.required = !esRuc;
+        el.disabled = esRuc;
+    });
+
     if (tipo === 'DNI') {
         numDoc.maxLength = 8;
         numDoc.placeholder = 'Ingresa tu DNI (8 dígitos)';
@@ -85,24 +98,32 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
     const apellidoPaterno = document.getElementById('apellidoPaterno').value.trim();
     const apellidoMaterno = document.getElementById('apellidoMaterno').value.trim();
     const correo = document.getElementById('correo').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
     const password = document.getElementById('password').value.trim();
     const confirmarPassword = document.getElementById('confirmarPassword').value.trim();
     const mensaje = document.getElementById('mensaje');
 
     mensaje.classList.add('d-none');
 
-    if (password !== confirmarPassword) {
-        mensaje.textContent = 'Las contraseñas no coinciden';
+    const mostrarError = (texto) => {
+        mensaje.textContent = texto;
         mensaje.className = 'alert alert-danger';
         mensaje.classList.remove('d-none');
-        return;
-    }
+    };
 
-    if (!tipoDocumento) {
-        mensaje.textContent = 'Selecciona un tipo de documento';
-        mensaje.className = 'alert alert-danger';
-        mensaje.classList.remove('d-none');
-        return;
+    if (password !== confirmarPassword) return mostrarError('Las contraseñas no coinciden');
+    if (!tipoDocumento) return mostrarError('Selecciona un tipo de documento');
+
+    // Validación estricta de documento
+    if (tipoDocumento === 'DNI' && !/^\d{8}$/.test(numeroDocumento)) {
+        return mostrarError('El DNI debe tener exactamente 8 dígitos numéricos');
+    }
+    if (tipoDocumento === 'RUC' && !/^\d{11}$/.test(numeroDocumento)) {
+        return mostrarError('El RUC debe tener exactamente 11 dígitos numéricos');
+    }
+    // Validación de teléfono (9 dígitos, empieza con 9)
+    if (!/^9\d{8}$/.test(telefono)) {
+        return mostrarError('El teléfono debe tener 9 dígitos y empezar con 9');
     }
 
     try {
@@ -113,6 +134,7 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
                 nombres,
                 apellidoPaterno,
                 apellidoMaterno,
+                telefono,
                 correo,
                 password,
                 tipoDocumento,
@@ -153,3 +175,14 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
         mensaje.classList.remove('d-none');
     }
 });
+
+// ── Filtro de solo dígitos (respeta el maxLength del input) ─────
+function filtrarSoloDigitos(input) {
+    if (!input) return;
+    input.addEventListener('input', () => {
+        const max = input.maxLength > 0 ? input.maxLength : 524288;
+        input.value = input.value.replace(/\D/g, '').slice(0, max);
+    });
+}
+filtrarSoloDigitos(document.getElementById('numeroDocumento'));
+filtrarSoloDigitos(document.getElementById('telefono'));

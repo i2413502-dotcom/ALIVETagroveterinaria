@@ -5,19 +5,22 @@ exports.obtenerProductos = async (filtros = {}) => {
     const limite   = parseInt(filtros.limite)  || 20;
     const offset   = (pagina - 1) * limite;
 
+    // El catálogo público solo ve ACTIVO; el panel admin puede incluir inactivos
+    const filtroEstado = filtros.incluirInactivos ? "WHERE 1=1" : "WHERE p.estado = 'ACTIVO'";
+
     let sql = `
         SELECT p.*, c.nombre AS categoria, ta.nombre AS tipo_animal
         FROM producto p
         LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
         LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
-        WHERE p.estado = 'ACTIVO'
+        ${filtroEstado}
     `;
     let sqlCount = `
         SELECT COUNT(*) AS total
         FROM producto p
         LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
         LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
-        WHERE p.estado = 'ACTIVO'
+        ${filtroEstado}
     `;
     const params = [];
     const paramsCount = [];
@@ -175,9 +178,20 @@ exports.actualizarProducto = async (id, data) => {
     return result;
 };
 
-exports.eliminarProducto = async (id) => {
-    await db.query(
-        "UPDATE producto SET estado='INACTIVO' WHERE id_producto = ?",
+// Borrado físico permanente (puede fallar por FK si el producto tiene pedidos)
+exports.eliminarProductoFisico = async (id) => {
+    const [result] = await db.query(
+        "DELETE FROM producto WHERE id_producto = ?",
         [id]
     );
+    return result;
+};
+
+// Cambio de estado lógico ACTIVO/INACTIVO (activar/desactivar)
+exports.cambiarEstadoProducto = async (id, estado) => {
+    const [result] = await db.query(
+        "UPDATE producto SET estado = ? WHERE id_producto = ?",
+        [estado, id]
+    );
+    return result;
 };

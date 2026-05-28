@@ -218,6 +218,19 @@ function agregarAlCarrito(event, id, nombre, precio, imagen, stock) {
     mostrarToast(nombre);
 }
 
+// Cargar opciones de categoría dinámicamente desde la BD
+async function cargarFiltroCategorias() {
+    try {
+        const res  = await fetch('/api/categorias');
+        const cats = await res.json();
+        const sel  = document.getElementById('filtroCategoria');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Todas las categorías</option>' +
+            cats.filter(c => c.estado === 'ACTIVO')
+                .map(c => `<option value="${c.id_categoria}">${c.nombre}</option>`).join('');
+    } catch (err) { console.error('Error cargando categorías:', err); }
+}
+
 // Cargar botones de animales dinámicamente
 async function cargarFiltrosAnimales() {
     try {
@@ -241,6 +254,7 @@ async function cargarFiltrosAnimales() {
 
 // Iniciar
 window.addEventListener('DOMContentLoaded', () => {
+    cargarFiltroCategorias();
     cargarFiltrosAnimales();
     obtenerProductos();
     actualizarContadorCarrito();
