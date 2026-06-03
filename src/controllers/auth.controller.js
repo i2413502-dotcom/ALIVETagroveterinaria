@@ -7,12 +7,13 @@ const BASE_URL = 'https://dniruc.apisperu.com/api/v1';
 
 const login = async (req, res) => {
     try {
-        const { correo, password } = req.body;
+        const { correo, password, contrasena } = req.body;
+        const pass = password || contrasena;
 
         const persona = await authModel.findByEmail(correo);
         if (!persona) return res.status(401).json({ mensaje: "Credenciales incorrectas" });
 
-        const valido = await bcrypt.compare(password, persona.password);
+        const valido = await bcrypt.compare(pass, persona.password);
         if (!valido) return res.status(401).json({ mensaje: "Credenciales incorrectas" });
 
         let rol = null;

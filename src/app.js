@@ -7,19 +7,9 @@ const fs      = require('fs');
 
 const app = express();
 
-// ── Carpeta de uploads ───────────────────────────────────────
-const uploadDir = path.join(__dirname, '..', 'public', 'img', 'productos');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-// ── Configuración de multer (subida de imágenes) ─────────────
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        const nombre = Date.now() + '-' + Math.round(Math.random() * 1e6) + ext;
-        cb(null, nombre);
-    }
-});
+// ── Cloudinary — almacenamiento permanente de imágenes ────────
+const cloudinary = require('./config/cloudinary');
+const storage = multer.memoryStorage(); // guarda en memoria, no en disco
 
 // Solo se aceptan estos MIME types (rechazo ANTES de escribir en disco)
 const MIMES_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
@@ -47,14 +37,28 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ── Ruta para subir imagen de producto ──────────────────────
-app.post('/api/upload/imagen-producto', upload.single('imagen'), (req, res) => {
+app.post('/api/upload/imagen-producto', upload.single('imagen'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ mensaje: 'No se recibió imagen' });
     }
-    res.json({ 
-        nombre: req.file.filename, 
-        url: `/img/productos/${req.file.filename}` 
-    });
+    try {
+        const resultado = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+                { folder: 'productos' },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            ).end(req.file.buffer);
+        });
+        res.json({ 
+            nombre: resultado.public_id,
+            url: resultado.secure_url  // URL permanente de Cloudinary
+        });
+    } catch (error) {
+        console.error('Error subiendo a Cloudinary:', error);
+        res.status(500).json({ mensaje: 'Error al subir imagen' });
+    }
 });
 
 // ── Rutas de la app ──────────────────────────────────────────
@@ -123,15 +127,12 @@ app.put('/api/notificaciones/:id/leer', async (req, res) => {
 // ── Manejador de errores global ───────────────────────────────
 app.use((err, req, res, next) => {
     console.error('Error no manejado:', err);
-    
-    // Error de multer (archivo muy grande o tipo incorrecto)
     if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({ mensaje: 'La imagen no debe superar los 5MB' });
     }
     if (err.code === 'INVALID_FILE_TYPE') {
         return res.status(400).json({ mensaje: err.message });
     }
-
     res.status(500).json({ mensaje: 'Error interno del servidor' });
 });
 
