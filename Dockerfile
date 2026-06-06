@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 10000
 
 # Comando para iniciar
-CMD ["npm", "start"]
+CMD ["node", "src/app.js"]
