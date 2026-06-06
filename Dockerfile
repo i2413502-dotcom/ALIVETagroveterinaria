@@ -15,7 +15,7 @@ RUN npm install
 COPY . .
 
 # Exponemos tu puerto
-EXPOSE 10000
+EXPOSE 3000
 
 # Comando para iniciar
 CMD ["node", "src/app.js"]
