@@ -12,5 +12,7 @@ router.put('/cambiar-password',    authController.cambiarPassword);
 router.post('/fcm-token',          authController.guardarFcmToken);
 router.put('/guardar-direccion', authController.guardarDireccionHabitual);
 router.post('/verify-otp', authController.verifyOtp);
-
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password',  authController.resetPassword);
+router.post('/enviar-promocion', authController.enviarPromocion);
 module.exports = router;

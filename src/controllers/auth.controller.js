@@ -391,5 +391,105 @@ const guardarFcmToken = async (req, res) => {
         res.status(500).json({ mensaje: 'Error al guardar token FCM' });
     }
 };
+// Solicitar recuperación de contraseña
+const forgotPassword = async (req, res) => {
+    try {
+        const { correo } = req.body;
 
-module.exports = { login, register, verifyOtp, consultarDocumento, getPerfil, getDatosEnvio, guardarDireccionHabitual, actualizarPerfil, cambiarPassword, guardarFcmToken };
+        if (!correo) {
+            return res.status(400).json({ mensaje: "Correo requerido" });
+        }
+
+        const persona = await authModel.findByEmail(correo);
+        if (!persona) {
+            // Por seguridad, no revelamos si el correo existe o no
+            return res.json({ mensaje: "Si el correo está registrado, recibirás un enlace" });
+        }
+
+        // Generar token de recuperación (válido por 1 hora)
+        const resetToken = jwt.sign(
+            { id: persona.id_persona, tipo: 'reset' },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        // Enviar correo de recuperación
+        await emailService.sendPasswordReset(correo, resetToken);
+
+        res.json({ mensaje: "Si el correo está registrado, recibirás un enlace" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ mensaje: "Error al procesar solicitud" });
+    }
+};
+
+// Restablecer contraseña con token
+const resetPassword = async (req, res) => {
+    try {
+        const { token, nuevaPassword } = req.body;
+
+        if (!token || !nuevaPassword) {
+            return res.status(400).json({ mensaje: "Token y nueva contraseña requeridos" });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.tipo !== 'reset') {
+            return res.status(400).json({ mensaje: "Token inválido" });
+        }
+
+        const hash = await bcrypt.hash(nuevaPassword, 10);
+        await db.query('UPDATE persona SET password = ? WHERE id_persona = ?', [hash, decoded.id]);
+
+        res.json({ mensaje: "Contraseña restablecida correctamente" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(400).json({ mensaje: "Token inválido o expirado" });
+    }
+};// Enviar promoción a un cliente o a todos
+const enviarPromocion = async (req, res) => {
+    try {
+        const { correo, asunto, mensaje } = req.body;
+
+        if (!asunto || !mensaje) {
+            return res.status(400).json({ mensaje: "Asunto y mensaje requeridos" });
+        }
+
+        if (correo) {
+            // Enviar a un cliente específico
+            const persona = await authModel.findByEmail(correo);
+            if (!persona) return res.status(404).json({ mensaje: "Cliente no encontrado" });
+            await emailService.sendPromotion(correo, persona.nombres, asunto, mensaje);
+        } else {
+            // Enviar a todos los clientes
+            const [clientes] = await db.query(
+                `SELECT p.correo, p.nombres FROM persona p 
+                 JOIN cliente c ON c.id_persona = p.id_persona`
+            );
+            for (const c of clientes) {
+                await emailService.sendPromotion(c.correo, c.nombres, asunto, mensaje);
+            }
+        }
+
+        res.json({ mensaje: "Promoción enviada" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ mensaje: "Error al enviar promoción" });
+    }
+};
+module.exports = { 
+    login, 
+    register, 
+    verifyOtp, 
+    forgotPassword, 
+    resetPassword, 
+    enviarPromocion, 
+    consultarDocumento, 
+    getPerfil, 
+    getDatosEnvio, 
+    guardarDireccionHabitual, 
+    actualizarPerfil, 
+    cambiarPassword, 
+    guardarFcmToken 
+};
