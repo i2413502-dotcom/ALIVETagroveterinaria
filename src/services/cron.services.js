@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const db = require('../config/db');
+const emailService = require('./email.service');
 
 // Función segura para enviar notificaciones (no falla si Firebase está desactivado)
 const enviarNotificacionSegura = async (titulo, cuerpo, data) => {
@@ -51,6 +52,27 @@ cron.schedule('0 8 * * *', async () => {
     } catch (err) {
         console.error('Error en cron job:', err);
     }
+});
+// Cada lunes a las 10:00 AM
+cron.schedule('0 10 * * 1', async () => {
+  const tresMesesAtras = new Date();
+  tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
+  
+  const [clientes] = await db.query(
+    `SELECT p.correo, p.nombres 
+     FROM persona p 
+     JOIN cliente c ON c.id_persona = p.id_persona 
+     WHERE p.id_persona NOT IN (
+       SELECT DISTINCT pe.id_persona 
+       FROM pedido pe 
+       WHERE pe.fecha_pedido > ?
+     )`,
+    [tresMesesAtras]
+  );
+  
+  for (const cliente of clientes) {
+    await emailService.sendReEngagement(cliente.correo, cliente.nombres);
+  }
 });
 
 console.log('✅ Cron de notificaciones activo (8:00 AM diario)');

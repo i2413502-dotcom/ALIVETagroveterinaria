@@ -2,6 +2,8 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authModel = require('../models/auth.model');
+const crypto = require('crypto');
+const emailService = require('../services/email.service');
 const API_PERU_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImkyNDEzNTAyQGNvbnRpbmVudGFsLmVkdS5wZSJ9.nI0hFsGrlk9vbeXXCZVfWQjP__LIX1C7iiLGVxqsRhM';
 const BASE_URL = 'https://dniruc.apisperu.com/api/v1';
 
@@ -67,6 +69,17 @@ const register = async (req, res) => {
         const existe = await authModel.findByEmail(correo);
         if (existe) return res.status(400).json({ mensaje: "Correo ya registrado" });
 
+        // Generar OTP de 6 dígitos
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Enviar OTP por correo con Brevo
+        try {
+            await emailService.sendOtpEmail(correo, otp);
+        } catch (emailError) {
+            console.error('Error al enviar OTP:', emailError.message);
+            // Continuamos con el registro aunque falle el correo
+        }
+
         const hash = await bcrypt.hash(password, 10);
 
         const idPersona = await authModel.createPersona({ 
@@ -78,8 +91,6 @@ const register = async (req, res) => {
             password: hash 
         });
 
-        
-
         const idTipoDoc = tipoDocumento === 'RUC' ? 2 : 1;
         await authModel.createCliente(idPersona, idTipoDoc, numeroDocumento);
 
@@ -90,9 +101,11 @@ const register = async (req, res) => {
         );
 
         res.status(201).json({ 
+            mensaje: "Registro exitoso",
             token, 
             rol: 'CLIENTE', 
-            nombre: nombres 
+            nombre: nombres,
+            otp: process.env.NODE_ENV === 'production' ? undefined : otp
         });
 
     } catch (err) {
