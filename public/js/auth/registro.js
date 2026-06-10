@@ -151,22 +151,15 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
             return;
         }
 
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('rol', data.rol);
-        localStorage.setItem('nombre', data.nombre);
-
-        mensaje.textContent = 'Registro exitoso! Redirigiendo...';
+                // Guardar pendingId y redirigir a verificación OTP
+        localStorage.setItem('pendingId', data.pendingId);
+        
+        mensaje.textContent = 'Código enviado a tu correo. Redirigiendo...';
         mensaje.className = 'alert alert-success';
         mensaje.classList.remove('d-none');
 
         setTimeout(() => {
-            const redirect = localStorage.getItem('redirectAfterLogin');
-            if (redirect === 'envio') {
-                localStorage.removeItem('redirectAfterLogin');
-                window.location.href = '/envio.html';
-            } else {
-                window.location.href = '/';
-            }
+            window.location.href = '/verify-otp.html';
         }, 1500);
 
     } catch (err) {

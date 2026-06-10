@@ -44,6 +44,10 @@ const login = async (req, res) => {
     }
 };
 
+// Almacén temporal de registros pendientes (en producción usa Redis o BD)
+const pendingRegistrations = new Map();
+
+// Paso 1: Registrar y enviar OTP
 const register = async (req, res) => {
     try {
         const { nombres, apellidoPaterno, apellidoMaterno, 
@@ -54,14 +58,12 @@ const register = async (req, res) => {
             return res.status(400).json({ mensaje: "Campos obligatorios faltantes" });
         }
 
-        // Validación estricta de documento (última línea de defensa)
         if (tipoDocumento === 'DNI' && !/^\d{8}$/.test(numeroDocumento || '')) {
             return res.status(400).json({ mensaje: "El DNI debe tener exactamente 8 dígitos numéricos" });
         }
         if (tipoDocumento === 'RUC' && !/^\d{11}$/.test(numeroDocumento || '')) {
             return res.status(400).json({ mensaje: "El RUC debe tener exactamente 11 dígitos numéricos" });
         }
-        // Validación de teléfono (9 dígitos, empieza con 9)
         if (telefono && !/^9\d{8}$/.test(telefono)) {
             return res.status(400).json({ mensaje: "El teléfono debe tener 9 dígitos y empezar con 9" });
         }
@@ -71,28 +73,82 @@ const register = async (req, res) => {
 
         // Generar OTP de 6 dígitos
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Guardar datos temporalmente (15 minutos)
+        const pendingId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        pendingRegistrations.set(pendingId, {
+            nombres, apellidoPaterno, apellidoMaterno, telefono,
+            correo, password, tipoDocumento, numeroDocumento,
+            otp,
+            expiresAt: Date.now() + 15 * 60 * 1000
+        });
 
-        // Enviar OTP por correo con Brevo
+        // Enviar OTP por correo
         try {
             await emailService.sendOtpEmail(correo, otp);
         } catch (emailError) {
             console.error('Error al enviar OTP:', emailError.message);
-            // Continuamos con el registro aunque falle el correo
         }
 
-        const hash = await bcrypt.hash(password, 10);
+        res.json({ 
+            mensaje: "Código de verificación enviado a tu correo",
+            pendingId: pendingId,
+            otp: process.env.NODE_ENV === 'production' ? undefined : otp
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ mensaje: "Error en registro" });
+    }
+};
+
+// Paso 2: Verificar OTP y crear cuenta
+const verifyOtp = async (req, res) => {
+    try {
+        const { pendingId, otp } = req.body;
+
+        if (!pendingId || !otp) {
+            return res.status(400).json({ mensaje: "Código y ID requeridos" });
+        }
+
+        const pending = pendingRegistrations.get(pendingId);
+        if (!pending) {
+            return res.status(400).json({ mensaje: "Registro expirado o inválido" });
+        }
+
+        if (Date.now() > pending.expiresAt) {
+            pendingRegistrations.delete(pendingId);
+            return res.status(400).json({ mensaje: "El código ha expirado" });
+        }
+
+        if (pending.otp !== otp) {
+            return res.status(400).json({ mensaje: "Código incorrecto" });
+        }
+
+        // Crear usuario
+        const hash = await bcrypt.hash(pending.password, 10);
 
         const idPersona = await authModel.createPersona({ 
-            nombres, 
-            apellidoPaterno, 
-            apellidoMaterno,
-            telefono,
-            correo, 
+            nombres: pending.nombres, 
+            apellidoPaterno: pending.apellidoPaterno, 
+            apellidoMaterno: pending.apellidoMaterno,
+            telefono: pending.telefono,
+            correo: pending.correo, 
             password: hash 
         });
 
-        const idTipoDoc = tipoDocumento === 'RUC' ? 2 : 1;
-        await authModel.createCliente(idPersona, idTipoDoc, numeroDocumento);
+        const idTipoDoc = pending.tipoDocumento === 'RUC' ? 2 : 1;
+        await authModel.createCliente(idPersona, idTipoDoc, pending.numeroDocumento);
+
+        // Limpiar registro pendiente
+        pendingRegistrations.delete(pendingId);
+
+        // Enviar correo de bienvenida
+        try {
+            await emailService.sendWelcomeEmail(pending.correo, pending.nombres);
+        } catch (e) {
+            console.error('Error al enviar bienvenida:', e.message);
+        }
 
         const token = jwt.sign(
             { id: idPersona, rol: 'CLIENTE' },
@@ -100,17 +156,16 @@ const register = async (req, res) => {
             { expiresIn: '4h' }
         );
 
-        res.status(201).json({ 
+        res.json({ 
             mensaje: "Registro exitoso",
             token, 
             rol: 'CLIENTE', 
-            nombre: nombres,
-            otp: process.env.NODE_ENV === 'production' ? undefined : otp
+            nombre: pending.nombres
         });
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ mensaje: "Error en registro" });
+        res.status(500).json({ mensaje: "Error al verificar código" });
     }
 };
 
@@ -337,4 +392,4 @@ const guardarFcmToken = async (req, res) => {
     }
 };
 
-module.exports = { login, register, consultarDocumento, getPerfil, getDatosEnvio, guardarDireccionHabitual, actualizarPerfil, cambiarPassword, guardarFcmToken };
+module.exports = { login, register, verifyOtp, consultarDocumento, getPerfil, getDatosEnvio, guardarDireccionHabitual, actualizarPerfil, cambiarPassword, guardarFcmToken };

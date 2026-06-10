@@ -11,5 +11,6 @@ router.put('/actualizar-perfil',   authController.actualizarPerfil);
 router.put('/cambiar-password',    authController.cambiarPassword);
 router.post('/fcm-token',          authController.guardarFcmToken);
 router.put('/guardar-direccion', authController.guardarDireccionHabitual);
+router.post('/verify-otp', authController.verifyOtp);
 
 module.exports = router;
