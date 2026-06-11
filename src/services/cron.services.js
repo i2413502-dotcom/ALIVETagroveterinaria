@@ -75,4 +75,16 @@ cron.schedule('0 10 * * 1', async () => {
   }
 });
 
+// Cada día a las 3:00 AM — limpieza de chats de AgroBot con más de 2 días
+cron.schedule('0 3 * * *', async () => {
+    try {
+        const iaModel = require('../models/ia.model');
+        const borrados = await iaModel.cleanOldMessages();
+        console.log(`[AgroBot] Limpieza de chats: ${borrados} mensaje(s) antiguos eliminados`);
+    } catch (err) {
+        console.error('[AgroBot] Error en limpieza de chats:', err.message);
+    }
+});
+
 console.log('✅ Cron de notificaciones activo (8:00 AM diario)');
+console.log('✅ Cron de limpieza de chats IA activo (3:00 AM diario)');

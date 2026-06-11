@@ -1,0 +1,65 @@
+{
+  "faqs": [
+    {
+      "id": 1,
+      "pregunta": "¿Qué productos venden?",
+      "palabras_clave": ["productos", "venden", "catalogo", "catálogo", "tienen", "ofrecen"],
+      "respuesta": "En Agroveterinaria ALIVET vendemos alimentos, medicamentos, accesorios y productos de cuidado para mascotas y animales de granja. Puedes ver todo nuestro catálogo en la página principal, con filtros por categoría, precio y tipo de animal. 🐾"
+    },
+    {
+      "id": 2,
+      "pregunta": "¿Cuáles son los métodos de pago?",
+      "palabras_clave": ["pago", "pagar", "yape", "tarjeta", "efectivo", "metodos", "métodos"],
+      "respuesta": "Actualmente aceptamos pagos con Yape. Al finalizar tu compra, te mostraremos el QR y deberás ingresar el código de operación de 6 dígitos para confirmar tu pedido. 📱"
+    },
+    {
+      "id": 3,
+      "pregunta": "¿Cómo hago un pedido?",
+      "palabras_clave": ["pedido", "comprar", "compra", "orden", "carrito", "hacer"],
+      "respuesta": "Es muy fácil: 1) Agrega productos al carrito, 2) Ingresa tus datos de envío, 3) Elige boleta o factura, 4) Paga con Yape. Necesitas tener una cuenta registrada para completar la compra. 🛒"
+    },
+    {
+      "id": 4,
+      "pregunta": "¿Hacen envíos? ¿Cuánto cuesta?",
+      "palabras_clave": ["envio", "envío", "envios", "envíos", "delivery", "entrega", "costo", "zona"],
+      "respuesta": "Sí, hacemos envíos. El costo depende de tu zona de entrega (departamento, provincia y distrito) y se calcula automáticamente en el paso de envío del checkout. 🚚"
+    },
+    {
+      "id": 5,
+      "pregunta": "¿Cómo me registro?",
+      "palabras_clave": ["registro", "registrar", "cuenta", "crear", "registrarme"],
+      "respuesta": "Haz clic en 'Registrarse', completa tus datos (puedes usar DNI o RUC, se validan automáticamente), y recibirás un código de verificación en tu correo. Al confirmarlo, tu cuenta quedará activa. ✉️"
+    },
+    {
+      "id": 6,
+      "pregunta": "Olvidé mi contraseña, ¿qué hago?",
+      "palabras_clave": ["contraseña", "contrasena", "olvide", "olvidé", "recuperar", "restablecer", "password"],
+      "respuesta": "En la página de login haz clic en '¿Olvidaste tu contraseña?', ingresa tu correo y te enviaremos un enlace para crear una nueva. El enlace expira en 1 hora. 🔑"
+    },
+    {
+      "id": 7,
+      "pregunta": "¿Emiten boleta o factura?",
+      "palabras_clave": ["boleta", "factura", "comprobante", "ruc", "emiten"],
+      "respuesta": "Sí, emitimos boleta (serie B001) o factura (serie F001). Eliges el tipo de comprobante durante el checkout. Para factura necesitas ingresar un RUC válido. Todos los precios ya incluyen IGV (18%). 🧾"
+    },
+    {
+      "id": 8,
+      "pregunta": "¿Cómo veo el estado de mi pedido?",
+      "palabras_clave": ["estado", "seguimiento", "rastrear", "mi pedido", "donde", "dónde", "track"],
+      "respuesta": "Inicia sesión y entra a tu perfil. En la sección 'Mis pedidos' verás el historial con una línea de tiempo del estado de cada pedido: Pendiente → Pagado → Enviado → Entregado. 📦"
+    },
+    {
+      "id": 9,
+      "pregunta": "¿Puedo cancelar o devolver un pedido?",
+      "palabras_clave": ["cancelar", "devolver", "devolucion", "devolución", "cambio", "anular"],
+      "respuesta": "Para cancelaciones o devoluciones, contáctanos lo antes posible indicando tu número de pedido. Si el pedido aún está en estado Pendiente, es más sencillo gestionarlo. 🙏"
+    },
+    {
+      "id": 10,
+      "pregunta": "¿Tienen productos para animales de granja?",
+      "palabras_clave": ["granja", "vaca", "vacas", "caballo", "cerdo", "gallina", "ganado", "aves"],
+      "respuesta": "¡Claro! Además de productos para mascotas (perros, gatos), manejamos líneas para animales de granja. Usa el filtro 'Tipo de animal' en el catálogo para encontrar lo que necesitas. 🐄🐔"
+    }
+  ],
+  "respuesta_por_defecto": "Hmm, no tengo una respuesta exacta para eso. 🤔 Te sugiero registrarte e iniciar sesión para chatear con nuestro asistente inteligente, o elige una de las preguntas frecuentes."
+}
