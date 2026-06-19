@@ -360,7 +360,8 @@ async function cargarProductos() {
             return `
             <tr class="${inactivo ? 'opacity-50' : ''}">
                 <td>${p.id_producto}</td>
-                <td><img src="${imgSrc}" alt="img" style="width:45px;height:45px;object-fit:cover;border-radius:8px;"></td>
+                <td><img src="${imgSrc}" alt="img" style="width:45px;height:45px;object-fit:cover;border-radius:8px;"
+                         onerror="this.onerror=null;this.src='/img/logo.jpeg';"></td>
                 <td><strong>${p.nombre}</strong>${inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
                 <td>${p.categoria || '-'}</td>
                 <td>${p.tipo_animal || '-'}</td>
@@ -587,8 +588,18 @@ async function guardarProducto() {
         const formData = new FormData();
         formData.append('imagen', fileInput.files[0]);
         const upRes  = await fetch('/api/upload/imagen-producto', { method: 'POST', body: formData });
+        if (!upRes.ok) {
+            const upErr = await upRes.json().catch(() => ({}));
+            alert('Error al subir imagen: ' + (upErr.mensaje || upRes.status));
+            return;
+        }
         const upData = await upRes.json();
-        if (upData.url) imagenFinal = upData.url;
+        if (upData.url) {
+            imagenFinal = upData.url;
+        } else {
+            alert('El servidor no devolvió URL de imagen. Revisa la configuración de R2.');
+            return;
+        }
     }
 
     const data = {
