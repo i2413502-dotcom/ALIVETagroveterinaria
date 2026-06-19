@@ -63,30 +63,26 @@ app.use((req, res, next) => {
 app.use(express.static(PUBLIC_DIR));
 
 // ── Ruta para subir imagen de producto ──────────────────────
+const minioService = require('./services/minio.service');
+
 app.post('/api/upload/imagen-producto', upload.single('imagen'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ mensaje: 'No se recibió imagen' });
     }
+
     try {
-        const resultado = await new Promise((resolve, reject) => {
-            cloudinary.uploader.upload_stream(
-                { folder: 'productos' },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            ).end(req.file.buffer);
-        });
-        res.json({ 
-            nombre: resultado.public_id,
-            url: resultado.secure_url  // URL permanente de Cloudinary
-        });
+        const url = await minioService.uploadFile(
+            req.file.buffer,
+            req.file.originalname,
+            'productos'
+        );
+
+        res.json({ url: url, mensaje: 'Imagen subida correctamente' });
     } catch (error) {
-        console.error('Error subiendo a Cloudinary:', error);
+        console.error('Error subiendo a R2:', error);
         res.status(500).json({ mensaje: 'Error al subir imagen' });
     }
 });
-
 // ── Rutas de la app ──────────────────────────────────────────
 app.use('/api/productos',     require('./routes/producto.routes.js'));
 app.use('/api/auth',          require('./routes/auth.routes.js'));

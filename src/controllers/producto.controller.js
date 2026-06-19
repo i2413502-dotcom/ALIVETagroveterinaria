@@ -1,4 +1,5 @@
 const Producto = require('../models/producto.model');
+const minioService = require('../services/minio.service');
 const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
@@ -30,34 +31,33 @@ exports.obtenerPorId = async (req, res) => {
 
 exports.crear = async (req, res) => {
     try {
-        // ✅ FIX: la imagen se sube por separado y llega como nombre en el body
-        const imagen = req.body.imagen || null;
+        let imagen = null;
+
+        // Si se subió un archivo, lo guardamos en R2
+        if (req.file) {
+            imagen = await minioService.uploadFile(
+                req.file.buffer,
+                req.file.originalname,
+                'productos'
+            );
+        } else if (req.body.imagen) {
+            // Si viene como texto (URL o nombre), lo mantenemos
+            imagen = req.body.imagen;
+        }
 
         const result = await Producto.crearProducto({
             nombre:            req.body.nombre,
-            descripcion:       req.body.descripcion       || null,
+            descripcion:       req.body.descripcion || null,
             imagen,
             precio_venta:      req.body.precio_venta,
             id_categoria:      req.body.id_categoria,
             id_tipo_animal:    req.body.id_tipo_animal,
-            stock_actual:      req.body.stock_actual,
-            stock_minimo:      req.body.stock_minimo      || 5,
-            codigo_barra:      req.body.codigo_barra      || null,
-            fecha_vencimiento: req.body.fecha_vencimiento || null,
-            marca:             req.body.marca             || null,
-            //nombre correcto del campo
-            presentacion:      req.body.peso_presentacion || null,
-            colores:           req.body.colores           || null,
-            tallas:            req.body.tallas            || null,
-            ficha_tecnica:     req.body.ficha_tecnica     || null,
-            composicion:       req.body.composicion       || null,
-            modo_uso:          req.body.modo_uso          || null,
         });
 
-        res.json({ mensaje: 'Producto creado correctamente', id: result.insertId });
+        res.status(201).json(result);
     } catch (error) {
-        console.error('Error en crear producto:', error);
-        res.status(500).json({ mensaje: 'Error al crear producto', error: error.message });
+        console.error(error);
+        res.status(500).json({ mensaje: "Error al crear producto" });
     }
 };
 
