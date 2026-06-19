@@ -472,15 +472,34 @@ function switchTab(tab, link) {
     link.classList.add('active');
 }
 
-function previsualizarImagen(input) {
+async function previsualizarImagen(input) {
     const file = input.files[0];
     if (!file) return;
+
+    // Preview local inmediato mientras sube
     const reader = new FileReader();
     reader.onload = e => {
         document.getElementById('preview-img').src = e.target.result;
         document.getElementById('preview-container').classList.remove('d-none');
     };
     reader.readAsDataURL(file);
+
+    // Limpiar URL previa y subir a R2 en segundo plano
+    document.getElementById('prod-imagen-final').value = '';
+    try {
+        const formData = new FormData();
+        formData.append('imagen', file);
+        const upRes = await fetch('/api/upload/imagen-producto', { method: 'POST', body: formData });
+        if (!upRes.ok) { console.error('Upload error', upRes.status); return; }
+        const upData = await upRes.json();
+        if (upData.url) {
+            document.getElementById('prod-imagen-final').value = upData.url;
+            // Actualizar preview con la URL pública de R2 (confirma que es accesible)
+            document.getElementById('preview-img').src = upData.url;
+        }
+    } catch (err) {
+        console.error('Error al subir imagen a R2:', err);
+    }
 }
 
 async function editarProducto(id) {
@@ -581,10 +600,14 @@ async function guardarProducto() {
     const esAcc = txt.includes('acces') || txt.includes('collar') || txt.includes('juguete');
     const esAli = txt.includes('aliment') || txt.includes('comida') || txt.includes('nutrici');
 
-    // Subir imagen si se seleccionó archivo
-    const fileInput = document.getElementById('prod-imagen-file');
-    let imagenFinal = document.getElementById('prod-imagen-url').value.trim();
-    if (fileInput.files.length > 0) {
+    // Imagen: usar la URL ya subida en previsualizarImagen, la URL manual, o re-subir si hizo falta
+    const fileInput   = document.getElementById('prod-imagen-file');
+    const urlManual   = document.getElementById('prod-imagen-url').value.trim();
+    const urlSubida   = document.getElementById('prod-imagen-final').value.trim();
+    let imagenFinal   = urlSubida || urlManual;
+
+    // Si hay archivo seleccionado pero la subida previa no completó aún, subir ahora
+    if (fileInput.files.length > 0 && !urlSubida) {
         const formData = new FormData();
         formData.append('imagen', fileInput.files[0]);
         const upRes  = await fetch('/api/upload/imagen-producto', { method: 'POST', body: formData });
@@ -670,6 +693,7 @@ if (fechaVenc) {
             document.body.classList.remove('modal-open');
             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
             limpiarFormularioProducto();
+            paginaProductos = 1;   // Volver a la primera página para ver el producto recién guardado
             cargarProductos();
             cargarEstadisticas();
             cargarGraficoStock();
