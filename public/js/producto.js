@@ -205,7 +205,8 @@ async function cargarDetalleProducto() {
         if (!res.ok) throw new Error('Producto no encontrado');
         const p = await res.json();
 
-        const img              = p.imagen ? `${RUTA_IMG}${p.imagen.trim()}` : IMG_ERROR;
+        const imgVal = p.imagen ? p.imagen.trim() : '';
+        const img = imgVal ? (imgVal.startsWith('http') ? imgVal : `${RUTA_IMG}${imgVal}`) : IMG_ERROR;
         const fichaTecnica     = construirFichaTecnica(p);
         const selectorAtributos = construirSelectorAtributos(p);
 
@@ -343,7 +344,8 @@ async function cargarRecomendados(idCategoria, idActual) {
         }
 
         document.getElementById('productos-recomendados').innerHTML = filtrados.map(p => {
-            const img = p.imagen ? `${RUTA_IMG}${p.imagen.trim()}` : IMG_ERROR;
+            const imgVal2 = p.imagen ? p.imagen.trim() : '';
+            const img = imgVal2 ? (imgVal2.startsWith('http') ? imgVal2 : `${RUTA_IMG}${imgVal2}`) : IMG_ERROR;
             return `
             <div class="col-6 col-md-3">
                 <div class="card card-agro recomendado-card h-100">

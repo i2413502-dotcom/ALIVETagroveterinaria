@@ -35,7 +35,8 @@ function renderizarCarrito() {
         const itemSubtotal = precio * cantidad;
         subtotal += itemSubtotal;
 
-        const img = item.imagen ? `${RUTA_IMG}${item.imagen.trim()}` : IMG_ERROR;
+        const imgVal = item.imagen ? item.imagen.trim() : '';
+        const img = imgVal ? (imgVal.startsWith('http') ? imgVal : `${RUTA_IMG}${imgVal}`) : IMG_ERROR;
 
         // ✅ Mostrar color y talla si existen
         const detalles = [];

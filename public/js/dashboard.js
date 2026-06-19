@@ -499,7 +499,13 @@ async function editarProducto(id) {
     document.getElementById('prod-animal').value            = p.id_tipo_animal;
     document.getElementById('prod-imagen-url').value        = p.imagen || '';
     document.getElementById('prod-imagen-final').value      = p.imagen || '';
-    document.getElementById('preview-container').classList.add('d-none');
+    if (p.imagen) {
+        const src = p.imagen.startsWith('http') ? p.imagen : `/img/productos/${p.imagen}`;
+        document.getElementById('preview-img').src = src;
+        document.getElementById('preview-container').classList.remove('d-none');
+    } else {
+        document.getElementById('preview-container').classList.add('d-none');
+    }
 
     // Mostrar campos dinámicos según categoría
     actualizarCamposCategoria();
@@ -582,7 +588,7 @@ async function guardarProducto() {
         formData.append('imagen', fileInput.files[0]);
         const upRes  = await fetch('/api/upload/imagen-producto', { method: 'POST', body: formData });
         const upData = await upRes.json();
-        if (upData.nombre) imagenFinal = upData.nombre;
+        if (upData.url) imagenFinal = upData.url;
     }
 
     const data = {

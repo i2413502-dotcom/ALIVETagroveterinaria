@@ -67,7 +67,8 @@ function renderizarProductos(productos) {
     }
 
     contenedor.innerHTML = productos.map(p => {
-        const img        = p.imagen ? `${RUTA_IMG}${p.imagen.trim()}` : IMG_ERROR;
+        const imgVal = p.imagen ? p.imagen.trim() : '';
+        const img = imgVal ? (imgVal.startsWith('http') ? imgVal : `${RUTA_IMG}${imgVal}`) : IMG_ERROR;
         const stockBadge = p.stock_actual <= 5
             ? `<span class="stock-badge-low"><i class="bi bi-exclamation-triangle-fill me-1"></i>Poco stock</span>`
             : '';
