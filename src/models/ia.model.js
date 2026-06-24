@@ -56,7 +56,7 @@ exports.getHistory = async (userId, limite = 20) => {
 // Borra conversaciones con más de 2 días (lo llama el cron diario)
 exports.cleanOldMessages = async () => {
     const [result] = await db.query(
-        `DELETE FROM chat_ia WHERE creado_en < DATE_SUB(NOW(), INTERVAL 2 DAY)`
+        `DELETE FROM chat_ia WHERE creado_en < DATE_SUB(NOW(), INTERVAL 24 HOUR)`
     );
     return result.affectedRows;
 };

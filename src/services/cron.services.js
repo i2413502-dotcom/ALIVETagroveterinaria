@@ -75,7 +75,7 @@ cron.schedule('0 10 * * 1', async () => {
   }
 });
 
-// Cada día a las 3:00 AM — limpieza de chats de AgroBot con más de 2 días
+// Cada día a las 3:00 AM — limpieza de chats de AgroBot con más de 24 horas
 cron.schedule('0 3 * * *', async () => {
     try {
         const iaModel = require('../models/ia.model');
