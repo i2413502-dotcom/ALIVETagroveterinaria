@@ -1,6 +1,7 @@
-// Cliente de OpenRouter con cascada de modelos (todos gratuitos):
-// 1) Llama 3.3 70B  → 2) Gemini 2.0 Flash Exp → 3) DeepSeek R1
-// Si un modelo falla (rate limit, caída, timeout), se intenta el siguiente.
+// Cascada de modelos para AgroBot:
+// 1) Llama 3.3 70B (gratis)  → mejor para español + instrucciones complejas
+// 2) Qwen3 80B A3B (gratis)  → MoE eficiente, buen razonamiento, fallback
+// 3) Hermes 3 405B  (pago)   → máxima calidad como último recurso, costo mínimo en <10 usuarios/día
 require('dotenv').config();
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -8,8 +9,8 @@ const TIMEOUT_MS = 30000; // 30s por intento
 
 const CASCADA = [
     process.env.OPENROUTER_MODEL_1 || 'meta-llama/llama-3.3-70b-instruct:free',
-    process.env.OPENROUTER_MODEL_2 || 'google/gemini-2.0-flash-exp:free',
-    process.env.OPENROUTER_MODEL_3 || 'deepseek/deepseek-r1:free'
+    process.env.OPENROUTER_MODEL_2 || 'qwen/qwen3-next-80b-a3b-instruct:free',
+    process.env.OPENROUTER_MODEL_3 || 'nousresearch/hermes-3-llama-3.1-405b'
 ];
 
 // Llama a un modelo específico. Lanza error si falla (para pasar al siguiente).
