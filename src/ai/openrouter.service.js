@@ -1,5 +1,5 @@
-// Cliente de OpenRouter con cascada de modelos:
-// 1) Llama 3.3 70B (gratis) → 2) Qwen3 80B (gratis) → 3) Gemini Flash (pago).
+// Cliente de OpenRouter con cascada de modelos (todos gratuitos):
+// 1) Llama 3.3 70B  → 2) Gemini 2.0 Flash Exp → 3) DeepSeek R1
 // Si un modelo falla (rate limit, caída, timeout), se intenta el siguiente.
 require('dotenv').config();
 
@@ -8,8 +8,8 @@ const TIMEOUT_MS = 30000; // 30s por intento
 
 const CASCADA = [
     process.env.OPENROUTER_MODEL_1 || 'meta-llama/llama-3.3-70b-instruct:free',
-    process.env.OPENROUTER_MODEL_2 || 'qwen/qwen3-next-80b-a3b-instruct:free',
-    process.env.OPENROUTER_MODEL_3 || 'google/gemini-2.5-flash-preview'
+    process.env.OPENROUTER_MODEL_2 || 'google/gemini-2.0-flash-exp:free',
+    process.env.OPENROUTER_MODEL_3 || 'deepseek/deepseek-r1:free'
 ];
 
 // Llama a un modelo específico. Lanza error si falla (para pasar al siguiente).
@@ -24,7 +24,7 @@ const llamarModelo = async (modelo, mensajes) => {
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://alivet.onrender.com',
+                'HTTP-Referer': 'https://alivetagroveterinaria-web.onrender.com',
                 'X-Title': 'AgroBot ALIVET'
             },
             body: JSON.stringify({
