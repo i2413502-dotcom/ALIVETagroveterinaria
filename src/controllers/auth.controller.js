@@ -416,8 +416,13 @@ const forgotPassword = async (req, res) => {
             { expiresIn: '1h' }
         );
 
+        // Derivar URL base del request (funciona en local y producción sin env vars)
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host     = req.headers['x-forwarded-host']  || req.get('host');
+        const baseUrl  = `${protocol}://${host}`;
+
         // Enviar correo de recuperación
-        await emailService.sendPasswordReset(correo, resetToken);
+        await emailService.sendPasswordReset(correo, resetToken, baseUrl);
 
         res.json({ mensaje: "Si el correo está registrado, recibirás un enlace" });
 

@@ -64,11 +64,10 @@ class EmailService {
     }
   }
 
-  async sendPasswordReset(to, token) {
+  async sendPasswordReset(to, token, baseUrl) {
     if (!this.client) return;
     try {
-      const base = process.env.FRONTEND_URL || 'https://alivetagroveterinaria-web.onrender.com';
-      const link = `${base}/restablecer.html?token=${token}`;
+      const link = `${baseUrl}/restablecer.html?token=${token}`;
       await this.client.transactionalEmails.sendTransacEmail({
         sender: { email: this.senderEmail, name: this.senderName },
         to: [{ email: to }],
