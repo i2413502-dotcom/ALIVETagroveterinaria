@@ -67,7 +67,7 @@ class EmailService {
   async sendPasswordReset(to, token) {
     if (!this.client) return;
     try {
-      const base = process.env.FRONTEND_URL || 'http://localhost:10000';
+      const base = process.env.FRONTEND_URL || 'https://alivetagroveterinaria-web.onrender.com';
       const link = `${base}/restablecer.html?token=${token}`;
       await this.client.transactionalEmails.sendTransacEmail({
         sender: { email: this.senderEmail, name: this.senderName },
