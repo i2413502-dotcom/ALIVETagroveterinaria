@@ -67,21 +67,60 @@ class EmailService {
   async sendPasswordReset(to, token) {
     if (!this.client) return;
     try {
-      const link = `${process.env.FRONTEND_URL || 'https://alivetagroveterinaria-web.onrender.com'}/reset-password?token=${token}`;
+      const base = process.env.FRONTEND_URL || 'http://localhost:10000';
+      const link = `${base}/restablecer.html?token=${token}`;
       await this.client.transactionalEmails.sendTransacEmail({
         sender: { email: this.senderEmail, name: this.senderName },
         to: [{ email: to }],
         subject: 'Recuperación de contraseña - AgroVeterinaria ALIVET',
         htmlContent: `
-          <h2>Recupera tu contraseña</h2>
-          <p>Haz clic en el siguiente enlace para restablecer tu contraseña:</p>
-          <a href="${link}">Restablecer contraseña</a>
-          <p>Este enlace expira en 1 hora.</p>
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff;border-radius:12px">
+            <h2 style="color:#1a5c2a;margin-bottom:8px">Recupera tu contraseña</h2>
+            <p style="color:#555;margin-bottom:24px">Haz clic en el botón para restablecer tu contraseña. El enlace expira en 1 hora.</p>
+            <div style="text-align:center;margin-bottom:24px">
+              <a href="${link}" style="background:#16a34a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">
+                Restablecer contraseña
+              </a>
+            </div>
+            <p style="color:#888;font-size:13px">Si no solicitaste este correo, ignóralo. Tu contraseña no cambiará.</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+            <p style="color:#aaa;font-size:12px">AgroVeterinaria ALIVET</p>
+          </div>
         `,
       });
-      console.log(`[EMAIL] Recuperación enviada a ${to}`);
+      console.log(`[EMAIL] Enlace de recuperación enviado a ${to}`);
     } catch (error) {
       console.error(`[EMAIL] Error al enviar recuperación:`, error.message);
+    }
+  }
+
+  async sendPasswordResetOtp(to, otp) {
+    if (!this.client) {
+      console.log(`[EMAIL SKIP] OTP recuperación para ${to}: ${otp}`);
+      return;
+    }
+    try {
+      await this.client.transactionalEmails.sendTransacEmail({
+        sender: { email: this.senderEmail, name: this.senderName },
+        to: [{ email: to }],
+        subject: 'Código para restablecer contraseña - AgroVeterinaria ALIVET',
+        htmlContent: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff;border-radius:12px">
+            <h2 style="color:#1a5c2a;margin-bottom:8px">Código de recuperación</h2>
+            <p style="color:#555;margin-bottom:24px">Usa el siguiente código para restablecer tu contraseña. Expira en 15 minutos.</p>
+            <div style="background:#f0fdf4;border-radius:8px;padding:24px;text-align:center;margin-bottom:24px">
+              <span style="font-size:48px;font-weight:700;letter-spacing:12px;color:#16a34a">${otp}</span>
+            </div>
+            <p style="color:#888;font-size:13px">Si no solicitaste este código, ignora este mensaje. Tu contraseña no cambiará.</p>
+            <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+            <p style="color:#aaa;font-size:12px">AgroVeterinaria ALIVET</p>
+          </div>
+        `,
+      });
+      console.log(`[EMAIL] OTP de recuperación enviado a ${to}`);
+    } catch (error) {
+      console.error(`[EMAIL] Error al enviar OTP de recuperación a ${to}:`, error.message);
+      throw error;
     }
   }
 

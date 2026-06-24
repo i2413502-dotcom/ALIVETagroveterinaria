@@ -20,23 +20,121 @@
             <div class="col-md-5">
                 <div class="card shadow">
                     <div class="card-body p-4">
-                        <h3 class="text-center mb-4" style="color: var(--agro-green);">Recuperar Contraseña</h3>
-                        <p class="text-muted text-center mb-4">Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.</p>
-                        
-                        <div id="mensaje" class="alert d-none"></div>
-                        
-                        <form id="formRecuperar">
-                            <div class="mb-3">
-                                <label for="correo" class="form-label">Correo electrónico</label>
-                                <input type="email" class="form-control" id="correo" placeholder="tu@correo.com" required>
+                        <h3 class="text-center mb-2" style="color: var(--agro-green);">
+                            <i class="bi bi-shield-lock me-2"></i>Recuperar Contraseña
+                        </h3>
+                        <p class="text-muted text-center mb-4 small">Elige cómo deseas recuperar tu acceso</p>
+
+                        <!-- Tabs -->
+                        <ul class="nav nav-tabs nav-fill mb-4" id="metodosTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="enlace-tab" data-bs-toggle="tab"
+                                    data-bs-target="#tabEnlace" type="button" role="tab">
+                                    <i class="bi bi-link-45deg me-1"></i>Enlace al correo
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="codigo-tab" data-bs-toggle="tab"
+                                    data-bs-target="#tabCodigo" type="button" role="tab">
+                                    <i class="bi bi-123 me-1"></i>Código de verificación
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="metodosTabContent">
+
+                            <!-- ========== TAB 1: ENLACE ========== -->
+                            <div class="tab-pane fade show active" id="tabEnlace" role="tabpanel">
+                                <p class="text-muted small mb-3">
+                                    Te enviaremos un enlace a tu correo para crear una nueva contraseña. Válido por 1 hora.
+                                </p>
+                                <div id="mensajeEnlace" class="alert d-none"></div>
+                                <form id="formEnlace">
+                                    <div class="mb-3">
+                                        <label for="correoEnlace" class="form-label">Correo electrónico</label>
+                                        <input type="email" class="form-control" id="correoEnlace"
+                                            placeholder="tu@correo.com" required>
+                                    </div>
+                                    <button type="submit" class="btn w-100 text-white"
+                                        style="background-color: var(--agro-green);">
+                                        <i class="bi bi-envelope-arrow-up me-1"></i>Obtener enlace de recuperación
+                                    </button>
+                                </form>
                             </div>
-                            <button type="submit" class="btn w-100 text-white" style="background-color: var(--agro-green);">
-                                <i class="bi bi-envelope"></i> Enviar enlace de recuperación
-                            </button>
-                        </form>
-                        
-                        <div class="text-center mt-3">
-                            <a href="/login.html" class="text-decoration-none">← Volver al inicio de sesión</a>
+
+                            <!-- ========== TAB 2: CÓDIGO OTP ========== -->
+                            <div class="tab-pane fade" id="tabCodigo" role="tabpanel">
+
+                                <div id="mensajeCodigo" class="alert d-none"></div>
+
+                                <!-- Paso 1: Ingresar correo -->
+                                <div id="stepCorreo">
+                                    <p class="text-muted small mb-3">
+                                        Ingresa tu correo y te enviaremos un código de 6 dígitos. Válido por 15 minutos.
+                                    </p>
+                                    <form id="formSolicitarCodigo">
+                                        <div class="mb-3">
+                                            <label for="correoOtp" class="form-label">Correo electrónico</label>
+                                            <input type="email" class="form-control" id="correoOtp"
+                                                placeholder="tu@correo.com" required>
+                                        </div>
+                                        <button type="submit" class="btn w-100 text-white"
+                                            style="background-color: var(--agro-green);">
+                                            <i class="bi bi-send me-1"></i>Enviar código
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Paso 2: Ingresar código + nueva contraseña -->
+                                <div id="stepRestablecer" class="d-none">
+                                    <div class="alert alert-success py-2 mb-3" style="font-size:0.875rem">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        Código enviado. Revisa tu bandeja de entrada.
+                                    </div>
+                                    <form id="formRestablecerOtp">
+                                        <div class="mb-3">
+                                            <label for="codigoOtp" class="form-label fw-semibold">Código de verificación</label>
+                                            <input type="text" class="form-control form-control-lg text-center fw-bold"
+                                                id="codigoOtp" placeholder="000000" maxlength="6"
+                                                inputmode="numeric" pattern="\d{6}" required
+                                                style="letter-spacing:8px;font-size:1.5rem">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="nuevaPassword" class="form-label">Nueva contraseña</label>
+                                            <input type="password" class="form-control" id="nuevaPassword"
+                                                placeholder="Mínimo 6 caracteres" minlength="6" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="confirmarPassword" class="form-label">Confirmar contraseña</label>
+                                            <input type="password" class="form-control" id="confirmarPassword"
+                                                placeholder="Repite la contraseña" minlength="6" required>
+                                        </div>
+                                        <div class="mb-4">
+                                            <label for="ultimaPassword" class="form-label text-muted">
+                                                Última contraseña usada
+                                                <span class="badge bg-secondary ms-1" style="font-size:0.7rem">Opcional</span>
+                                            </label>
+                                            <input type="password" class="form-control" id="ultimaPassword"
+                                                placeholder="Verificación adicional de seguridad">
+                                            <div class="form-text">Si la recuerdas, úsala como verificación extra.</div>
+                                        </div>
+                                        <button type="submit" class="btn w-100 text-white mb-2"
+                                            style="background-color: var(--agro-green);">
+                                            <i class="bi bi-shield-check me-1"></i>Restablecer contraseña
+                                        </button>
+                                        <button type="button" id="btnReenviar" class="btn btn-outline-secondary w-100 btn-sm">
+                                            <i class="bi bi-arrow-clockwise me-1"></i>Reenviar código
+                                        </button>
+                                    </form>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <a href="/login.html" class="text-decoration-none text-muted small">
+                                <i class="bi bi-arrow-left me-1"></i>Volver al inicio de sesión
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -44,6 +142,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/recuperar.js"></script>
 </body>
 </html>

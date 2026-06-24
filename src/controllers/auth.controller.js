@@ -47,6 +47,9 @@ const login = async (req, res) => {
 // Almacén temporal de registros pendientes (en producción usa Redis o BD)
 const pendingRegistrations = new Map();
 
+// Almacén temporal de OTPs para recuperación de contraseña
+const pendingPasswordResets = new Map();
+
 // Paso 1: Registrar y enviar OTP
 const register = async (req, res) => {
     try {
@@ -447,7 +450,97 @@ const resetPassword = async (req, res) => {
         console.error(err);
         res.status(400).json({ mensaje: "Token inválido o expirado" });
     }
-};// Enviar promoción a un cliente o a todos
+};// Solicitar recuperación por código OTP
+const forgotPasswordOtp = async (req, res) => {
+    try {
+        const { correo } = req.body;
+        if (!correo) return res.status(400).json({ mensaje: 'Correo requerido' });
+
+        const persona = await authModel.findByEmail(correo);
+        if (!persona) {
+            return res.json({ mensaje: 'Si el correo está registrado, recibirás un código' });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const pendingId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+        pendingPasswordResets.set(pendingId, {
+            id_persona: persona.id_persona,
+            otp,
+            expiresAt: Date.now() + 15 * 60 * 1000
+        });
+
+        // Limpiar automáticamente después de 15 minutos
+        setTimeout(() => pendingPasswordResets.delete(pendingId), 15 * 60 * 1000);
+
+        try {
+            await emailService.sendPasswordResetOtp(correo, otp);
+        } catch (e) {
+            console.error('Error al enviar OTP de recuperación:', e.message);
+        }
+
+        res.json({
+            mensaje: 'Si el correo está registrado, recibirás un código',
+            pendingId,
+            otp: process.env.NODE_ENV === 'production' ? undefined : otp
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ mensaje: 'Error al procesar solicitud' });
+    }
+};
+
+// Restablecer contraseña con OTP
+const resetPasswordOtp = async (req, res) => {
+    try {
+        const { pendingId, otp, nuevaPassword, ultimaPassword } = req.body;
+
+        if (!pendingId || !otp || !nuevaPassword) {
+            return res.status(400).json({ mensaje: 'Datos incompletos' });
+        }
+
+        if (nuevaPassword.length < 6) {
+            return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+
+        const pending = pendingPasswordResets.get(pendingId);
+        if (!pending) {
+            return res.status(400).json({ mensaje: 'Código expirado o inválido. Solicita uno nuevo.' });
+        }
+
+        if (Date.now() > pending.expiresAt) {
+            pendingPasswordResets.delete(pendingId);
+            return res.status(400).json({ mensaje: 'El código ha expirado. Solicita uno nuevo.' });
+        }
+
+        if (pending.otp !== otp) {
+            return res.status(400).json({ mensaje: 'Código incorrecto' });
+        }
+
+        // Si proporcionó la última contraseña, verificarla
+        if (ultimaPassword && ultimaPassword.trim() !== '') {
+            const persona = await authModel.findPersonaById(pending.id_persona);
+            const valido = await bcrypt.compare(ultimaPassword, persona.password);
+            if (!valido) {
+                return res.status(400).json({ mensaje: 'La última contraseña ingresada no coincide' });
+            }
+        }
+
+        const hash = await bcrypt.hash(nuevaPassword, 10);
+        await db.query('UPDATE persona SET password = ? WHERE id_persona = ?', [hash, pending.id_persona]);
+
+        pendingPasswordResets.delete(pendingId);
+
+        res.json({ mensaje: 'Contraseña restablecida correctamente' });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ mensaje: 'Error al restablecer contraseña' });
+    }
+};
+
+// Enviar promoción a un cliente o a todos
 const enviarPromocion = async (req, res) => {
     try {
         const { correo, asunto, mensaje } = req.body;
@@ -478,18 +571,20 @@ const enviarPromocion = async (req, res) => {
         res.status(500).json({ mensaje: "Error al enviar promoción" });
     }
 };
-module.exports = { 
-    login, 
-    register, 
-    verifyOtp, 
-    forgotPassword, 
-    resetPassword, 
-    enviarPromocion, 
-    consultarDocumento, 
-    getPerfil, 
-    getDatosEnvio, 
-    guardarDireccionHabitual, 
-    actualizarPerfil, 
-    cambiarPassword, 
-    guardarFcmToken 
+module.exports = {
+    login,
+    register,
+    verifyOtp,
+    forgotPassword,
+    resetPassword,
+    forgotPasswordOtp,
+    resetPasswordOtp,
+    enviarPromocion,
+    consultarDocumento,
+    getPerfil,
+    getDatosEnvio,
+    guardarDireccionHabitual,
+    actualizarPerfil,
+    cambiarPassword,
+    guardarFcmToken
 };
