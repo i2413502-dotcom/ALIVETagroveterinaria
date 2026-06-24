@@ -15,10 +15,10 @@ const extraerUsuario = (req) => {
     }
 };
 
-// POST /api/ia/chat — { mensaje, faqId? }
+// POST /api/ia/chat — { mensaje, faqId?, paginaActual? }
 exports.chat = async (req, res) => {
     try {
-        const { mensaje, faqId } = req.body;
+        const { mensaje, faqId, paginaActual } = req.body;
 
         if (!faqId && (!mensaje || !mensaje.trim())) {
             return res.status(400).json({ mensaje: 'El mensaje no puede estar vacío' });
@@ -32,10 +32,15 @@ exports.chat = async (req, res) => {
             userId,
             rol,
             mensaje: (mensaje || '').trim(),
-            faqId
+            faqId,
+            paginaActual: typeof paginaActual === 'string' ? paginaActual.slice(0, 200) : ''
         });
 
-        res.json({ respuesta: resultado.respuesta, rol });
+        res.json({
+            respuesta: resultado.respuesta,
+            rol,
+            productos: resultado.productos || []
+        });
     } catch (err) {
         console.error('Error en chat IA:', err);
         res.status(500).json({ mensaje: 'Error procesando tu mensaje' });

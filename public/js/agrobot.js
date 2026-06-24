@@ -6,7 +6,6 @@
 (function () {
     'use strict';
 
-    // Evitar doble inyección si la página ya incluye el script
     if (document.getElementById('agrobot-burbuja')) return;
 
     // ── Detección de rol desde el JWT en localStorage ────────────
@@ -16,7 +15,7 @@
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             if (payload.exp && payload.exp * 1000 < Date.now()) {
-                return { token: null, rol: 'INVITADO' }; // token expirado
+                return { token: null, rol: 'INVITADO' };
             }
             return { token, rol: payload.rol || 'CLIENTE' };
         } catch (e) {
@@ -38,7 +37,7 @@
         #agrobot-burbuja:hover { transform: scale(1.1); }
         #agrobot-panel {
             position: fixed; bottom: 92px; right: 20px; z-index: 9999;
-            width: 340px; max-width: calc(100vw - 40px); height: 460px;
+            width: 340px; max-width: calc(100vw - 40px); height: 500px;
             background: #fff; border-radius: 16px; display: none;
             flex-direction: column; overflow: hidden;
             box-shadow: 0 8px 30px rgba(0,0,0,.25);
@@ -46,33 +45,49 @@
         }
         #agrobot-panel.abierto { display: flex; }
         .agrobot-header {
-            background: #2e7d32; color: #fff; padding: 12px 16px;
+            background: linear-gradient(135deg,#2e7d32,#388e3c);
+            color: #fff; padding: 12px 16px;
             font-weight: 600; display: flex; justify-content: space-between;
             align-items: center;
         }
-        .agrobot-header small { display: block; font-weight: 400; opacity: .85; font-size: 11px; }
-        .agrobot-cerrar { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+        .agrobot-header-left { display:flex; align-items:center; gap:8px; }
+        .agrobot-avatar {
+            width:32px; height:32px; border-radius:50%;
+            background:rgba(255,255,255,.2);
+            display:flex; align-items:center; justify-content:center; font-size:18px;
+        }
+        .agrobot-titulo { font-size:14px; font-weight:700; }
+        .agrobot-subtitulo { font-size:11px; font-weight:400; opacity:.85; }
+        .agrobot-cerrar { background:none; border:none; color:#fff; font-size:20px; cursor:pointer; padding:4px 8px; border-radius:6px; }
+        .agrobot-cerrar:hover { background:rgba(255,255,255,.15); }
         .agrobot-mensajes {
             flex: 1; overflow-y: auto; padding: 12px;
             background: #f4f7f4; display: flex; flex-direction: column; gap: 8px;
         }
         .agrobot-msg {
-            max-width: 85%; padding: 8px 12px; border-radius: 12px;
-            font-size: 13.5px; line-height: 1.45; white-space: pre-wrap;
+            max-width: 88%; padding: 9px 13px; border-radius: 14px;
+            font-size: 13.5px; line-height: 1.5; white-space: pre-wrap;
             word-wrap: break-word;
         }
-        .agrobot-msg.usuario { align-self: flex-end; background: #2e7d32; color: #fff; border-bottom-right-radius: 4px; }
-        .agrobot-msg.bot { align-self: flex-start; background: #fff; color: #222; border: 1px solid #e0e6e0; border-bottom-left-radius: 4px; }
-        .agrobot-msg.escribiendo { font-style: italic; color: #777; }
-        .agrobot-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+        .agrobot-msg.usuario {
+            align-self: flex-end; background: #2e7d32; color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .agrobot-msg.bot {
+            align-self: flex-start; background: #fff; color: #222;
+            border: 1px solid #e0e6e0; border-bottom-left-radius: 4px;
+        }
+        .agrobot-msg.escribiendo { font-style: italic; color: #777; background:#fff; border:1px solid #e0e6e0; }
+        .agrobot-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
         .agrobot-chip {
             background: #e8f3e8; color: #2e7d32; border: 1px solid #bcd9bc;
-            border-radius: 14px; padding: 5px 10px; font-size: 12px;
+            border-radius: 14px; padding: 5px 11px; font-size: 12px;
             cursor: pointer; transition: background .15s;
         }
-        .agrobot-chip:hover { background: #d2e8d2; }
+        .agrobot-chip:hover { background: #c8e6c9; }
         .agrobot-input-zona {
-            display: flex; gap: 8px; padding: 10px; border-top: 1px solid #e5e5e5; background: #fff;
+            display: flex; gap: 8px; padding: 10px 12px;
+            border-top: 1px solid #e5e5e5; background: #fff;
         }
         .agrobot-input-zona input {
             flex: 1; border: 1px solid #ccc; border-radius: 20px;
@@ -82,8 +97,42 @@
         .agrobot-input-zona button {
             background: #2e7d32; color: #fff; border: none; border-radius: 50%;
             width: 38px; height: 38px; cursor: pointer; font-size: 16px;
+            flex-shrink: 0;
         }
-        .agrobot-input-zona button:disabled { opacity: .5; cursor: default; }
+        .agrobot-input-zona button:disabled { opacity: .45; cursor: default; }
+
+        /* ── Tarjetas de producto ─────────────────────────────── */
+        .agrobot-productos {
+            align-self: flex-start;
+            display: flex; flex-direction: column; gap: 7px;
+            width: 100%; max-width: 300px;
+        }
+        .agrobot-prod-card {
+            display: flex; align-items: center; gap: 10px;
+            background: #fff; border: 1px solid #dde8dd;
+            border-radius: 12px; padding: 8px 10px;
+            text-decoration: none; color: inherit;
+            transition: border-color .2s, box-shadow .2s;
+            cursor: pointer;
+        }
+        .agrobot-prod-card:hover {
+            border-color: #2e7d32;
+            box-shadow: 0 3px 10px rgba(46,125,50,.15);
+        }
+        .agrobot-prod-img {
+            width: 52px; height: 52px; object-fit: cover;
+            border-radius: 8px; flex-shrink: 0; background: #f0f4f0;
+        }
+        .agrobot-prod-info { flex: 1; min-width: 0; }
+        .agrobot-prod-nombre {
+            font-size: 12.5px; font-weight: 600; color: #1b5e20;
+            margin-bottom: 2px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .agrobot-prod-precio {
+            font-size: 13.5px; font-weight: 700; color: #2e7d32; margin-bottom: 2px;
+        }
+        .agrobot-prod-stock { font-size: 11px; }
     `;
     document.head.appendChild(estilos);
 
@@ -97,8 +146,14 @@
     panel.id = 'agrobot-panel';
     panel.innerHTML = `
         <div class="agrobot-header">
-            <div>AgroBot 🐾<small id="agrobot-subtitulo">Asistente de ALIVET</small></div>
-            <button class="agrobot-cerrar" title="Cerrar">×</button>
+            <div class="agrobot-header-left">
+                <div class="agrobot-avatar">🐾</div>
+                <div>
+                    <div class="agrobot-titulo">AgroBot ALIVET</div>
+                    <div class="agrobot-subtitulo" id="agrobot-subtitulo">Asistente virtual</div>
+                </div>
+            </div>
+            <button class="agrobot-cerrar" title="Cerrar">✕</button>
         </div>
         <div class="agrobot-mensajes" id="agrobot-mensajes"></div>
         <div class="agrobot-input-zona">
@@ -111,15 +166,15 @@
     document.body.appendChild(panel);
 
     const zonaMensajes = panel.querySelector('#agrobot-mensajes');
-    const input = panel.querySelector('#agrobot-input');
-    const btnEnviar = panel.querySelector('#agrobot-enviar');
-    const subtitulo = panel.querySelector('#agrobot-subtitulo');
+    const input        = panel.querySelector('#agrobot-input');
+    const btnEnviar    = panel.querySelector('#agrobot-enviar');
+    const subtitulo    = panel.querySelector('#agrobot-subtitulo');
 
     let sesion = obtenerSesion();
     let historialCargado = false;
     let enviando = false;
 
-    // ── Helpers de UI (siempre con textContent: a prueba de XSS) ──
+    // ── Helpers de UI ─────────────────────────────────────────────
     const agregarMensaje = (texto, clase) => {
         const div = document.createElement('div');
         div.className = 'agrobot-msg ' + clase;
@@ -127,6 +182,64 @@
         zonaMensajes.appendChild(div);
         zonaMensajes.scrollTop = zonaMensajes.scrollHeight;
         return div;
+    };
+
+    // Renderiza tarjetas de producto debajo del mensaje del bot
+    const renderizarProductos = (productos) => {
+        if (!productos || !productos.length) return;
+
+        const contenedor = document.createElement('div');
+        contenedor.className = 'agrobot-productos';
+
+        productos.forEach(p => {
+            const imgSrc = p.imagen && p.imagen.startsWith('http')
+                ? p.imagen
+                : `/img/productos/${p.imagen || 'default.jpg'}`;
+
+            const stock = Number(p.stock_actual) || 0;
+            const stockColor  = stock > 5 ? '#2e7d32' : stock > 0 ? '#e65100' : '#c62828';
+            const stockTexto  = stock > 5 ? `✓ ${stock} disponibles`
+                              : stock > 0 ? `⚠ Solo ${stock} restantes`
+                              : '✗ Sin stock';
+
+            const card = document.createElement('a');
+            card.className = 'agrobot-prod-card';
+            card.href = `/detalleproducto.html?id=${encodeURIComponent(p.id)}`;
+            card.target = '_blank';
+            card.rel = 'noopener';
+
+            const img = document.createElement('img');
+            img.className = 'agrobot-prod-img';
+            img.src = imgSrc;
+            img.alt = '';
+            img.onerror = () => { img.src = '/img/productos/default.jpg'; };
+
+            const info = document.createElement('div');
+            info.className = 'agrobot-prod-info';
+
+            const nombre = document.createElement('div');
+            nombre.className = 'agrobot-prod-nombre';
+            nombre.textContent = p.nombre;
+
+            const precio = document.createElement('div');
+            precio.className = 'agrobot-prod-precio';
+            precio.textContent = `S/ ${Number(p.precio).toFixed(2)}`;
+
+            const stockEl = document.createElement('div');
+            stockEl.className = 'agrobot-prod-stock';
+            stockEl.style.color = stockColor;
+            stockEl.textContent = stockTexto;
+
+            info.appendChild(nombre);
+            info.appendChild(precio);
+            info.appendChild(stockEl);
+            card.appendChild(img);
+            card.appendChild(info);
+            contenedor.appendChild(card);
+        });
+
+        zonaMensajes.appendChild(contenedor);
+        zonaMensajes.scrollTop = zonaMensajes.scrollHeight;
     };
 
     const mostrarChipsFaq = async () => {
@@ -148,7 +261,7 @@
             });
             zonaMensajes.appendChild(contenedor);
             zonaMensajes.scrollTop = zonaMensajes.scrollHeight;
-        } catch (e) { /* sin chips si falla, el input sigue funcionando */ }
+        } catch (e) { /* sin chips si falla */ }
     };
 
     // ── Comunicación con el backend ──────────────────────────────
@@ -163,10 +276,16 @@
             const headers = { 'Content-Type': 'application/json' };
             if (sesion.token) headers['Authorization'] = 'Bearer ' + sesion.token;
 
+            // Incluir la página actual para que la IA adapte su respuesta
+            const payload = Object.assign(
+                { paginaActual: window.location.pathname },
+                cuerpo
+            );
+
             const resp = await fetch('/api/ia/chat', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify(cuerpo)
+                body: JSON.stringify(payload)
             });
             const data = await resp.json();
 
@@ -175,6 +294,12 @@
                 data.respuesta || data.mensaje || 'No pude procesar tu mensaje.',
                 'bot'
             );
+
+            // Mostrar tarjetas de productos si la IA encontró alguno
+            if (Array.isArray(data.productos) && data.productos.length) {
+                renderizarProductos(data.productos);
+            }
+
         } catch (e) {
             escribiendo.remove();
             agregarMensaje('Error de conexión. Intenta de nuevo. 🙏', 'bot');
@@ -203,19 +328,19 @@
 
     // ── Bienvenida según rol ─────────────────────────────────────
     const iniciarConversacion = async () => {
-        sesion = obtenerSesion(); // re-leer por si inició sesión en otra pestaña
+        sesion = obtenerSesion();
 
         if (sesion.rol === 'INVITADO') {
             subtitulo.textContent = 'Preguntas frecuentes';
-            agregarMensaje('¡Hola! 👋 Soy AgroBot. Elige una pregunta frecuente o escribe tu duda sobre ALIVET:', 'bot');
+            agregarMensaje('¡Hola! 👋 Soy AgroBot, asistente de ALIVET. Elige una pregunta o escribe tu consulta:', 'bot');
             await mostrarChipsFaq();
         } else if (sesion.rol === 'COLABORADOR') {
-            subtitulo.textContent = 'Asistente del panel (solo lectura)';
-            agregarMensaje('¡Hola! 👋 Soy AgroBot. Puedo darte estadísticas del negocio: ventas, stock bajo, pedidos pendientes, productos por vencer...', 'bot');
+            subtitulo.textContent = 'Panel administrativo';
+            agregarMensaje('¡Hola! 👋 Soy AgroBot. Puedo mostrarte estadísticas del negocio: ventas, stock, pedidos y más. ¿En qué te ayudo?', 'bot');
             await cargarHistorial();
         } else {
-            subtitulo.textContent = 'Tu asistente personal';
-            agregarMensaje('¡Hola! 👋 Soy AgroBot. Pregúntame por productos, precios o consejos para tus mascotas. 🐶🐱', 'bot');
+            subtitulo.textContent = 'Tu asistente personal 🐾';
+            agregarMensaje('¡Hola! 👋 Soy AgroBot. Puedo ayudarte a encontrar productos, resolver dudas sobre tu pedido o responder preguntas sobre tus mascotas. ¿En qué te ayudo?', 'bot');
             await cargarHistorial();
         }
         historialCargado = true;

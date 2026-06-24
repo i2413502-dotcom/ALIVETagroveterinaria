@@ -101,7 +101,7 @@ exports.saveContext = async (userId, data) => {
 exports.searchProducts = async (query) => {
     const [rows] = await db.query(
         `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
-                p.descripcion, p.stock_actual,
+                p.descripcion, p.stock_actual, p.imagen,
                 c.nombre AS categoria
          FROM producto p
          LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
