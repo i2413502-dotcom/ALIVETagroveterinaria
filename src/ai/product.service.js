@@ -28,10 +28,14 @@ exports.buscarProductos = async (mensaje) => {
     if (!palabras.length) return [];
 
     const encontrados = new Map();
-    for (const palabra of palabras.slice(0, 4)) { // máx 4 términos por mensaje
-        const productos = await iaModel.searchProducts(palabra);
-        for (const p of productos) {
-            if (!encontrados.has(p.id)) encontrados.set(p.id, p);
+    for (const palabra of palabras.slice(0, 4)) {
+        try {
+            const productos = await iaModel.searchProducts(palabra);
+            for (const p of productos) {
+                if (!encontrados.has(p.id)) encontrados.set(p.id, p);
+            }
+        } catch (err) {
+            console.error(`[AgroBot] Error buscando "${palabra}":`, err.message);
         }
         if (encontrados.size >= 5) break;
     }

@@ -99,15 +99,18 @@ exports.saveContext = async (userId, data) => {
 // ── Productos (fuente de verdad anti-alucinación) ─────────────────
 // La IA SOLO puede hablar de productos que salgan de esta consulta.
 exports.searchProducts = async (query) => {
+    const term = `%${query}%`;
     const [rows] = await db.query(
         `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
-                p.descripcion, p.stock_actual, p.imagen,
+                p.descripcion, p.stock_actual,
+                IFNULL(p.imagen, '') AS imagen,
                 c.nombre AS categoria
          FROM producto p
          LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
-         WHERE p.nombre LIKE ? AND p.estado = 'ACTIVO'
+         WHERE (p.nombre LIKE ? OR p.descripcion LIKE ? OR c.nombre LIKE ?)
+           AND p.estado = 'ACTIVO'
          LIMIT 5`,
-        [`%${query}%`]
+        [term, term, term]
     );
     return rows;
 };
