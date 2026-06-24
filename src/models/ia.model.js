@@ -96,6 +96,19 @@ exports.saveContext = async (userId, data) => {
     );
 };
 
+// ── Catálogo completo: categorías activas (para que la IA conozca toda la oferta) ──
+exports.getActiveCategories = async () => {
+    const [rows] = await db.query(`
+        SELECT c.nombre AS categoria, COUNT(p.id_producto) AS total
+        FROM categoria_producto c
+        LEFT JOIN producto p ON c.id_categoria = p.id_categoria AND p.estado = 'ACTIVO'
+        GROUP BY c.id_categoria, c.nombre
+        HAVING total > 0
+        ORDER BY total DESC
+    `);
+    return rows;
+};
+
 // ── Productos (fuente de verdad anti-alucinación) ─────────────────
 // La IA SOLO puede hablar de productos que salgan de esta consulta.
 exports.searchProducts = async (query) => {

@@ -56,7 +56,29 @@ REGLAS ESTRICTAS E INVIOLABLES:
 7. CONTEXTO DE SECCIÓN: Si conoces la página actual del usuario, adapta tus respuestas a esa sección (carrito → ayuda con cantidades; pago → explica el proceso Yape; envío → orienta sobre la dirección; etc.).
 `.trim();
 
+// ── Cache de categorías (se refresca cada 10 minutos) ────────────
+let _catCache = null;
+let _catExpiry = 0;
+const obtenerCategorias = async () => {
+    if (_catCache && Date.now() < _catExpiry) return _catCache;
+    try {
+        _catCache  = await iaModel.getActiveCategories();
+        _catExpiry = Date.now() + 10 * 60 * 1000;
+    } catch (e) {
+        console.error('[AgroBot] No se cargaron categorías:', e.message);
+        _catCache = [];
+    }
+    return _catCache;
+};
+
 // ── Formateadores de contexto ─────────────────────────────────
+const formatearCatalogo = (categorias) => {
+    if (!categorias || !categorias.length) return '';
+    const lista = categorias.map(c => `${c.categoria} (${c.total})`).join(' | ');
+    return `[CATÁLOGO COMPLETO DE ALIVET]\n${lista}\n` +
+        'Usa estas categorías para hacer recomendaciones proactivas: si un cliente pide algo para un animal, sugiere también otras categorías relacionadas disponibles en tienda.';
+};
+
 const formatearProductos = (productos) => {
     if (!productos.length) return '[PRODUCTOS ENCONTRADOS EN BD]\n(ninguno)';
     const lineas = productos.map(p =>
@@ -92,14 +114,20 @@ const responderInvitado = (mensaje, faqId) => {
 
 // ── Capa 2: Cliente (IA + memoria + productos reales) ────────────
 const responderCliente = async (userId, mensaje, paginaActual) => {
-    // 1. Memoria y productos en paralelo
-    const [contexto, productos] = await Promise.all([
+    // 1. Memoria, productos y catálogo en paralelo
+    const [contexto, productos, categorias] = await Promise.all([
         memoryService.obtenerContexto(userId),
-        productService.buscarProductos(mensaje)
+        productService.buscarProductos(mensaje),
+        obtenerCategorias()
     ]);
 
-    // 2. Construir prompt con datos REALES
-    const partes = [reglasBase(CONTACTO_ALIVET), formatearMemoria(contexto), formatearProductos(productos)];
+    // 2. Construir prompt con datos REALES + catálogo completo
+    const partes = [
+        reglasBase(CONTACTO_ALIVET),
+        formatearCatalogo(categorias),
+        formatearMemoria(contexto),
+        formatearProductos(productos)
+    ];
 
     // 3. Contexto de página si disponible
     const ctxPagina = contextoDeUrl(paginaActual);
