@@ -199,7 +199,7 @@ exports.procesarMensaje = async ({ userId, rol, mensaje, faqId, paginaActual }) 
     } catch (err) {
         console.error('[AgroBot] Error procesando mensaje:', err.message);
         return { respuesta: R_ERROR, capa: 'ERROR', productos: [] };
-    }
+     }
 };
 
 exports.obtenerHistorial = (userId) => iaModel.getHistory(userId);

@@ -9,7 +9,7 @@ document.getElementById('formPromocion').addEventListener('submit', async (e) =>
     
     const correo = document.getElementById('correo').value;
     const asunto = document.getElementById('asunto').value;
-    const mensajeTexto = document.getElementById('mensaje').value;
+    const mensajeTexto = document.getElementById('mensajePromo').value;
     const mensaje = document.getElementById('mensaje');
     const btn = e.target.querySelector('button');
     

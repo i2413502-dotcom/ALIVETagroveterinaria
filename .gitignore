@@ -6,3 +6,4 @@ package-lock.json
 # Credenciales privadas de Firebase Admin (NUNCA versionar)
 *firebase-adminsdk*.json
 agroveterinaria-35fbd-firebase-adminsdk-fbsvc-a1486de843.json
+alivetagroveterinaria_empresa.sql
