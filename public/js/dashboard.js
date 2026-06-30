@@ -64,7 +64,8 @@ function cerrarSesion() {
 // Exportar el contenido de un tab (entidad) en el formato dado: excel | pdf | powerbi
 async function exportarTabla(entidad, formato) {
     try {
-        const res = await fetch(`/api/reportes/exportar/${entidad}/${formato}`);
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/reportes/exportar/${entidad}/${formato}`, { headers: { 'Authorization': 'Bearer ' + token } });
         if (!res.ok) {
             const e = await res.json().catch(() => ({}));
             throw new Error(e.mensaje || 'No se pudo exportar');
@@ -90,7 +91,8 @@ async function exportarTabla(entidad, formato) {
 // ═══════════════════════════════════════════════════
 async function cargarEstadisticas() {
     try {
-        const res  = await fetch('/api/dashboard');
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         document.getElementById('stat-clientes').innerText   = data.clientes;
         document.getElementById('stat-pendientes').innerText = data.pedidosPendientes;
@@ -104,7 +106,8 @@ async function cargarEstadisticas() {
 // ═══════════════════════════════════════════════════
 async function cargarGraficoVentas() {
     try {
-        const res  = await fetch('/api/dashboard/ventas-mes');
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/dashboard/ventas-mes', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         const ctx  = document.getElementById('chartVentas').getContext('2d');
         if (chartVentas) chartVentas.destroy();
@@ -140,7 +143,8 @@ async function cargarGraficoVentas() {
 // ═══════════════════════════════════════════════════
 async function cargarGraficoProductos() {
     try {
-        const res  = await fetch('/api/dashboard/productos-vendidos');
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/dashboard/productos-vendidos', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         const ctx  = document.getElementById('chartProductos').getContext('2d');
         if (chartProductos) chartProductos.destroy();
@@ -168,7 +172,8 @@ async function cargarGraficoProductos() {
 // ═══════════════════════════════════════════════════
 async function cargarGraficoStock() {
     try {
-        const res  = await fetch('/api/dashboard/stock');
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/dashboard/stock', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         const ctx  = document.getElementById('chartStock').getContext('2d');
         if (chartStock) chartStock.destroy();
@@ -683,9 +688,10 @@ if (fechaVenc) {
     const method = id ? 'PUT' : 'POST';
 
     try {
+        const token = localStorage.getItem('token');
         const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify(data)
         });
         if (res.ok) {
@@ -736,9 +742,10 @@ async function cambiarEstadoProducto(id, nuevoEstado) {
     const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'desactivar';
     if (!confirm(`¿Seguro que deseas ${accion} este producto?`)) return;
     try {
+        const token = localStorage.getItem('token');
         const res = await fetch(`/api/productos/${id}/estado`, {
             method:  'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body:    JSON.stringify({ estado: nuevoEstado })
         });
         if (res.ok) {
@@ -756,7 +763,8 @@ async function cambiarEstadoProducto(id, nuevoEstado) {
 async function eliminarProducto(id) {
     if (!confirm('⚠️ ¿Eliminar PERMANENTEMENTE este producto?\nEsta acción no se puede deshacer y borra también su imagen.')) return;
     try {
-        const res = await fetch(`/api/productos/${id}`, { method:'DELETE' });
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/productos/${id}`, { method:'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
         if (res.ok) {
             cargarProductos();
             cargarEstadisticas();
@@ -857,7 +865,8 @@ async function guardarCategoria() {
     const url    = id ? `/api/categorias/${id}` : '/api/categorias';
     const method = id ? 'PUT' : 'POST';
     try {
-        const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        const token = localStorage.getItem('token');
+        const res = await fetch(url, { method, headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data) });
         if (res.ok) { modalCategoria.hide(); cargarCategorias(); }
         else { const e = await res.json(); alert(e.mensaje || 'Error al guardar'); }
     } catch (err) { alert('Error al guardar categoría'); }
@@ -866,7 +875,8 @@ async function guardarCategoria() {
 async function eliminarCategoria(id) {
     if (!confirm('¿Seguro que deseas eliminar esta categoría?')) return;
     try {
-        const res = await fetch(`/api/categorias/${id}`, { method:'DELETE' });
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/categorias/${id}`, { method:'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
         if (res.ok) cargarCategorias();
         else { const e = await res.json(); alert(e.mensaje || 'No se puede eliminar'); }
     } catch (err) { alert('Error al eliminar'); }
@@ -1029,9 +1039,10 @@ async function guardarAnimal() {
     const url    = id ? `/api/animales/${id}` : '/api/animales';
     const method = id ? 'PUT' : 'POST';
     try {
+        const token = localStorage.getItem('token');
         const res = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify(data)
         });
         if (res.ok) {
@@ -1055,7 +1066,8 @@ async function guardarAnimal() {
 async function eliminarAnimal(id) {
     if (!confirm('¿Seguro que deseas eliminar este animal?')) return;
     try {
-        const res = await fetch(`/api/animales/${id}`, { method: 'DELETE' });
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/animales/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
         if (res.ok) {
             document.body.classList.remove('modal-open');
             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
@@ -1073,7 +1085,8 @@ async function eliminarAnimal(id) {
 // ═══════════════════════════════════════════════════
 async function cargarColaboradores() {
     try {
-        const res = await fetch('/api/colaboradores');
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/colaboradores', { headers: { 'Authorization': 'Bearer ' + token } });
         colaboradoresLista = await res.json();
         const tbody = document.getElementById('tabla-colaboradores');
         if (!colaboradoresLista.length) {
@@ -1141,7 +1154,8 @@ function editarColaborador(id) {
 }
 
 async function cargarSelectCargos() {
-    const res  = await fetch('/api/colaboradores/cargos');
+    const token = localStorage.getItem('token');
+    const res  = await fetch('/api/colaboradores/cargos', { headers: { 'Authorization': 'Bearer ' + token } });
     const data = await res.json();
     document.getElementById('col-cargo').innerHTML =
         '<option value="">-- Seleccionar --</option>' +
@@ -1174,8 +1188,9 @@ async function guardarColaborador() {
             password:        pass
         };
         try {
+            const token = localStorage.getItem('token');
             const res = await fetch('/api/colaboradores', {
-                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+                method:'POST', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data)
             });
             if (res.ok) { modalColaborador.hide(); cargarColaboradores(); alert('Colaborador creado correctamente'); }
             else { const e = await res.json(); alert(e.mensaje || 'Error al crear'); }
@@ -1193,8 +1208,9 @@ async function guardarColaborador() {
             estado:          document.getElementById('col-estado').value
         };
         try {
+            const token = localStorage.getItem('token');
             const res = await fetch(`/api/colaboradores/${id}`, {
-                method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+                method:'PUT', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data)
             });
             if (res.ok) {
                 // Verificar si quiso cambiar contraseña
@@ -1203,7 +1219,7 @@ async function guardarColaborador() {
                 if (newPass) {
                     if (newPass !== newPass2) { alert('Las nuevas contraseñas no coinciden'); return; }
                     await fetch(`/api/colaboradores/${id}/reset-password`, {
-                        method:'PUT', headers:{'Content-Type':'application/json'},
+                        method:'PUT', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token},
                         body: JSON.stringify({ nuevaPassword: newPass })
                     });
                 }
