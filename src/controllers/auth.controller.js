@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const authModel = require('../models/auth.model');
 const crypto = require('crypto');
 const emailService = require('../services/email.service');
+const minioService = require('../services/minio.service');
 const API_PERU_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImkyNDEzNTAyQGNvbnRpbmVudGFsLmVkdS5wZSJ9.nI0hFsGrlk9vbeXXCZVfWQjP__LIX1C7iiLGVxqsRhM';
 const BASE_URL = 'https://dniruc.apisperu.com/api/v1';
 
@@ -28,7 +29,7 @@ const login = async (req, res) => {
         const token = jwt.sign(
             { id: persona.id_persona, rol },
             process.env.JWT_SECRET,
-            { expiresIn: '15m' }
+            { expiresIn: '4h' }
         );
 
         res.json({ 
@@ -156,7 +157,7 @@ const verifyOtp = async (req, res) => {
         const token = jwt.sign(
             { id: idPersona, rol: 'CLIENTE' },
             process.env.JWT_SECRET,
-            { expiresIn: '15m' }
+            { expiresIn: '4h' }
         );
 
         res.json({ 
@@ -554,11 +555,21 @@ const enviarPromocion = async (req, res) => {
             return res.status(400).json({ mensaje: "Asunto y mensaje requeridos" });
         }
 
+        // Si se subió una imagen, la guardamos en R2/Minio y obtenemos su URL pública
+        let imagenUrl = null;
+        if (req.file) {
+            imagenUrl = await minioService.uploadFile(
+                req.file.buffer,
+                req.file.originalname,
+                'promociones'
+            );
+        }
+
         if (correo) {
             // Enviar a un cliente específico
             const persona = await authModel.findByEmail(correo);
             if (!persona) return res.status(404).json({ mensaje: "Cliente no encontrado" });
-            await emailService.sendPromotion(correo, persona.nombres, asunto, mensaje);
+            await emailService.sendPromotion(correo, persona.nombres, asunto, mensaje, imagenUrl);
         } else {
             // Enviar a todos los clientes
             const [clientes] = await db.query(
@@ -566,7 +577,7 @@ const enviarPromocion = async (req, res) => {
                  JOIN cliente c ON c.id_persona = p.id_persona`
             );
             for (const c of clientes) {
-                await emailService.sendPromotion(c.correo, c.nombres, asunto, mensaje);
+                await emailService.sendPromotion(c.correo, c.nombres, asunto, mensaje, imagenUrl);
             }
         }
 
