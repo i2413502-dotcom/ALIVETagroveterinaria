@@ -1,6 +1,10 @@
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controllers/dashboard.controller');
+const { verificarToken, verificarRol } = require('../middlewares/auth.middleware');
+
+// Todo este módulo es exclusivo del panel de administrador
+router.use(verificarToken, verificarRol('COLABORADOR'));
 
 router.get('/api/dashboard',                   ctrl.getDashboardData);
 router.get('/api/dashboard/ventas-mes',        ctrl.getVentasPorMes);

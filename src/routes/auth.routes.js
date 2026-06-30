@@ -1,20 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
+const { verificarToken } = require('../middlewares/auth.middleware');
 
+// Públicas — no requieren sesión iniciada
 router.post('/login',              authController.login);
 router.post('/registro',           authController.register);
 router.get('/consultar-documento', authController.consultarDocumento);
-router.get('/perfil',              authController.getPerfil);
-router.get('/datos-envio',         authController.getDatosEnvio);
-router.put('/actualizar-perfil',   authController.actualizarPerfil);
-router.put('/cambiar-password',    authController.cambiarPassword);
-router.post('/fcm-token',          authController.guardarFcmToken);
-router.put('/guardar-direccion', authController.guardarDireccionHabitual);
-router.post('/verify-otp', authController.verifyOtp);
+router.post('/verify-otp',          authController.verifyOtp);
 router.post('/forgot-password',     authController.forgotPassword);
 router.post('/reset-password',      authController.resetPassword);
 router.post('/forgot-password-otp', authController.forgotPasswordOtp);
 router.post('/reset-password-otp',  authController.resetPasswordOtp);
-router.post('/enviar-promocion', authController.enviarPromocion);
+
+// Requieren estar logueado (cualquier rol: CLIENTE o COLABORADOR)
+router.get('/perfil',             verificarToken, authController.getPerfil);
+router.get('/datos-envio',        verificarToken, authController.getDatosEnvio);
+router.put('/actualizar-perfil',  verificarToken, authController.actualizarPerfil);
+router.put('/cambiar-password',   verificarToken, authController.cambiarPassword);
+router.post('/fcm-token',         verificarToken, authController.guardarFcmToken);
+router.put('/guardar-direccion',  verificarToken, authController.guardarDireccionHabitual);
+router.post('/enviar-promocion',  verificarToken, authController.enviarPromocion);
+
 module.exports = router;

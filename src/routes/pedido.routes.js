@@ -1,9 +1,11 @@
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controllers/pedido.controller');
+const { verificarToken } = require('../middlewares/auth.middleware');
 
-router.post('/crear',          ctrl.crearPedido);
-router.get('/mispedidos',      ctrl.obtenerPedidos);
-router.get('/mispedidos/:id',  ctrl.obtenerDetallePedido);
+// Requieren estar logueado (el cliente solo ve/crea SUS propios pedidos)
+router.post('/crear',          verificarToken, ctrl.crearPedido);
+router.get('/mispedidos',      verificarToken, ctrl.obtenerPedidos);
+router.get('/mispedidos/:id',  verificarToken, ctrl.obtenerDetallePedido);
 
 module.exports = router;
