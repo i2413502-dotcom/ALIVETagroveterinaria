@@ -7,9 +7,6 @@ const emailService = require('../services/email.service');
 const API_PERU_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6ImkyNDEzNTAyQGNvbnRpbmVudGFsLmVkdS5wZSJ9.nI0hFsGrlk9vbeXXCZVfWQjP__LIX1C7iiLGVxqsRhM';
 const BASE_URL = 'https://dniruc.apisperu.com/api/v1';
 
-// >>> LINEA DE DIAGNOSTICO TEMPORAL - borrar despues de confirmar que funciona <<<
-console.log('>>> JWT_SECRET es:', JSON.stringify(process.env.JWT_SECRET));
-
 const login = async (req, res) => {
     try {
         const { correo, password, contrasena } = req.body;
@@ -31,7 +28,7 @@ const login = async (req, res) => {
         const token = jwt.sign(
             { id: persona.id_persona, rol },
             process.env.JWT_SECRET,
-            { expiresIn: '4h' }
+            { expiresIn: '15m' }
         );
 
         res.json({ 
@@ -159,7 +156,7 @@ const verifyOtp = async (req, res) => {
         const token = jwt.sign(
             { id: idPersona, rol: 'CLIENTE' },
             process.env.JWT_SECRET,
-            { expiresIn: '4h' }
+            { expiresIn: '15m' }
         );
 
         res.json({ 
@@ -382,12 +379,15 @@ const cambiarPassword = async (req, res) => {
 
 const guardarFcmToken = async (req, res) => {
     try {
-        // req.usuario.id ya viene validado por el middleware verificarToken
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) return res.status(401).json({ mensaje: 'No autorizado' });
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const { fcm_token } = req.body;
 
         await db.query(
             'UPDATE colaborador SET fcm_token = ? WHERE id_persona = ?',
-            [fcm_token, req.usuario.id]
+            [fcm_token, decoded.id]
         );
         res.json({ mensaje: 'Token FCM guardado' });
     } catch (err) {
@@ -455,9 +455,7 @@ const resetPassword = async (req, res) => {
         console.error(err);
         res.status(400).json({ mensaje: "Token inválido o expirado" });
     }
-};
-
-// Solicitar recuperación por código OTP
+};// Solicitar recuperación por código OTP
 const forgotPasswordOtp = async (req, res) => {
     try {
         const { correo } = req.body;
