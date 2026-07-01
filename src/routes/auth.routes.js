@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
+const upload = require('../config/upload');
 const { verificarToken } = require('../middlewares/auth.middleware');
 
 // Públicas — no requieren sesión iniciada
@@ -20,6 +21,6 @@ router.put('/actualizar-perfil',  verificarToken, authController.actualizarPerfi
 router.put('/cambiar-password',   verificarToken, authController.cambiarPassword);
 router.post('/fcm-token',         verificarToken, authController.guardarFcmToken);
 router.put('/guardar-direccion',  verificarToken, authController.guardarDireccionHabitual);
-router.post('/enviar-promocion',  verificarToken, authController.enviarPromocion);
+router.post('/enviar-promocion', upload.single('imagen'), authController.enviarPromocion);
 
 module.exports = router;

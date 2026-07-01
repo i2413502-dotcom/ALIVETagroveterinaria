@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/styles.css">
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg" style="background-color: var(--agro-green);">
         <div class="container">
@@ -27,22 +29,38 @@
                     </div>
                     <div class="card-body p-4">
                         <div id="mensaje" class="alert d-none"></div>
-                        
+
                         <form id="formPromocion">
                             <div class="mb-3">
                                 <label for="correo" class="form-label">Correo destinatario (opcional)</label>
-                                <input type="email" class="form-control" id="correo" placeholder="Dejar vacío para enviar a todos los clientes">
-                                <small class="text-muted">Si dejas este campo vacío, la promoción se enviará a todos los clientes registrados.</small>
+                                <input type="email" class="form-control" id="correo"
+                                    placeholder="Dejar vacío para enviar a todos los clientes">
+                                <small class="text-muted">Si dejas este campo vacío, la promoción se enviará a todos los
+                                    clientes registrados.</small>
                             </div>
                             <div class="mb-3">
                                 <label for="asunto" class="form-label">Asunto del correo *</label>
-                                <input type="text" class="form-control" id="asunto" placeholder="Ej: ¡Oferta especial en alimentos para perros!" required>
+                                <input type="text" class="form-control" id="asunto"
+                                    placeholder="Ej: ¡Oferta especial en alimentos para perros!" required>
                             </div>
                             <div class="mb-3">
-                                <label for="mensajePromo" class="form-label">Mensaje de la promoción </label>
-                                <textarea class="form-control" id="mensajePromo" rows="4" placeholder="Escribe el contenido de la promoción..." required></textarea>
+                                <label for="mensajePromo" class="form-label">Mensaje de la promoción</label>
+                                <textarea class="form-control" id="mensajePromo" rows="4"
+                                    placeholder="Escribe el contenido de la promoción..." required></textarea>
                             </div>
-                            <button type="submit" class="btn w-100 text-white" style="background-color: var(--agro-green);">
+
+                            <div class="mb-3">
+                                <label for="imagenPromo" class="form-label">Imagen promocional (opcional)</label>
+                                <input type="file" class="form-control" id="imagenPromo" accept="image/*">
+                                <small class="text-muted">Formatos permitidos: JPG, PNG, WEBP. Máximo 5MB.</small>
+                                <div class="mt-2">
+                                    <img id="previewImagen" src="" alt="Vista previa" class="d-none img-thumbnail"
+                                        style="max-height:200px;">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn w-100 text-white"
+                                style="background-color: var(--agro-green);">
                                 <i class="bi bi-send"></i> Enviar promoción
                             </button>
                         </form>
@@ -54,4 +72,5 @@
 
     <script src="/js/promociones.js"></script>
 </body>
+
 </html>
