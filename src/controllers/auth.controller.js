@@ -28,7 +28,7 @@ const login = async (req, res) => {
         const token = jwt.sign(
             { id: persona.id_persona, rol },
             process.env.JWT_SECRET,
-            { expiresIn: '15m' }
+            { expiresIn: '30m' }
         );
 
         res.json({ 
@@ -156,7 +156,7 @@ const verifyOtp = async (req, res) => {
         const token = jwt.sign(
             { id: idPersona, rol: 'CLIENTE' },
             process.env.JWT_SECRET,
-            { expiresIn: '15m' }
+            { expiresIn: '30m' }
         );
 
         res.json({ 

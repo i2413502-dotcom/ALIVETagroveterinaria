@@ -3,15 +3,14 @@ const router  = express.Router();
 const ctrl    = require('../controllers/dashboard.controller');
 const { verificarToken, verificarRol } = require('../middlewares/auth.middleware');
 
-// Todo este módulo es exclusivo del panel de administrador
-router.use(verificarToken, verificarRol('COLABORADOR'));
+const esColab = [verificarToken, verificarRol('COLABORADOR')];
 
-router.get('/api/dashboard',                   ctrl.getDashboardData);
-router.get('/api/dashboard/ventas-mes',        ctrl.getVentasPorMes);
-router.get('/api/dashboard/productos-vendidos',ctrl.getProductosMasVendidos);
-router.get('/api/dashboard/stock',             ctrl.getStockProductos);
-router.get('/api/pedidos',                     ctrl.getPedidos);
-router.put('/api/pedidos/:id/estado',          ctrl.actualizarEstadoPedido);
-router.get('/api/pedidos/:id', ctrl.getDetallePedido);
+router.get('/api/dashboard',                    ...esColab, ctrl.getDashboardData);
+router.get('/api/dashboard/ventas-mes',         ...esColab, ctrl.getVentasPorMes);
+router.get('/api/dashboard/productos-vendidos', ...esColab, ctrl.getProductosMasVendidos);
+router.get('/api/dashboard/stock',              ...esColab, ctrl.getStockProductos);
+router.get('/api/pedidos',                      ...esColab, ctrl.getPedidos);
+router.put('/api/pedidos/:id/estado',           ...esColab, ctrl.actualizarEstadoPedido);
+router.get('/api/pedidos/:id',                  ...esColab, ctrl.getDetallePedido);
 
 module.exports = router;
