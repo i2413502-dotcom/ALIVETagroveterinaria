@@ -15,7 +15,7 @@ function cerrarSesion() {
 // ── KPIs ──
 async function cargarResumen() {
     try {
-        const res  = await fetch('/api/reportes/resumen');
+        const res  = await fetch('/api/reportes/resumen', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
         const data = await res.json();
         document.getElementById('kpi-ventas-hoy').innerText = soles(data.ventasHoy);
         document.getElementById('kpi-ventas-mes').innerText = soles(data.ventasMes);
@@ -27,7 +27,7 @@ async function cargarResumen() {
 // ── Gráfico de barras: ventas por categoría ──
 async function cargarVentasPorCategoria() {
     try {
-        const res  = await fetch('/api/reportes/ventas-por-categoria');
+        const res  = await fetch('/api/reportes/ventas-por-categoria', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
         const data = await res.json();
         const ctx  = document.getElementById('chartCategorias').getContext('2d');
         new Chart(ctx, {
@@ -53,7 +53,7 @@ async function cargarVentasPorCategoria() {
 // ── Tabla: productos con stock bajo ──
 async function cargarStockBajo() {
     try {
-        const res  = await fetch('/api/reportes/productos-stock-bajo');
+        const res  = await fetch('/api/reportes/productos-stock-bajo', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
         const data = await res.json();
         const tbody = document.getElementById('tabla-stock-bajo');
         if (!data.length) {
@@ -75,7 +75,7 @@ async function exportar(endpoint, filename, btn) {
     const original = btn ? btn.innerHTML : null;
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando...'; }
     try {
-        const res = await fetch('/api/reportes/exportar/' + endpoint);
+        const res = await fetch('/api/reportes/exportar/' + endpoint, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') } });
         if (!res.ok) throw new Error('No se pudo generar el archivo');
         const blob = await res.blob();
         const url  = URL.createObjectURL(blob);

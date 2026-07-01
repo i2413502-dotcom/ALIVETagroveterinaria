@@ -39,7 +39,8 @@ function queryString(extra = {}) {
 async function cargarVentas() {
     const tbody = document.getElementById('tabla-ventas');
     try {
-        const res  = await fetch('/api/ventas?' + queryString({ pagina: paginaVentas, limite: 20 }));
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/ventas?' + queryString({ pagina: paginaVentas, limite: 20 }), { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
 
         if (!data.ventas || !data.ventas.length) {
@@ -95,7 +96,8 @@ function aplicarFiltros() { paginaVentas = 1; cargarVentas(); }
 // ── Detalle (modal) ──
 async function verDetalle(idPedido) {
     try {
-        const res  = await fetch('/api/ventas/' + idPedido);
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/ventas/' + idPedido, { headers: { 'Authorization': 'Bearer ' + token } });
         if (!res.ok) throw new Error('No se pudo cargar el detalle');
         const data = await res.json();
         const c = data.comprobante;
@@ -138,7 +140,8 @@ async function exportarVentas(btn) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando...';
     try {
-        const res = await fetch('/api/ventas/exportar-excel?' + queryString());
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/ventas/exportar-excel?' + queryString(), { headers: { 'Authorization': 'Bearer ' + token } });
         if (!res.ok) throw new Error('No se pudo exportar');
         const blob = await res.blob();
         const url  = URL.createObjectURL(blob);
