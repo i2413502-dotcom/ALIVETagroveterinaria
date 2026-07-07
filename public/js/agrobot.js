@@ -184,17 +184,25 @@
         return div;
     };
 
-    // Renderiza tarjetas de producto debajo del mensaje del bot
     const renderizarProductos = (productos) => {
-        if (!productos || !productos.length) return;
+    if (!productos || !productos.length) return;
 
-        const contenedor = document.createElement('div');
-        contenedor.className = 'agrobot-productos';
+    // Filtrar productos de prueba (nombres raros) y duplicados
+    const NOMBRE_PRUEBA = /^[a-z]{2,8}(aa+|xx+|oo+|ii+|\d{2,})$/i;
+    const vistos = new Set();
+    const validos = productos.filter(p => {
+        if (!p.nombre || p.nombre.trim().length < 3) return false;
+        if (NOMBRE_PRUEBA.test(p.nombre.trim())) return false;
+        if (vistos.has(p.id)) return false;
+        vistos.add(p.id);
+        return true;
+    });
+    if (!validos.length) return;
 
-        productos.forEach(p => {
-            const imgSrc = p.imagen && p.imagen.startsWith('http')
-                ? p.imagen
-                : `/img/productos/${p.imagen || 'default.jpg'}`;
+    const contenedor = document.createElement('div');
+    contenedor.className = 'agrobot-productos';
+
+    validos.forEach(p => {   // ← el resto del forEach queda igual
 
             const stock = Number(p.stock_actual) || 0;
             const stockColor  = stock > 5 ? '#2e7d32' : stock > 0 ? '#e65100' : '#c62828';
