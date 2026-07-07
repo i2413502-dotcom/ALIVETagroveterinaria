@@ -3,13 +3,16 @@
 const iaModel = require('../models/ia.model');
 
 // Palabras que no aportan a la búsqueda de producto
+// IMPORTANTE: NO incluir categorías de productos (medicamento, alimento, etc.)
+// ni tipos de animales (gato, perro, etc.) porque son términos útiles de búsqueda.
 const STOP_WORDS = new Set([
     'que', 'cual', 'cuales', 'tienen', 'tiene', 'hay', 'busco', 'quiero',
     'necesito', 'para', 'precio', 'cuanto', 'cuesta', 'vale', 'el', 'la',
     'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'con', 'sin',
     'por', 'mi', 'tu', 'su', 'me', 'te', 'se', 'y', 'o', 'en', 'es', 'son',
-    'stock', 'venden', 'vende', 'comprar', 'producto', 'productos', 'algo',
-    'alguna', 'algun', 'algún', 'sobre', 'dame', 'dime', 'muestrame', 'ver'
+    'venden', 'vende', 'comprar', 'algo',
+    'alguna', 'algun', 'algún', 'sobre', 'dame', 'dime', 'muestrame', 'ver',
+    'stock', 'producto', 'productos', 'hay', 'tienes', 'tienen'
 ]);
 
 const normalizar = (texto) =>
