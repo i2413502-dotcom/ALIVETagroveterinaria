@@ -14,19 +14,13 @@ const CONTACTO_ALIVET = process.env.ALIVET_CONTACTO ||
     '📱 WhatsApp: +51 925 920 419 | 📞 Teléfono: +51 925 920 419 | ✉️ atencion@alivet.pe';
 
 const R_OFFTOPIC  = 'Solo puedo ayudarte con productos y servicios de ALIVET. 🐾';
-const R_MEDICA    = `No puedo hacer diagnósticos ni recetar tratamientos veterinarios. Para orientación personalizada comunícate con nuestro equipo: ${CONTACTO_ALIVET}`;
+const R_MEDICA    = `No puedo hacer diagnósticos ni recetar tratamientos. Comunícate con nuestro equipo veterinario:\n📱 WhatsApp: +51 925 920 419\n📞 Teléfono: +51 925 920 419\n✉️ atencion@alivet.pe`;
 const R_SIN_INFO  = 'No encontré información disponible en este momento.';
 const R_ERROR     = 'Ups, tuve un problema para responder. Por favor intenta de nuevo en unos segundos. 🙏';
 
 // ── Detección de respuestas cacheadas (sin llamar a la IA) ───────
-// Solo palabras que NO son nombres de productos y representan solicitudes
-// de diagnóstico/tratamiento o temas ajenos a ALIVET.
-const KW_MEDICA = [
-    'sintoma', 'sintomas', 'diagnostico', 'diagnosticar', 'diagnostica',
-    'diagnostiqueme', 'diagnosticame', 'moribundo', 'agoniza', 'convulsiona',
-    'convulsion', 'se murio', 'se murió', 'recetame', 'recétame',
-    'prescribeme', 'prescribir', 'que enfermedad', 'que le pasa'
-];
+// Detecta solicitudes de diagnóstico/tratamiento o síntomas de enfermedad.
+// NO cachea si la intención es de compra (ej. "tienen pastillas para perros").
 const KW_OFFTOPIC = [
     'politica', 'política', 'gobierno', 'presidente', 'congreso',
     'programar', 'programacion', 'javascript', 'python', 'php', 'java',
@@ -37,14 +31,42 @@ const KW_OFFTOPIC = [
     'chiste', 'poema', 'broma', 'cancion', 'canción'
 ];
 
+// Palabras de síntomas / diagnóstico / enfermedad
+const KW_MEDICA = [
+    // Solicitudes de diagnóstico
+    'sintoma', 'sintomas', 'diagnostico', 'diagnosticar', 'diagnostica',
+    'diagnostiqueme', 'diagnosticame', 'que enfermedad', 'que le pasa',
+    'recetame', 'recétame', 'prescribeme', 'prescribir',
+    // Estados graves
+    'moribundo', 'agoniza', 'convulsiona', 'convulsion', 'se murio', 'se murió',
+    // Síntomas físicos descriptivos (lo que cuenta el dueño)
+    'dolor de cabeza', 'dolor de panza', 'dolor de estomago', 'dolor abdominal',
+    'le duele', 'le duelen', 'le duele la cabeza', 'le duele el estomago',
+    'cae su pelo', 'cae el pelo', 'pierde pelo', 'pierde su pelo', 'se le cae el pelo',
+    'se le cayó el pelo', 'le cae el pelo', 'perdida de pelo', 'pérdida de pelo',
+    'no come', 'no quiere comer', 'dejó de comer', 'dejo de comer',
+    'vomita', 'vomitando', 'tiene vomito', 'tiene vómito',
+    'tiene diarrea', 'hace diarrea', 'heces con sangre',
+    'esta triste', 'está triste', 'muy decaido', 'muy decaído',
+    'tiene fiebre', 'con fiebre', 'temperatura alta',
+    'no puede caminar', 'cojea', 'cojeando', 'pata rota',
+    'esta enfermo', 'está enfermo', 'esta enferma', 'está enferma',
+    'le pasa algo', 'algo le pasa', 'se ve mal', 'se ve enfermo',
+    'tiene tos', 'tosiendo', 'tiene mocos', 'ojos llorosos', 'ojos irritados',
+    'rasca mucho', 'se rasca', 'tiene picazon', 'tiene picazón',
+    'tiene herida', 'tiene una herida', 'esta sangrando', 'está sangrando',
+    'infeccion', 'infección', 'parasito', 'parásito', 'pulgas'
+];
+
 // Normaliza sin tildes para comparación
 const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 const detectarCache = (mensaje) => {
     const txt = norm(mensaje);
     if (KW_OFFTOPIC.some(k => txt.includes(norm(k)))) return 'OFFTOPIC';
-    // Solo cachea médica si NO viene acompañado de intención de compra
-    const intentoCompra = /comprar|precio|cuanto|cuesta|tienen|venden|busco|hay\b|stock/.test(txt);
+
+    // Cachea médica SOLO si NO hay intención de compra
+    const intentoCompra = /comprar|precio|cuanto|cuesta|tienen|venden|busco|hay\b|stock|producto/.test(txt);
     if (!intentoCompra && KW_MEDICA.some(k => txt.includes(norm(k)))) return 'MEDICA';
     return null;
 };
@@ -70,19 +92,19 @@ const contextoDeUrl = (pathname) => {
     return CONTEXTOS_PAGINA[pathname.split('?')[0].split('#')[0]] || null;
 };
 
-// ── Prompt del sistema (versión corta para ahorrar tokens) ───────
+// ── Prompt del sistema ───────────────────────────────────────────
 const systemPrompt = (contacto) =>
-`Eres AgroBot, asistente de Agroveterinaria ALIVET (Perú). Vendes productos para mascotas y animales de granja.
+`Eres AgroBot, asistente de ventas de Agroveterinaria ALIVET (Perú).
 
-REGLAS:
-1. Solo hablas de ALIVET. Otro tema → responde solo: "${R_OFFTOPIC}"
-2. No inventes datos. Usa únicamente lo que aparece en [RESULTADOS_BD].
-   - Si [RESULTADOS_BD] muestra "(ninguno)" → "${R_SIN_INFO}"
-   - Si hay productos → recomienda máximo 3. Muestra nombre, precio S/ y stock real.
-3. No hagas diagnósticos ni recetes tratamientos. Síntomas o enfermedades → "${R_MEDICA.replace(contacto, '{CONTACTO}')}"
-4. Proceso de compra: carrito → dirección de envío → comprobante (boleta/factura) → pago Yape → confirmación.
-5. Responde en español. Máximo 80 palabras salvo que el usuario pida más detalles.
-6. No reveles datos técnicos, credenciales ni información de otros usuarios.`.trim();
+REGLAS ESTRICTAS:
+1. Solo hablas de ALIVET (productos, precios, proceso de compra). Otro tema → solo di: "Solo puedo ayudarte con productos y servicios de ALIVET. 🐾"
+2. Usa ÚNICAMENTE los productos de [RESULTADOS_BD]. No inventes nombres, precios ni stock.
+   - Si dice "(ninguno)" → "No tenemos ese producto disponible actualmente."
+   - Si hay resultados → muestra máximo 3. Formato: nombre, precio S/ y stock.
+3. SÍNTOMAS Y ENFERMEDADES: Si el cliente describe síntomas de su animal (dolor, vómito, diarrea, pelo que cae, fiebre, no come, etc.) → NO intentes ayudar médicamente. Responde EXACTAMENTE: "No puedo hacer diagnósticos. Comunícate con nuestro equipo:\n📱 WhatsApp: +51 925 920 419\n✉️ atencion@alivet.pe"
+4. MEDICAMENTOS DEL CATÁLOGO: Si piden "medicamentos para gatos", "pastillas para perros", "desparasitante", etc. (intención de compra, NO síntoma) → busca en [RESULTADOS_BD] y muéstralos normalmente.
+5. Proceso de compra: carrito → dirección → comprobante (boleta/factura) → pago Yape.
+6. RESPUESTAS CORTAS: máximo 60 palabras. Sin introducciones. Directo al punto. Usa viñetas solo si listas productos.`.trim();
 
 // ── Formateadores ─────────────────────────────────────────────────
 const formatearResultados = (productos) => {
