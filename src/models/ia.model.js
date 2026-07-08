@@ -111,8 +111,64 @@ exports.getActiveCategories = async () => {
 
 // ── Productos (fuente de verdad anti-alucinación) ─────────────────
 // La IA SOLO puede hablar de productos que salgan de esta consulta.
-exports.searchProducts = async (query) => {
-    const term = `%${query}%`;
+exports.searchProducts = async (query, categoria = null) => {
+
+    // Con categoría Y término de búsqueda
+    if (categoria && query) {
+        const [rows] = await db.query(
+            `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                    p.descripcion, p.stock_actual,
+                    IFNULL(p.imagen, '') AS imagen,
+                    c.nombre AS categoria
+             FROM producto p
+             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+             WHERE c.nombre = ?
+               AND p.nombre LIKE ?
+               AND p.estado = 'ACTIVO'
+             ORDER BY p.stock_actual DESC
+             LIMIT 6`,
+            [categoria, `%${query}%`]
+        );
+        // Si hay resultados con término → retornar
+        if (rows.length > 0) return rows;
+
+        // Si no → traer todos los de esa categoría sin filtrar por término
+        const [rowsCat] = await db.query(
+            `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                    p.descripcion, p.stock_actual,
+                    IFNULL(p.imagen, '') AS imagen,
+                    c.nombre AS categoria
+             FROM producto p
+             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+             WHERE c.nombre = ?
+               AND p.estado = 'ACTIVO'
+             ORDER BY p.stock_actual DESC
+             LIMIT 6`,
+            [categoria]
+        );
+        return rowsCat;
+    }
+
+    // Solo categoría, sin término
+    if (categoria && !query) {
+        const [rows] = await db.query(
+            `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                    p.descripcion, p.stock_actual,
+                    IFNULL(p.imagen, '') AS imagen,
+                    c.nombre AS categoria
+             FROM producto p
+             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+             WHERE c.nombre = ?
+               AND p.estado = 'ACTIVO'
+             ORDER BY p.stock_actual DESC
+             LIMIT 6`,
+            [categoria]
+        );
+        return rows;
+    }
+
+    // Sin categoría → busca solo por nombre (NO por descripción para evitar
+    // que medicamentos con "para gatos" aparezcan al buscar accesorios)
     const [rows] = await db.query(
         `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
                 p.descripcion, p.stock_actual,
@@ -120,10 +176,11 @@ exports.searchProducts = async (query) => {
                 c.nombre AS categoria
          FROM producto p
          LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
-         WHERE (p.nombre LIKE ? OR p.descripcion LIKE ? OR c.nombre LIKE ?)
+         WHERE p.nombre LIKE ?
            AND p.estado = 'ACTIVO'
-         LIMIT 5`,
-        [term, term, term]
+         ORDER BY p.stock_actual DESC
+         LIMIT 6`,
+        [`%${query}%`]
     );
     return rows;
 };

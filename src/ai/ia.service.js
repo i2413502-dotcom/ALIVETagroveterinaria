@@ -1,7 +1,4 @@
-// Orquestador de AgroBot: decide qué capa atiende según el rol.
-//   INVITADO    → FAQ local (cero API)
-//   CLIENTE     → IA con memoria + productos reales de BD
-//   COLABORADOR → IA asistente de stats (solo lectura)
+// Orquestador de AgroBot
 const faqService     = require('./faq.service');
 const productService = require('./product.service');
 const memoryService  = require('./memory.service');
@@ -9,58 +6,78 @@ const adminService   = require('./admin.service');
 const openrouter     = require('./openrouter.service');
 const iaModel        = require('../models/ia.model');
 
-// ── Constantes de respuesta ──────────────────────────────────────
-const CONTACTO_ALIVET = process.env.ALIVET_CONTACTO ||
-    '📱 WhatsApp: +51 925 920 419 | 📞 Teléfono: +51 925 920 419 | ✉️ atencion@alivet.pe';
+// ── Respuestas fijas ─────────────────────────────────────────────
+const R_OFFTOPIC  = 'Solo puedo ayudarte con productos y servicios de ALIVET. 🐾';
+const R_MEDICA    = 'No puedo realizar diagnósticos ni recomendar tratamientos.\nComunícate con nuestro equipo:\n📱 WhatsApp: +51 925 920 419\n✉️ atencion@alivet.pe';
+const R_SIN_STOCK = 'No encontré ese producto en nuestro catálogo actualmente.';
+const R_ERROR     = 'Ups, tuve un problema. Por favor intenta de nuevo. 🙏';
 
-const R_OFFTOPIC = 'Solo puedo ayudarte con productos y servicios de ALIVET. 🐾';
-const R_MEDICA   = `No puedo hacer diagnósticos ni recetar tratamientos.\nComunícate con nuestro equipo:\n📱 WhatsApp: +51 925 920 419\n📞 Teléfono: +51 925 920 419\n✉️ atencion@alivet.pe`;
-const R_SIN_INFO = 'No encontré información disponible en este momento.';
-const R_ERROR    = 'Ups, tuve un problema para responder. Por favor intenta de nuevo. 🙏';
-
-// ── Guardrails: detectar temas fuera de scope ────────────────────
+// ── Guardrails antes de llamar a la IA ──────────────────────────
 const KW_OFFTOPIC = [
-    'politica', 'gobierno', 'presidente', 'congreso',
-    'programar', 'programacion', 'javascript', 'python', 'php', 'java',
-    'matematica', 'algebra', 'calculo', 'historia', 'geografia', 'filosofia',
-    'futbol', 'basquet', 'beisbol', 'pelicula', 'netflix', 'spotify',
-    'musica', 'chiste', 'poema', 'broma', 'cancion'
+    'politica','gobierno','presidente','congreso','programar','programacion',
+    'javascript','python','php','java','matematica','algebra','calculo',
+    'historia','geografia','filosofia','futbol','basquet','beisbol',
+    'pelicula','netflix','spotify','musica','chiste','poema','broma','cancion'
 ];
 
-// Síntomas físicos / solicitudes de diagnóstico
 const KW_MEDICA = [
-    'sintoma', 'sintomas', 'diagnostico', 'diagnosticar', 'que enfermedad',
-    'que le pasa', 'recetame', 'prescribeme', 'prescribir',
-    'moribundo', 'agoniza', 'convulsiona', 'convulsion', 'se murio', 'se murió',
-    'dolor de cabeza', 'dolor de panza', 'dolor de estomago', 'dolor abdominal',
-    'le duele', 'le duelen',
-    'cae su pelo', 'cae el pelo', 'pierde pelo', 'pierde su pelo',
-    'se le cae el pelo', 'se le cayó el pelo', 'le cae el pelo',
-    'perdida de pelo', 'perdida de pelo',
-    'no come', 'no quiere comer', 'dejo de comer', 'dejó de comer',
-    'vomita', 'vomitando', 'tiene vomito', 'tiene vómito',
-    'tiene diarrea', 'hace diarrea', 'heces con sangre',
-    'esta triste', 'muy decaido', 'tiene fiebre', 'con fiebre', 'temperatura alta',
-    'no puede caminar', 'cojea', 'cojeando', 'pata rota',
-    'esta enfermo', 'esta enferma',
-    'le pasa algo', 'algo le pasa', 'se ve mal', 'se ve enfermo',
-    'tiene tos', 'tosiendo', 'tiene mocos', 'ojos llorosos', 'ojos irritados',
-    'rasca mucho', 'se rasca', 'tiene picazon', 'tiene picazón',
-    'tiene herida', 'esta sangrando', 'infeccion', 'infección'
+    'sintoma','sintomas','diagnostico','diagnosticar','que enfermedad','que le pasa',
+    'recetame','prescribeme','prescribir','moribundo','agoniza','convulsiona',
+    'convulsion','se murio','se murió','dolor de cabeza','dolor de panza',
+    'dolor de estomago','dolor abdominal','le duele','le duelen',
+    'cae su pelo','cae el pelo','pierde pelo','pierde su pelo',
+    'se le cae el pelo','se le cayó el pelo','le cae el pelo',
+    'no come','no quiere comer','dejo de comer','dejó de comer',
+    'vomita','vomitando','tiene vomito','tiene vómito',
+    'tiene diarrea','hace diarrea','heces con sangre',
+    'esta triste','muy decaido','tiene fiebre','con fiebre','temperatura alta',
+    'no puede caminar','cojea','cojeando','pata rota',
+    'esta enfermo','esta enferma','le pasa algo','algo le pasa',
+    'se ve mal','se ve enfermo','tiene tos','tosiendo','tiene mocos',
+    'ojos llorosos','ojos irritados','rasca mucho','se rasca',
+    'tiene picazon','tiene picazón','tiene herida','esta sangrando',
+    'infeccion','infección'
 ];
 
 const norm = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-const detectarCache = (mensaje) => {
-    const txt = norm(mensaje);
+const detectarCache = (msg) => {
+    const txt = norm(msg);
     if (KW_OFFTOPIC.some(k => txt.includes(norm(k)))) return 'OFFTOPIC';
-    // Solo bloquea médica si NO hay intención de compra
-    const intentoCompra = /comprar|precio|cuanto|cuesta|tienen|venden|busco|hay\b|stock|producto/.test(txt);
-    if (!intentoCompra && KW_MEDICA.some(k => txt.includes(norm(k)))) return 'MEDICA';
+    const esCompra = /comprar|precio|cuanto|cuesta|tienen|venden|busco|hay\b|stock|producto/.test(txt);
+    if (!esCompra && KW_MEDICA.some(k => txt.includes(norm(k)))) return 'MEDICA';
     return null;
 };
 
-// ── Mapa de contexto por página ──────────────────────────────────
+// ── Validación post-respuesta anti-alucinación ───────────────────
+// Extrae los nombres que la IA escribió en viñetas/listas
+// y verifica que cada uno exista en los productos reales de BD.
+const validarRespuesta = (respuestaIA, productosReales) => {
+    const nombresReales = productosReales.map(p => norm(p.nombre));
+
+    // Si no hay productos en BD para esta búsqueda,
+    // la IA no debería mencionar ningún nombre de producto con precio/stock
+    if (productosReales.length === 0) {
+        const tieneProducto = /s\/[\s]*\d|stock\s*:/i.test(respuestaIA);
+        return !tieneProducto; // true = respuesta válida
+    }
+
+    // Extraer líneas con formato de producto (guion o viñeta al inicio)
+    const lineasProducto = respuestaIA
+        .split('\n')
+        .filter(l => /^\s*[-•*]\s/.test(l));
+
+    // Si no hay líneas de producto, la respuesta es texto libre → válida
+    if (lineasProducto.length === 0) return true;
+
+    // Cada línea de producto debe contener al menos un nombre real de BD
+    return lineasProducto.every(linea => {
+        const lineaNorm = norm(linea);
+        return nombresReales.some(nombre => lineaNorm.includes(nombre));
+    });
+};
+
+// ── Contexto por página ──────────────────────────────────────────
 const CONTEXTOS_PAGINA = {
     '/':                     'Catálogo principal',
     '/index.html':           'Catálogo principal',
@@ -80,29 +97,82 @@ const contextoDeUrl = (p) =>
 
 // ── System prompt ────────────────────────────────────────────────
 const systemPrompt = () =>
-`Eres AgroBot, asistente de ventas de Agroveterinaria ALIVET (Perú).
+`Eres AgroBot, asistente virtual de ventas de Agroveterinaria ALIVET (Perú).
 
-REGLAS — sigue cada una sin excepción:
+## OBJETIVO
+Ayudar únicamente con productos, precios, stock y proceso de compra de ALIVET.
+Toda la información sobre productos proviene únicamente del bloque [RESULTADOS_BD].
+Nunca uses tu conocimiento general para completar información.
 
-1. SOLO ALIVET: Responde únicamente sobre productos, precios, stock y proceso de compra de ALIVET. Cualquier otro tema → responde solo: "Solo puedo ayudarte con productos y servicios de ALIVET. 🐾"
+--------------------------------------------------
+FUENTE DE VERDAD
+--------------------------------------------------
+El bloque [RESULTADOS_BD] es la ÚNICA fuente válida sobre productos.
+Todo producto que menciones debe aparecer literalmente en ese bloque.
+Si un producto NO aparece en [RESULTADOS_BD], debes asumir que NO existe en el catálogo.
 
-2. SIN INVENTAR: Usa EXCLUSIVAMENTE los productos listados en [RESULTADOS_BD].
-   - Si [RESULTADOS_BD] dice "(ninguno)" → di: "No encontré ese producto en nuestro catálogo actualmente."
-   - NUNCA menciones productos que no estén en [RESULTADOS_BD].
-   - Si los resultados no coinciden con lo que pidió el cliente (ej. pidió accesorios pero solo hay medicamentos) → di que no tienes ese producto disponible.
+Está completamente prohibido:
+* inventar productos
+* inventar marcas
+* inventar medicamentos
+* inventar accesorios
+* sugerir productos similares
+* mencionar productos conocidos por ti
+* completar listas usando conocimiento propio
 
-3. SÍNTOMAS/ENFERMEDADES: Si el cliente describe que su animal está enfermo, tiene síntomas o pide diagnóstico → responde SOLO: "No hago diagnósticos. Contacta a nuestro equipo:\n📱 +51 925 920 419\n✉️ atencion@alivet.pe"
+Nunca escribas nombres de productos que no estén exactamente en [RESULTADOS_BD].
 
-4. MEDICAMENTOS del catálogo: Si piden "desparasitante", "medicamento para gato", "vitaminas" etc. como compra → muéstralos de [RESULTADOS_BD] normalmente.
+--------------------------------------------------
+CUANDO LA BD NO DEVUELVE RESULTADOS
+--------------------------------------------------
+Si [RESULTADOS_BD] contiene: (ninguno)
+Responde únicamente: "No encontré ese producto en nuestro catálogo actualmente."
+No hagas recomendaciones. No sugieras alternativas. No inventes opciones.
 
-5. PROCESO DE COMPRA: carrito → dirección → boleta o factura → pago Yape.
+--------------------------------------------------
+CUANDO LA BD DEVUELVE RESULTADOS
+--------------------------------------------------
+Muestra únicamente los productos presentes en [RESULTADOS_BD].
+Puedes mencionar: nombre, precio, stock, categoría.
+No agregues información que no venga de la BD.
 
-6. RESPUESTAS CORTAS Y PRECISAS: máximo 50 palabras. Sin saludos repetidos. Sin inventar. Viñetas solo al listar productos reales.`.trim();
+--------------------------------------------------
+CONSULTAS MÉDICAS
+--------------------------------------------------
+Si el usuario describe síntomas, enfermedades, diagnóstico o pide tratamiento,
+responde únicamente:
+"No puedo realizar diagnósticos ni recomendar tratamientos.
+Comunícate con nuestro equipo:
+📱 WhatsApp: +51 925 920 419
+✉️ atencion@alivet.pe"
+
+No sugieras medicamentos.
+
+--------------------------------------------------
+TEMAS FUERA DE ALIVET
+--------------------------------------------------
+Si preguntan cualquier tema que no sea sobre ALIVET responde únicamente:
+"Solo puedo ayudarte con productos y servicios de ALIVET. 🐾"
+
+--------------------------------------------------
+PROCESO DE COMPRA
+--------------------------------------------------
+Cuando pregunten cómo comprar explica únicamente:
+Carrito → Dirección → Boleta o Factura → Pago por Yape → Confirmación.
+
+--------------------------------------------------
+ESTILO
+--------------------------------------------------
+Respuestas cortas. Máximo 50 palabras.
+No inventes información.
+No agregues explicaciones innecesarias.
+No saludes en cada respuesta.
+Nunca contradigas las reglas anteriores.`.trim();
 
 // ── Formateadores ────────────────────────────────────────────────
 const formatearResultados = (productos) => {
     if (!productos.length) return '[RESULTADOS_BD]\n(ninguno)';
-    const lineas = productos.slice(0, 3).map(p =>
+    const lineas = productos.slice(0, 4).map(p =>
         `- ${p.nombre} | S/ ${Number(p.precio).toFixed(2)} | Stock: ${p.stock_actual}` +
         (p.categoria ? ` | Categoría: ${p.categoria}` : '')
     );
@@ -119,13 +189,13 @@ const formatearMemoria = (ctx) => {
     return partes.length ? '[CLIENTE]\n' + partes.join(' | ') : '';
 };
 
-// ── Capa 1: Invitado (FAQ local, cero API) ───────────────────────
+// ── Capa 1: Invitado ─────────────────────────────────────────────
 const responderInvitado = (mensaje, faqId) => {
     if (faqId) return faqService.respuestaPorId(faqId);
     return faqService.buscarRespuesta(mensaje);
 };
 
-// ── Capa 2: Cliente (IA + historial + productos reales) ──────────
+// ── Capa 2: Cliente ──────────────────────────────────────────────
 const responderCliente = async (userId, mensaje, paginaActual) => {
     const [contexto, productos, historial] = await Promise.all([
         memoryService.obtenerContexto(userId),
@@ -150,17 +220,40 @@ const responderCliente = async (userId, mensaje, paginaActual) => {
         { role: 'user', content: mensaje }
     ];
 
-    const respuesta = await openrouter.chat(mensajes);
+    let respuesta = await openrouter.chat(mensajes);
+
+    // ── Validación post-respuesta ─────────────────────────────────
+    // Si la IA inventó productos que no están en BD → descartamos
+    // su respuesta y guardamos una respuesta segura en historial.
+    if (!validarRespuesta(respuesta, productos)) {
+        console.warn(`[AgroBot] Alucinación detectada. userId=${userId} msg="${mensaje}"`);
+        const respuestaSegura = productos.length > 0
+            ? `Disponible actualmente:\n${productos.filter(p => Number(p.stock_actual) > 0).slice(0,3).map(p => `• ${p.nombre} — S/ ${Number(p.precio).toFixed(2)}`).join('\n') || R_SIN_STOCK}`
+            : R_SIN_STOCK;
+
+        // Guardar respuesta SEGURA en historial (no la inventada)
+        iaModel.saveMessage(userId, 'CLIENTE', mensaje, respuestaSegura)
+            .catch(e => console.error('Historial:', e.message));
+
+        return {
+            respuesta: respuestaSegura,
+            productos: productos.filter(p => Number(p.stock_actual) > 0)
+        };
+    }
+
+    // Respuesta válida → guardar y actualizar memoria
+    iaModel.saveMessage(userId, 'CLIENTE', mensaje, respuesta)
+        .catch(e => console.error('Historial:', e.message));
 
     memoryService.actualizarMemoria(userId, mensaje, productos)
-        .catch(err => console.error('Memoria no actualizada:', err.message));
+        .catch(e => console.error('Memoria:', e.message));
 
     return { respuesta, productos };
 };
 
-// ── Capa 3: Admin (stats de solo lectura) ────────────────────────
+// ── Capa 3: Admin ────────────────────────────────────────────────
 const responderAdmin = async (mensaje, paginaActual) => {
-    const stats = await adminService.obtenerStats();
+    const stats     = await adminService.obtenerStats();
     const ctxPagina = contextoDeUrl(paginaActual);
     const secciones = [
         systemPrompt(),
@@ -182,8 +275,8 @@ exports.procesarMensaje = async ({ userId, rol, mensaje, faqId, paginaActual }) 
 
     if (mensaje) {
         const cache = detectarCache(mensaje);
-        if (cache === 'OFFTOPIC') return { respuesta: R_OFFTOPIC, capa: 'CACHE', productos: [] };
-        if (cache === 'MEDICA')   return { respuesta: R_MEDICA,   capa: 'CACHE', productos: [] };
+        if (cache === 'OFFTOPIC') return { respuesta: R_OFFTOPIC,  capa: 'CACHE', productos: [] };
+        if (cache === 'MEDICA')   return { respuesta: R_MEDICA,    capa: 'CACHE', productos: [] };
     }
 
     try {
@@ -191,14 +284,14 @@ exports.procesarMensaje = async ({ userId, rol, mensaje, faqId, paginaActual }) 
 
         if (rol === 'COLABORADOR') {
             respuesta = await responderAdmin(mensaje, paginaActual);
+            iaModel.saveMessage(userId, rol, mensaje, respuesta)
+                .catch(e => console.error('Historial admin:', e.message));
         } else {
             const resultado = await responderCliente(userId, mensaje, paginaActual);
             respuesta = resultado.respuesta;
             productos = resultado.productos;
+            // saveMessage ya se llama dentro de responderCliente
         }
-
-        iaModel.saveMessage(userId, rol, mensaje, respuesta)
-            .catch(err => console.error('Historial no guardado:', err.message));
 
         return { respuesta, productos, capa: rol === 'COLABORADOR' ? 'ADMIN' : 'CLIENTE' };
 
