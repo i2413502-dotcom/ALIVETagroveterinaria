@@ -1,12 +1,20 @@
-// AgroBot usa únicamente el modelo de pago Hermes 3 405B.
-// Los modelos gratuitos ignoran el system prompt y alucinan productos.
 require('dotenv').config();
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const TIMEOUT_MS     = 30000;
-const MODELO         = process.env.OPENROUTER_MODEL_3 || 'nousresearch/hermes-3-llama-3.1-405b';
+const TIMEOUT_MS = 30000;
 
-const llamarModelo = async (mensajes) => {
+// Orden de prioridad
+const MODELOS = [
+    process.env.OPENROUTER_MODEL_3 || 'nousresearch/hermes-3-llama-3.1-405b',
+
+    // Respaldos gratuitos
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'qwen/qwen3-32b:free',
+    'mistralai/mistral-small-3.2-24b-instruct:free',
+    'deepseek/deepseek-r1-0528:free'
+];
+
+const llamarModelo = async (modelo, mensajes) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -16,28 +24,33 @@ const llamarModelo = async (mensajes) => {
             signal: controller.signal,
             headers: {
                 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                'Content-Type':  'application/json',
-                'HTTP-Referer':  'https://alivetagroveterinaria-web.onrender.com',
-                'X-Title':       'AgroBot ALIVET'
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://alivetagroveterinaria-web.onrender.com',
+                'X-Title': 'AgroBot ALIVET'
             },
             body: JSON.stringify({
-                model:       MODELO,
-                messages:    mensajes,
-                temperature: 0.1,   // lo más bajo posible: menos creatividad = menos alucinación
-                max_tokens:  300
+                model: modelo,
+                messages: mensajes,
+                temperature: 0.1,
+                max_tokens: 300
             })
         });
 
         if (!resp.ok) {
             const cuerpo = await resp.text();
-            throw new Error(`OpenRouter ${resp.status}: ${cuerpo.slice(0, 200)}`);
+            const error = new Error(`OpenRouter ${resp.status}: ${cuerpo.slice(0, 200)}`);
+            error.status = resp.status;
+            throw error;
         }
 
-        const data  = await resp.json();
+        const data = await resp.json();
         const texto = data.choices?.[0]?.message?.content;
-        if (!texto) throw new Error('Respuesta vacía del modelo');
 
-        console.log(`[AgroBot] Respondido con: ${MODELO}`);
+        if (!texto) {
+            throw new Error('Respuesta vacía del modelo');
+        }
+
+        console.log(`[AgroBot] Respondido con: ${modelo}`);
         return texto.trim();
 
     } finally {
@@ -49,5 +62,29 @@ exports.chat = async (mensajes) => {
     if (!process.env.OPENROUTER_API_KEY) {
         throw new Error('OPENROUTER_API_KEY no configurada');
     }
-    return llamarModelo(mensajes);
+
+    let ultimoError;
+
+    for (const modelo of MODELOS) {
+        try {
+            return await llamarModelo(modelo, mensajes);
+
+        } catch (err) {
+            ultimoError = err;
+
+            if (err.status === 429 || err.status === 503) {
+                console.warn(`[AgroBot] ${modelo} saturado (${err.status}), probando siguiente...`);
+
+                // Espera breve antes del siguiente intento
+                await new Promise(r => setTimeout(r, 700));
+
+                continue;
+            }
+
+            throw err;
+        }
+    }
+
+    console.error('[AgroBot] Todos los modelos fallaron.');
+    throw ultimoError;
 };
