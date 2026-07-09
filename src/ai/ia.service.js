@@ -200,7 +200,7 @@ const responderCliente = async (userId, mensaje, paginaActual) => {
     const [contexto, productos, historial] = await Promise.all([
         memoryService.obtenerContexto(userId),
         productService.buscarProductos(mensaje),
-        iaModel.getHistory(userId, 4)
+        iaModel.getHistory(userId, 2)
     ]);
 
     const secciones = [

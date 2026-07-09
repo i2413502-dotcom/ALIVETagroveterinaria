@@ -184,70 +184,94 @@
         return div;
     };
 
+    // ── Renderizar tarjetas de producto ───────────────────────────
     const renderizarProductos = (productos) => {
-    if (!productos || !productos.length) return;
+        try {
+            if (!Array.isArray(productos) || !productos.length) return;
 
-    // Filtrar productos de prueba (nombres raros) y duplicados
-    const NOMBRE_PRUEBA = /^[a-z]{2,8}(aa+|xx+|oo+|ii+|\d{2,})$/i;
-    const vistos = new Set();
-    const validos = productos.filter(p => {
-        if (!p.nombre || p.nombre.trim().length < 3) return false;
-        if (NOMBRE_PRUEBA.test(p.nombre.trim())) return false;
-        if (vistos.has(p.id)) return false;
-        vistos.add(p.id);
-        return true;
-    });
-    if (!validos.length) return;
+            // Nombres de prueba — no mostrar
+            const NOMBRE_PRUEBA = /^[a-z]{2,8}(aa+|xx+|oo+|ii+|ll+|\d{2,})$/i;
+            const vistos = new Set();
 
-    const contenedor = document.createElement('div');
-    contenedor.className = 'agrobot-productos';
+            const validos = productos.filter(p => {
+                // El backend puede devolver id o id_producto — aceptamos ambos
+                const id = p.id || p.id_producto;
+                const nombre = (p.nombre || '').trim();
+                if (!nombre || nombre.length < 3) return false;
+                if (NOMBRE_PRUEBA.test(nombre)) return false;
+                if (vistos.has(id)) return false;
+                vistos.add(id);
+                return true;
+            });
 
-    validos.forEach(p => {   // ← el resto del forEach queda igual
+            if (!validos.length) return;
 
-            const stock = Number(p.stock_actual) || 0;
-            const stockColor  = stock > 5 ? '#2e7d32' : stock > 0 ? '#e65100' : '#c62828';
-            const stockTexto  = stock > 5 ? `✓ ${stock} disponibles`
-                              : stock > 0 ? `⚠ Solo ${stock} restantes`
-                              : '✗ Sin stock';
+            const contenedor = document.createElement('div');
+            contenedor.className = 'agrobot-productos';
 
-            const card = document.createElement('a');
-            card.className = 'agrobot-prod-card';
-            card.href = `/detalleproducto.html?id=${encodeURIComponent(p.id)}`;
-            card.target = '_blank';
-            card.rel = 'noopener';
+            validos.forEach(p => {
+                // Normalizar campos — el backend puede variar los nombres
+                const id     = p.id || p.id_producto || 0;
+                const nombre = (p.nombre || '').trim();
+                const precio = parseFloat(p.precio || p.precio_venta || 0);
+                const stock  = parseInt(p.stock_actual || 0, 10);
+                const imagen = p.imagen || '';
 
-            const img = document.createElement('img');
-            img.className = 'agrobot-prod-img';
-            img.src = imgSrc;
-            img.alt = '';
-            img.onerror = () => { img.src = '/img/productos/default.jpg'; };
+                const imgSrc = imagen.startsWith('http')
+                    ? imagen
+                    : imagen
+                        ? `/img/productos/${imagen}`
+                        : '/img/productos/default.jpg';
 
-            const info = document.createElement('div');
-            info.className = 'agrobot-prod-info';
+                const stockColor = stock > 5 ? '#2e7d32' : stock > 0 ? '#e65100' : '#c62828';
+                const stockTexto = stock > 5 ? `✓ ${stock} disponibles`
+                                 : stock > 0 ? `⚠ Solo ${stock} restantes`
+                                 : '✗ Sin stock';
 
-            const nombre = document.createElement('div');
-            nombre.className = 'agrobot-prod-nombre';
-            nombre.textContent = p.nombre;
+                const card = document.createElement('a');
+                card.className = 'agrobot-prod-card';
+                card.href = `/detalleproducto.html?id=${encodeURIComponent(id)}`;
+                card.target = '_blank';
+                card.rel = 'noopener';
 
-            const precio = document.createElement('div');
-            precio.className = 'agrobot-prod-precio';
-            precio.textContent = `S/ ${Number(p.precio).toFixed(2)}`;
+                const img = document.createElement('img');
+                img.className = 'agrobot-prod-img';
+                img.src = imgSrc;
+                img.alt = nombre;
+                img.onerror = () => { img.src = '/img/productos/default.jpg'; };
 
-            const stockEl = document.createElement('div');
-            stockEl.className = 'agrobot-prod-stock';
-            stockEl.style.color = stockColor;
-            stockEl.textContent = stockTexto;
+                const info = document.createElement('div');
+                info.className = 'agrobot-prod-info';
 
-            info.appendChild(nombre);
-            info.appendChild(precio);
-            info.appendChild(stockEl);
-            card.appendChild(img);
-            card.appendChild(info);
-            contenedor.appendChild(card);
-        });
+                const elNombre = document.createElement('div');
+                elNombre.className = 'agrobot-prod-nombre';
+                elNombre.textContent = nombre;
 
-        zonaMensajes.appendChild(contenedor);
-        zonaMensajes.scrollTop = zonaMensajes.scrollHeight;
+                const elPrecio = document.createElement('div');
+                elPrecio.className = 'agrobot-prod-precio';
+                elPrecio.textContent = `S/ ${precio.toFixed(2)}`;
+
+                const elStock = document.createElement('div');
+                elStock.className = 'agrobot-prod-stock';
+                elStock.style.color = stockColor;
+                elStock.textContent = stockTexto;
+
+                info.appendChild(elNombre);
+                info.appendChild(elPrecio);
+                info.appendChild(elStock);
+                card.appendChild(img);
+                card.appendChild(info);
+                contenedor.appendChild(card);
+            });
+
+            zonaMensajes.appendChild(contenedor);
+            zonaMensajes.scrollTop = zonaMensajes.scrollHeight;
+
+        } catch (err) {
+            // Si falla renderizar tarjetas NO mostrar "Error de conexión"
+            // solo ignorar silenciosamente — el texto del bot ya se mostró
+            console.error('[AgroBot] Error al renderizar productos:', err);
+        }
     };
 
     const mostrarChipsFaq = async () => {
@@ -284,7 +308,6 @@
             const headers = { 'Content-Type': 'application/json' };
             if (sesion.token) headers['Authorization'] = 'Bearer ' + sesion.token;
 
-            // Incluir la página actual para que la IA adapte su respuesta
             const payload = Object.assign(
                 { paginaActual: window.location.pathname },
                 cuerpo
@@ -295,22 +318,33 @@
                 headers,
                 body: JSON.stringify(payload)
             });
-            const data = await resp.json();
 
+            // Si el servidor devuelve error HTTP → mostrar mensaje amigable
+            if (!resp.ok) {
+                escribiendo.remove();
+                agregarMensaje('No pude conectarme al servidor. Intenta en unos segundos. 🙏', 'bot');
+                return;
+            }
+
+            const data = await resp.json();
             escribiendo.remove();
+
             agregarMensaje(
                 data.respuesta || data.mensaje || 'No pude procesar tu mensaje.',
                 'bot'
             );
 
-            // Mostrar tarjetas de productos si la IA encontró alguno
+            // Renderizar tarjetas — en bloque separado para que un error
+            // aquí NO afecte el mensaje de texto ya mostrado
             if (Array.isArray(data.productos) && data.productos.length) {
                 renderizarProductos(data.productos);
             }
 
         } catch (e) {
             escribiendo.remove();
-            agregarMensaje('Error de conexión. Intenta de nuevo. 🙏', 'bot');
+            // Solo mostrar "Error de conexión" si realmente no hubo red
+            agregarMensaje('Sin conexión. Verifica tu internet e intenta de nuevo. 🙏', 'bot');
+            console.error('[AgroBot] Error de red:', e);
         } finally {
             enviando = false;
             btnEnviar.disabled = false;
@@ -337,6 +371,7 @@
     // ── Bienvenida según rol ─────────────────────────────────────
     const iniciarConversacion = async () => {
         sesion = obtenerSesion();
+        zonaMensajes.innerHTML = '';
 
         if (sesion.rol === 'INVITADO') {
             subtitulo.textContent = 'Preguntas frecuentes';
