@@ -80,4 +80,4 @@ exports.deleteSubcategoria = async (req, res) => {
     } catch (error) {
         res.status(400).json({ mensaje: error.message });
     }
-};s
+};
