@@ -1,0 +1,149 @@
+/* ============================================================
+   ALIVET — Estilos específicos del catálogo (página de inicio)
+   Usa las variables definidas en /css/styles.css — enlazar
+   ese archivo ANTES que este.
+
+   NOTA: el bloque <style> original de index.html redefinía por
+   completo :root, .main-header, .search-input, .search-btn,
+   .footer-agro, .badge-carrito y .toast-carrito — todo eso ya
+   existe en /css/styles.css como sistema de diseño compartido.
+   Ese duplicado se eliminó; aquí solo queda lo que es realmente
+   específico de esta página (hero, filtros, tarjeta de producto).
+   ============================================================ */
+
+/* ── HERO ── */
+.hero-banner {
+    background: linear-gradient(rgba(4,60,22,0.6), rgba(4,60,22,0.6)),
+        url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80') center/cover;
+    height: 250px; display: flex; align-items: center; justify-content: center;
+}
+.promo-box {
+    background: rgba(255,255,255,0.97); padding: 28px 44px;
+    border-radius: 18px; text-align: center;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.22); border: none;
+}
+
+/* ── FILTROS TOOLBAR ── */
+.filtros-toolbar {
+    background: white; border-radius: 16px; padding: 20px 24px 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.055);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+.filtros-toolbar .form-label {
+    color: var(--agro-text-muted); font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px;
+}
+.filtros-toolbar .form-select,
+.filtros-toolbar .form-control {
+    border-radius: 10px; border: 1.5px solid #e2e8f0;
+    font-size: 0.875rem; padding: 8px 12px;
+    background-color: #fafafa;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.filtros-toolbar .form-select:focus,
+.filtros-toolbar .form-control:focus {
+    border-color: var(--agro-green);
+    box-shadow: 0 0 0 3px rgba(6,160,73,0.1);
+    background-color: white;
+}
+.btn-filtrar {
+    background: linear-gradient(135deg, var(--agro-green), var(--agro-green-dark));
+    color: white; border: none; border-radius: 10px;
+    font-weight: 600; font-size: 0.875rem;
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-filtrar:hover {
+    color: white; transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(6,160,73,0.38);
+}
+.btn-limpiar { border-radius: 10px; font-size: 0.875rem; }
+
+/* ── FILTRO ANIMAL ── */
+.filtro-animal-wrap {
+    border-top: 1px solid #f0f4f0; margin-top: 14px; padding-top: 14px;
+}
+.filtro-animal .btn {
+    border-radius: 22px; padding: 5px 15px; font-size: 0.82rem;
+    font-weight: 500; border: 1.5px solid #c7ead5;
+    color: var(--agro-green-dark); background: white; transition: 0.18s;
+}
+.filtro-animal .btn:hover,
+.filtro-animal .btn.active {
+    background-color: var(--agro-green); color: white; border-color: var(--agro-green);
+}
+
+/* ── PRODUCT CARD ── */
+.product-card {
+    background: white; border: 1px solid rgba(0,0,0,0.05);
+    border-radius: var(--agro-radius-lg); overflow: hidden; height: 100%;
+    box-shadow: var(--agro-shadow-sm);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--agro-shadow-md);
+}
+.product-img-container {
+    height: 188px; overflow: hidden; position: relative;
+    background: linear-gradient(145deg, #f4faf5, #eaf3eb);
+}
+.product-img { height: 100%; width: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.product-card:hover .product-img { transform: scale(1.07); }
+
+/* Badge de stock premium */
+.stock-badge-low {
+    position: absolute; top: 10px; left: 10px; z-index: 2;
+    background: linear-gradient(135deg, #ff3b3b, #c0111b);
+    color: white; font-size: 0.66rem; font-weight: 800;
+    padding: 3px 9px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(192,17,27,0.45);
+}
+
+/* Tipografía de tarjeta */
+.producto-categoria {
+    font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.9px; color: var(--agro-earth); margin-bottom: 3px;
+}
+.producto-nombre {
+    font-size: 0.875rem; font-weight: 700; color: var(--agro-text);
+    line-height: 1.35; margin-bottom: 10px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden; min-height: 2.4em;
+}
+.producto-precio {
+    font-size: 1.18rem; font-weight: 800;
+    color: var(--agro-green-dark); letter-spacing: -0.4px;
+}
+
+/* Botón agregar — rectangular premium */
+.btn-add {
+    background: linear-gradient(135deg, var(--agro-green) 0%, var(--agro-green-dark) 100%);
+    color: white; border: none; border-radius: 10px;
+    padding: 9px 14px; font-weight: 600; font-size: 0.82rem;
+    cursor: pointer; width: 100%;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: transform 0.18s ease, box-shadow 0.2s ease;
+    letter-spacing: 0.2px;
+}
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(6,160,73,0.42);
+}
+.btn-add:active { transform: translateY(0); box-shadow: none; }
+
+/* ── HEADING PRODUCTOS ── */
+.seccion-titulo {
+    font-weight: 800; color: var(--agro-text);
+    font-size: 1.4rem; letter-spacing: -0.3px;
+}
+.seccion-titulo .badge {
+    background: linear-gradient(135deg, var(--agro-green), var(--agro-green-dark)) !important;
+    font-size: 0.78rem; border-radius: 20px; padding: 4px 10px; font-weight: 600;
+}
+
+/* ── RESPONSIVE (solo lo específico de esta página) ── */
+@media (max-width: 768px) {
+    .producto-precio { font-size: 1rem; }
+    .btn-add { font-size: 0.78rem; padding: 7px 10px; }
+}

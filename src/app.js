@@ -33,6 +33,8 @@ app.use('/api/inventario',     require('./rutas/inventario.routes.js'));
 app.use('/api/ia',             require('./rutas/ia.routes.js'));
 app.use('/api/upload',         require('./rutas/subida.routes.js'));
 app.use('/api/notificaciones', require('./rutas/notificacion.routes.js'));
+app.use('/api/imagenes',       require('./rutas/imagen.routes.js'));
+app.use('/api/variantes',      require('./rutas/variante.routes.js'));
 
 // ── Manejador de errores global ───────────────────────────────────
 app.use((err, req, res, next) => {

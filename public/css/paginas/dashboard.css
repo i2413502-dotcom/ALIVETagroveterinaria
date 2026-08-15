@@ -1,0 +1,69 @@
+/* ============================================================
+   ALIVET — Estilos específicos del panel de administrador
+   (sidebar, tarjetas de estadísticas, tablas, topbar).
+   Usa las variables definidas en /css/styles.css — enlazar
+   ese archivo ANTES que este.
+   ============================================================ */
+
+        .sidebar {
+            width: 250px; min-height: 100vh;
+            background: linear-gradient(180deg, var(--agro-green-dark) 0%, #024d22 100%);
+            position: fixed; top: 0; left: 0; overflow-y: auto;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.82); padding: 11px 18px;
+            border-radius: 10px; margin: 2px 10px;
+            font-size: 0.9rem; font-weight: 500; transition: 0.2s;
+        }
+        .sidebar .nav-link:hover  { background: rgba(255,255,255,0.14); color: white; }
+        .sidebar .nav-link.active { background: rgba(255,255,255,0.22); color: white; font-weight: 600; }
+        .main-content { margin-left: 250px; padding: 28px; }
+        .stat-card {
+            border-radius: 16px !important; border: none !important;
+            box-shadow: var(--agro-shadow-sm) !important;
+            transition: transform 0.25s, box-shadow 0.25s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--agro-shadow-md) !important; }
+        .stat-icon {
+            width: 56px; height: 56px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+        }
+        .table-container {
+            background: white; border-radius: 16px; padding: 24px;
+            box-shadow: var(--agro-shadow-sm);
+        }
+        .topbar {
+            background: white; padding: 14px 28px;
+            margin: -28px -28px 28px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        }
+        .chart-card {
+            background: white; border-radius: 16px; padding: 22px;
+            height: 100%; box-shadow: var(--agro-shadow-sm);
+        }
+        .badge-nuevo { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
+        /* Aplicar dash-table a todas las tablas del dashboard */
+        .table-container table,
+        .chart-card table { border-collapse: separate !important; border-spacing: 0 !important; width: 100%; }
+        .table-container thead th,
+        .chart-card thead th {
+            background: var(--agro-green-light) !important;
+            color: var(--agro-green-dark) !important;
+            font-size: 0.75rem !important; font-weight: 700 !important;
+            text-transform: uppercase !important; letter-spacing: 0.5px !important;
+            border: none !important; padding: 11px 14px !important;
+        }
+        .table-container tbody tr:nth-child(even) { background: #fafafa !important; }
+        .table-container tbody tr:hover { background: var(--agro-green-light) !important; }
+        .table-container td {
+            border: none !important; border-bottom: 1px solid #f3f4f6 !important;
+            padding: 9px 14px !important; font-size: 0.875rem !important;
+            vertical-align: middle !important;
+        }
+        /* Botón Cerrar Sesión: alerta suave sobre el sidebar oscuro */
+        .sidebar .nav-link.btn-logout {
+            background: rgba(255,255,255,0.10); color: #ffd6d6 !important;
+            font-weight: 600; border: 1px solid rgba(255,107,107,0.4);
+        }
+        .sidebar .nav-link.btn-logout:hover { background: #e74c3c; color: #fff !important; border-color: #e74c3c; }

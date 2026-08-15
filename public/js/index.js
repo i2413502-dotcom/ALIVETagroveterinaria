@@ -59,7 +59,7 @@ function renderizarProductos(productos) {
                 <i class="bi bi-search" style="font-size:3rem;opacity:0.35;"></i>
                 <h5 class="mt-3 fw-bold">No se encontraron productos</h5>
                 <p class="small">Intenta con otros filtros o busca algo diferente.</p>
-                <button class="btn btn-outline-success mt-1 px-4" style="border-radius:10px;" onclick="limpiarFiltros()">
+                <button class="btn btn-outline-success mt-1 px-4" style="border-radius:10px;" data-accion="limpiar-filtros">
                     Ver todos los productos
                 </button>
             </div>`;
@@ -88,12 +88,7 @@ function renderizarProductos(productos) {
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="producto-precio">S/. ${parseFloat(p.precio_venta).toFixed(2)}</span>
                     </div>
-                    <button class="btn-add" onclick="agregarAlCarrito(event,
-                        ${p.id_producto},
-                        decodeURIComponent('${encodeURIComponent(p.nombre)}'),
-                        ${p.precio_venta},
-                        '${p.imagen ? p.imagen.trim() : ''}',
-                        ${p.stock_actual || 0})">
+                    <button class="btn-add" data-accion="agregar-carrito" data-id="${p.id_producto}">
                         <i class="bi bi-cart-plus"></i>Agregar
                     </button>
                 </div>
@@ -127,7 +122,7 @@ function renderizarPaginacion(paginaActual, totalPaginas, totalProductos, filtro
     // Botón anterior
     html += `<button class="btn btn-sm btn-outline-success"
         ${paginaActual === 1 ? 'disabled' : ''}
-        onclick="obtenerProductos(obtenerFiltrosActuales(), ${paginaActual - 1})">
+        data-accion="pagina-productos" data-pagina="${paginaActual - 1}">
         ← Anterior
     </button>`;
 
@@ -137,13 +132,13 @@ function renderizarPaginacion(paginaActual, totalPaginas, totalProductos, filtro
 
     for (let i = inicio; i <= fin; i++) {
         html += `<button class="btn btn-sm ${i === paginaActual ? 'btn-success' : 'btn-outline-success'}"
-            onclick="obtenerProductos(obtenerFiltrosActuales(), ${i})">${i}</button>`;
+            data-accion="pagina-productos" data-pagina="${i}">${i}</button>`;
     }
 
     // Botón siguiente
     html += `<button class="btn btn-sm btn-outline-success"
         ${paginaActual === totalPaginas ? 'disabled' : ''}
-        onclick="obtenerProductos(obtenerFiltrosActuales(), ${paginaActual + 1})">
+        data-accion="pagina-productos" data-pagina="${paginaActual + 1}">
         Siguiente →
     </button>`;
 
@@ -200,23 +195,38 @@ function limpiarFiltros() {
 }
 
 // Agregar al carrito
-function agregarAlCarrito(event, id, nombre, precio, imagen, stock) {
+// NOTA: antes recibía nombre/precio/imagen/stock como argumentos sueltos
+// codificados a mano en el atributo onclick (con un hack de
+// encodeURIComponent/decodeURIComponent para nombres con comillas).
+// Ahora solo recibe el id y busca el producto en productosBase, que
+// siempre refleja la última página cargada (ver obtenerProductos()).
+function agregarAlCarrito(event, id) {
     event.preventDefault();
     event.stopPropagation();
-    stock = parseInt(stock) || 0;
+
+    const p = productosBase.find(x => x.id_producto === id);
+    if (!p) return;
+
+    const stock = parseInt(p.stock_actual) || 0;
     if (stock <= 0) { mostrarToast('Producto agotado'); return; }
 
     let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
-    const existe = carrito.find(p => p.id_producto === id);
+    const existe = carrito.find(item => item.id_producto === id);
     if (existe) {
         if (existe.cantidad >= stock) { alert('No hay más stock disponible'); return; }
         existe.cantidad += 1;
     } else {
-        carrito.push({ id_producto: id, nombre, precio: parseFloat(precio), imagen, cantidad: 1 });
+        carrito.push({
+            id_producto: id,
+            nombre: p.nombre,
+            precio: parseFloat(p.precio_venta),
+            imagen: p.imagen ? p.imagen.trim() : '',
+            cantidad: 1
+        });
     }
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarContadorCarrito();
-    mostrarToast(nombre);
+    mostrarToast(p.nombre);
 }
 
 // Cargar opciones de categoría dinámicamente desde la BD
@@ -246,7 +256,8 @@ async function cargarFiltrosAnimales() {
         animales.filter(a => a.estado === 'ACTIVO').forEach(a => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline-success btn-sm';
-            btn.onclick   = function() { filtrarAnimal(a.id_tipo_animal, this); };
+            btn.dataset.accion = 'filtrar-animal';
+            btn.dataset.id     = a.id_tipo_animal;
             btn.innerHTML = `${emojis[a.nombre] || '🐾'} ${a.nombre}`;
             contenedor.appendChild(btn);
         });
@@ -266,5 +277,24 @@ window.addEventListener('DOMContentLoaded', () => {
     if (nombre && btnUsuario) {
         btnUsuario.href  = rol === 'COLABORADOR' ? '/dashboard.html' : '/perfil.html';
         btnUsuario.title = (rol === 'COLABORADOR' ? 'Dashboard - ' : 'Mi perfil - ') + nombre;
+    }
+});
+
+
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR CENTRAL DE EVENTOS (data-accion)
+//  Mismo patrón que dashboard.js: reemplaza los onclick embebidos
+//  en el HTML/template-strings por delegación de eventos.
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+
+    switch (el.dataset.accion) {
+        case 'aplicar-filtros':   aplicarFiltros(); break;
+        case 'limpiar-filtros':   limpiarFiltros(); break;
+        case 'filtrar-animal':    filtrarAnimal(Number(el.dataset.id), el); break;
+        case 'agregar-carrito':   agregarAlCarrito(e, Number(el.dataset.id)); break;
+        case 'pagina-productos':  obtenerProductos(obtenerFiltrosActuales(), Number(el.dataset.pagina)); break;
     }
 });

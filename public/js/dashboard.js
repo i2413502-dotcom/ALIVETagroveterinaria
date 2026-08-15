@@ -354,11 +354,11 @@ async function cargarProductos() {
             // Botón cambiar estado: si está activo → desactivar; si está inactivo → activar
             const toggleBtn = inactivo
                 ? `<button class="btn btn-sm btn-outline-success me-1" title="Activar producto"
-                           onclick="cambiarEstadoProducto(${p.id_producto}, 'ACTIVO')">
+                           data-accion="cambiar-estado-producto" data-id="${p.id_producto}" data-estado="ACTIVO">
                         <i class="bi bi-toggle-off"></i>
                    </button>`
                 : `<button class="btn btn-sm btn-outline-warning me-1" title="Desactivar producto"
-                           onclick="cambiarEstadoProducto(${p.id_producto}, 'INACTIVO')">
+                           data-accion="cambiar-estado-producto" data-id="${p.id_producto}" data-estado="INACTIVO">
                         <i class="bi bi-toggle-on"></i>
                    </button>`;
 
@@ -375,11 +375,11 @@ async function cargarProductos() {
                 <td>${stockEstado}</td>
                 <td class="text-nowrap">
                     ${fichaBtn}
-                    <button class="btn btn-sm btn-outline-primary me-1" title="Editar producto" onclick="editarProducto(${p.id_producto})">
+                    <button class="btn btn-sm btn-outline-primary me-1" title="Editar producto" data-accion="editar-producto" data-id="${p.id_producto}">
                         <i class="bi bi-pencil"></i>
                     </button>
                     ${toggleBtn}
-                    <button class="btn btn-sm btn-outline-danger" title="Eliminar permanentemente" onclick="eliminarProducto(${p.id_producto})">
+                    <button class="btn btn-sm btn-outline-danger" title="Eliminar permanentemente" data-accion="eliminar-producto" data-id="${p.id_producto}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -398,13 +398,13 @@ function renderPaginacionProductos(data) {
     if (totalPaginas <= 1) { cont.innerHTML = ''; return; }
 
     let html = `<span class="text-muted small me-2">Página ${actual} de ${totalPaginas} (${data.total} productos)</span>`;
-    html += `<button class="btn btn-sm btn-outline-success" ${actual === 1 ? 'disabled' : ''} onclick="irPaginaProductos(${actual - 1})">← Anterior</button>`;
+    html += `<button class="btn btn-sm btn-outline-success" ${actual === 1 ? 'disabled' : ''} data-accion="pagina-productos" data-pagina="${actual - 1}">← Anterior</button>`;
     const ini = Math.max(1, actual - 2);
     const fin = Math.min(totalPaginas, ini + 4);
     for (let i = ini; i <= fin; i++) {
-        html += `<button class="btn btn-sm ${i === actual ? 'btn-success' : 'btn-outline-success'}" onclick="irPaginaProductos(${i})">${i}</button>`;
+        html += `<button class="btn btn-sm ${i === actual ? 'btn-success' : 'btn-outline-success'}" data-accion="pagina-productos" data-pagina="${i}">${i}</button>`;
     }
-    html += `<button class="btn btn-sm btn-outline-success" ${actual === totalPaginas ? 'disabled' : ''} onclick="irPaginaProductos(${actual + 1})">Siguiente →</button>`;
+    html += `<button class="btn btn-sm btn-outline-success" ${actual === totalPaginas ? 'disabled' : ''} data-accion="pagina-productos" data-pagina="${actual + 1}">Siguiente →</button>`;
     cont.innerHTML = html;
 }
 
@@ -820,10 +820,10 @@ async function cargarCategorias() {
                 <td>${c.descripcion || '-'}</td>
                 <td><span class="badge bg-${c.estado==='ACTIVO'?'success':'secondary'}">${c.estado}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarCategoria(${c.id_categoria})">
+                    <button class="btn btn-sm btn-outline-primary me-1" data-accion="editar-categoria" data-id="${c.id_categoria}">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarCategoria(${c.id_categoria})">
+                    <button class="btn btn-sm btn-outline-danger" data-accion="eliminar-categoria" data-id="${c.id_categoria}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -912,7 +912,7 @@ function agregarTag(tipo) {
     tag.style.cssText = `background:${color};color:${textColor};border-radius:20px;
         padding:2px 10px;font-size:12px;cursor:pointer;display:inline-flex;
         align-items:center;gap:4px;border:1px solid ${textColor}40`;
-    tag.innerHTML = `${valor} <i class="bi bi-x" onclick="eliminarTag(this, '${hiddenId}')"></i>`;
+    tag.innerHTML = `${valor} <i class="bi bi-x" data-accion="eliminar-tag" data-hidden-id="${hiddenId}"></i>`;
     tag.dataset.valor = valor;
 
     document.getElementById(tagsId).appendChild(tag);
@@ -997,10 +997,10 @@ async function cargarAnimales() {
                 <td><strong>${a.nombre}</strong></td>
                 <td><span class="badge bg-${a.estado==='ACTIVO'?'success':'secondary'}">${a.estado}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarAnimal(${a.id_tipo_animal})">
+                    <button class="btn btn-sm btn-outline-primary me-1" data-accion="editar-animal" data-id="${a.id_tipo_animal}">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarAnimal(${a.id_tipo_animal})">
+                    <button class="btn btn-sm btn-outline-danger" data-accion="eliminar-animal" data-id="${a.id_tipo_animal}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -1103,7 +1103,7 @@ async function cargarColaboradores() {
                 <td>${c.correo}</td>
                 <td><span class="badge bg-${c.estado==='ACTIVO'?'success':'secondary'}">${c.estado}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editarColaborador(${c.id_colaborador})">
+                    <button class="btn btn-sm btn-outline-primary" data-accion="editar-colaborador" data-id="${c.id_colaborador}">
                         <i class="bi bi-pencil"></i>
                     </button>
                 </td>
@@ -1253,7 +1253,57 @@ window.addEventListener('DOMContentLoaded', () => {
     // Si llega ?seccion=, abrir esa sección del panel (navegación desde Reportes/Ventas)
     const seccionURL = new URLSearchParams(location.search).get('seccion');
     if (seccionURL) {
-        const link = document.querySelector(`.sidebar .nav-link[onclick*="'${seccionURL}'"]`);
+        const link = document.querySelector(`.sidebar .nav-link[data-valor="${seccionURL}"]`);
         mostrarSeccion(seccionURL, link);
+    }
+});
+
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR CENTRAL DE EVENTOS (data-accion)
+//
+//  Antes cada botón/enlace tenía su lógica pegada directo en el
+//  HTML vía onclick="...". Se reemplazó por atributos data-accion
+//  (y data-valor/data-entidad/data-formato cuando hace falta) más
+//  este único listener delegado, para separar HTML de JS.
+//
+//  Las funciones llamadas (mostrarSeccion, guardarProducto, etc.)
+//  son las mismas de siempre, sin cambios en su lógica interna.
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+
+    // Los <a> de navegación usan href="#" solo por estilo; nunca deben navegar de verdad
+    if (el.tagName === 'A') e.preventDefault();
+
+    switch (el.dataset.accion) {
+        case 'seccion':             mostrarSeccion(el.dataset.valor, el); break;
+        case 'cerrar-sesion':       cerrarSesion(); break;
+        case 'cargar-pedidos':      cargarPedidos(); break;
+        case 'exportar':            exportarTabla(el.dataset.entidad, el.dataset.formato); break;
+        case 'modal-producto':      mostrarModalProducto(); break;
+        case 'modal-categoria':     mostrarModalCategoria(); break;
+        case 'modal-animal':        mostrarModalAnimal(); break;
+        case 'modal-colaborador':   mostrarModalColaborador(); break;
+        case 'tab-imagen':          switchTab(el.dataset.valor, el); break;
+        case 'ficha-tecnica':       verFichaTecnica(); break;
+        case 'agregar-tag':         agregarTag(el.dataset.valor); break;
+        case 'guardar-producto':    guardarProducto(); break;
+        case 'guardar-categoria':   guardarCategoria(); break;
+        case 'guardar-animal':      guardarAnimal(); break;
+        case 'reset-password':      mostrarResetPassword(); break;
+        case 'guardar-colaborador': guardarColaborador(); break;
+
+        // Generadas dinámicamente en las filas de tablas (antes onclick embebido en el template string)
+        case 'cambiar-estado-producto': cambiarEstadoProducto(Number(el.dataset.id), el.dataset.estado); break;
+        case 'editar-producto':         editarProducto(Number(el.dataset.id)); break;
+        case 'eliminar-producto':       eliminarProducto(Number(el.dataset.id)); break;
+        case 'pagina-productos':        irPaginaProductos(Number(el.dataset.pagina)); break;
+        case 'editar-categoria':        editarCategoria(Number(el.dataset.id)); break;
+        case 'eliminar-categoria':      eliminarCategoria(Number(el.dataset.id)); break;
+        case 'eliminar-tag':            eliminarTag(el, el.dataset.hiddenId); break;
+        case 'editar-animal':           editarAnimal(Number(el.dataset.id)); break;
+        case 'eliminar-animal':         eliminarAnimal(Number(el.dataset.id)); break;
+        case 'editar-colaborador':      editarColaborador(Number(el.dataset.id)); break;
     }
 });
