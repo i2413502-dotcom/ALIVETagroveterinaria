@@ -59,7 +59,7 @@ async function cargarVentas() {
                 <td>${v.metodo_pago}</td>
                 <td>${badgeEstado(v.estado)}</td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-success" title="Ver detalle" onclick="verDetalle(${v.id_pedido})">
+                    <button class="btn btn-sm btn-outline-success" title="Ver detalle" data-accion="ver-detalle" data-id="${v.id_pedido}">
                         <i class="bi bi-eye"></i>
                     </button>
                 </td>
@@ -79,13 +79,13 @@ function renderPaginacion(data) {
     if (totalPaginas <= 1) { cont.innerHTML = ''; return; }
 
     let html = `<span class="text-muted small me-2">Página ${actual} de ${totalPaginas} (${data.total} ventas)</span>`;
-    html += `<button class="btn btn-sm btn-outline-success" ${actual === 1 ? 'disabled' : ''} onclick="irPagina(${actual - 1})">← Anterior</button>`;
+    html += `<button class="btn btn-sm btn-outline-success" ${actual === 1 ? 'disabled' : ''} data-accion="ir-pagina" data-pagina="${actual - 1}">← Anterior</button>`;
     const ini = Math.max(1, actual - 2);
     const fin = Math.min(totalPaginas, ini + 4);
     for (let i = ini; i <= fin; i++) {
-        html += `<button class="btn btn-sm ${i === actual ? 'btn-success' : 'btn-outline-success'}" onclick="irPagina(${i})">${i}</button>`;
+        html += `<button class="btn btn-sm ${i === actual ? 'btn-success' : 'btn-outline-success'}" data-accion="ir-pagina" data-pagina="${i}">${i}</button>`;
     }
-    html += `<button class="btn btn-sm btn-outline-success" ${actual === totalPaginas ? 'disabled' : ''} onclick="irPagina(${actual + 1})">Siguiente →</button>`;
+    html += `<button class="btn btn-sm btn-outline-success" ${actual === totalPaginas ? 'disabled' : ''} data-accion="ir-pagina" data-pagina="${actual + 1}">Siguiente →</button>`;
     cont.innerHTML = html;
 }
 
@@ -162,4 +162,22 @@ window.addEventListener('DOMContentLoaded', () => {
     if (nombre) document.getElementById('nombre-admin').innerText = nombre;
     modalDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
     cargarVentas();
+});
+
+
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+    if (el.tagName === 'A') e.preventDefault();
+
+    switch (el.dataset.accion) {
+        case 'cerrar-sesion':    cerrarSesion(); break;
+        case 'aplicar-filtros':  aplicarFiltros(); break;
+        case 'exportar-ventas':  exportarVentas(el); break;
+        case 'ver-detalle':      verDetalle(Number(el.dataset.id)); break;
+        case 'ir-pagina':        irPagina(Number(el.dataset.pagina)); break;
+    }
 });

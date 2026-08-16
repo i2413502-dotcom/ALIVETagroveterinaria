@@ -1,0 +1,41 @@
+/* ============================================================
+   ALIVET — Estilos específicos de la página de confirmación
+   Usa las variables definidas en /css/styles.css — enlazar
+   ese archivo ANTES que este.
+   ============================================================ */
+
+body { background-color: #f0f4f1; }
+
+.check-circle {
+    width: 100px; height: 100px; border-radius: 50%;
+    background: var(--agro-green); display: flex;
+    align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    animation: popIn 0.5s ease;
+}
+@keyframes popIn {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.card-confirm { border-radius: 15px; }
+
+.btn-agro { background-color: var(--agro-green); color: white; }
+.btn-agro:hover { background-color: var(--agro-green-dark); color: white; }
+
+.detalle-item { border-bottom: 1px solid #eee; padding: 8px 0; }
+
+/* ── Comprobante estilo SUNAT ── */
+.boleta { border: 1px solid #333; border-radius: 8px; padding: 18px; }
+.boleta-box { border: 2px solid #333; border-radius: 6px; padding: 8px; }
+.boleta table { width: 100%; border-collapse: collapse; }
+.boleta th, .boleta td { border: 1px solid #bbb; padding: 6px 8px; font-size: 0.85rem; vertical-align: top; }
+.boleta thead th { background: #f1f1f1; }
+
+@media print {
+    .main-header, .no-print, .check-circle { display: none !important; }
+    body { background: #fff; }
+    .card-confirm { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 0 12px !important; }
+    main { margin: 0 !important; }
+}

@@ -119,19 +119,25 @@ function mostrarBannerPermisos() {
         z-index:99999; display:flex; align-items:center;
         justify-content:center; gap:12px;
     `;
-    banner.innerHTML = `
-        <span>Activa las notificaciones para recibir alertas de pedidos y stock</span>
-        <button onclick="Notification.requestPermission().then(p=>{ if(p==='granted') location.reload(); })"
-            style="background:white;color:#1D9E75;border:none;padding:6px 14px;
-                   border-radius:6px;font-weight:600;cursor:pointer;font-size:13px">
-            Activar
-        </button>
-        <button onclick="this.parentNode.remove()"
-            style="background:transparent;color:white;border:1px solid rgba(255,255,255,0.5);
-                   padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px">
-            Ahora no
-        </button>
-    `;
+
+    const texto = document.createElement('span');
+    texto.textContent = 'Activa las notificaciones para recibir alertas de pedidos y stock';
+
+    const btnActivar = document.createElement('button');
+    btnActivar.textContent = 'Activar';
+    btnActivar.style.cssText = 'background:white;color:#1D9E75;border:none;padding:6px 14px;' +
+        'border-radius:6px;font-weight:600;cursor:pointer;font-size:13px';
+    btnActivar.addEventListener('click', () => {
+        Notification.requestPermission().then(p => { if (p === 'granted') location.reload(); });
+    });
+
+    const btnCerrar = document.createElement('button');
+    btnCerrar.textContent = 'Ahora no';
+    btnCerrar.style.cssText = 'background:transparent;color:white;border:1px solid rgba(255,255,255,0.5);' +
+        'padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px';
+    btnCerrar.addEventListener('click', () => banner.remove());
+
+    banner.append(texto, btnActivar, btnCerrar);
     document.body.appendChild(banner);
 }
 

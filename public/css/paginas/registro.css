@@ -1,0 +1,8 @@
+/* ============================================================
+   ALIVET — Estilos específicos de la página de registro
+   Usa las variables definidas en /css/styles.css — enlazar
+   ese archivo ANTES que este.
+   ============================================================ */
+
+.auth-card { max-width: 520px; }
+.spinner-border-sm { width: 1rem; height: 1rem; }

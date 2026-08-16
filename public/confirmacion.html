@@ -7,39 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        :root { --verde: #06A049; --verde-oscuro: #047a37; }
-        body { background-color: #f0f4f1; font-family: 'Segoe UI', sans-serif; }
-        .main-header { background-color: var(--verde); padding: 10px 0; }
-        .check-circle {
-            width: 100px; height: 100px; border-radius: 50%;
-            background: var(--verde); display: flex;
-            align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            animation: popIn 0.5s ease;
-        }
-        @keyframes popIn {
-            0% { transform: scale(0); }
-            70% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        .card-confirm { border-radius: 15px; }
-        .btn-agro { background-color: var(--verde); color: white; }
-        .btn-agro:hover { background-color: var(--verde-oscuro); color: white; }
-        .detalle-item { border-bottom: 1px solid #eee; padding: 8px 0; }
-        /* ── Comprobante estilo SUNAT ── */
-        .boleta { border: 1px solid #333; border-radius: 8px; padding: 18px; }
-        .boleta-box { border: 2px solid #333; border-radius: 6px; padding: 8px; }
-        .boleta table { width: 100%; border-collapse: collapse; }
-        .boleta th, .boleta td { border: 1px solid #bbb; padding: 6px 8px; font-size: 0.85rem; vertical-align: top; }
-        .boleta thead th { background: #f1f1f1; }
-        @media print {
-            .main-header, .no-print, .check-circle { display: none !important; }
-            body { background: #fff; }
-            .card-confirm { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 0 12px !important; }
-            main { margin: 0 !important; }
-        }
-    </style>
+    <link rel="stylesheet" href="/css/paginas/confirmacion.css">
 </head>
 <body>
 
@@ -81,13 +49,13 @@
             </div>
 
             <div class="d-flex gap-3 justify-content-center flex-wrap no-print">
-                <button class="btn btn-agro px-4" onclick="window.location.href='/'">
+                <button class="btn btn-agro px-4" data-accion="volver-inicio">
                     <i class="bi bi-house me-2"></i>Volver al inicio
                 </button>
-                <button class="btn btn-outline-success px-4" onclick="verMisPedidos()">
+                <button class="btn btn-outline-success px-4" data-accion="ver-pedidos">
                     <i class="bi bi-bag me-2"></i>Ver mis pedidos
                 </button>
-                <button class="btn btn-outline-secondary px-4" onclick="window.print()">
+                <button class="btn btn-outline-secondary px-4" data-accion="imprimir">
                     <i class="bi bi-printer me-2"></i>Imprimir
                 </button>
             </div>

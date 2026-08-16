@@ -7,30 +7,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        :root { --verde: #06A049; --verde-oscuro: #047a37; }
-        body { background-color: #f0f4f1; font-family: 'Segoe UI', sans-serif; }
-        .main-header { background-color: var(--verde); padding: 10px 0; }
-        .card-pago { border-radius: 15px; }
-        .btn-agro { background-color: var(--verde); color: white; }
-        .btn-agro:hover { background-color: var(--verde-oscuro); color: white; }
-        .paso { 
-            display: flex; align-items: center; justify-content: center;
-            width: 35px; height: 35px; border-radius: 50%; 
-            background: #ddd; color: #666; font-weight: bold;
-        }
-        .paso.activo { background: var(--verde); color: white; }
-        .linea { flex: 1; height: 3px; background: #ddd; }
-        .linea.activa { background: var(--verde); }
-        .metodo-card {
-            border: 2px solid #ddd; border-radius: 12px; padding: 15px;
-            cursor: pointer; transition: 0.2s; text-align: center;
-        }
-        .metodo-card:hover { border-color: var(--verde); }
-        .metodo-card.seleccionado { border-color: var(--verde); background: #f0fff4; }
-        .metodo-card img { height: 45px; object-fit: contain; }
-        #form-tarjeta input { letter-spacing: 2px; }
-    </style>
+    <link rel="stylesheet" href="/css/paginas/pago.css">
+    <!-- Widget de Culqi: tokeniza la tarjeta en el navegador del cliente,
+         el número de tarjeta nunca toca nuestro servidor. -->
+    <script src="https://checkout.culqi.com/js/v4"></script>
 </head>
 <body>
 
@@ -75,14 +55,14 @@
                 <!-- Métodos -->
                 <div class="row g-3 mb-4">
                     <div class="col-6">
-                        <div class="metodo-card" id="card-yape" onclick="seleccionarMetodo('yape')">
+                        <div class="metodo-card" id="card-yape" data-accion="seleccionar-metodo" data-valor="yape">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Yape_logo.svg/200px-Yape_logo.svg.png" 
                                  alt="Yape" class="mb-2">
                             <h6 class="fw-bold mb-0">Yape</h6>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="metodo-card" id="card-tarjeta" onclick="seleccionarMetodo('tarjeta')">
+                        <div class="metodo-card" id="card-tarjeta" data-accion="seleccionar-metodo" data-valor="tarjeta">
                             <i class="bi bi-credit-card" style="font-size:2.5rem;color:#06A049;"></i>
                             <h6 class="fw-bold mb-0 mt-1">Tarjeta</h6>
                         </div>
@@ -105,15 +85,16 @@
                     </div>
                 </div>
 
-                <!-- Form Tarjeta: sin recolección de datos de tarjeta (pasarela segura externa) -->
+                <!-- Form Tarjeta: el widget de Culqi (checkout.culqi.com) recolecta
+                     los datos de la tarjeta en un iframe seguro fuera de nuestro
+                     dominio — nunca vemos ni guardamos el número de tarjeta. -->
                 <div id="form-tarjeta" class="d-none">
-                    <div class="alert alert-info mb-0">
+                    <div class="alert alert-light border mb-0">
                         <h6 class="fw-bold"><i class="bi bi-shield-lock me-2"></i>Pago con tarjeta</h6>
                         <p class="mb-0 small">
-                            Próximamente el pago con tarjeta se procesará mediante una
-                            <strong>pasarela segura</strong> (Mercado Pago / Izipay / Niubiz).
-                            Por seguridad <strong>no almacenamos datos de tarjetas</strong>.
-                            Por ahora completa tu compra con <strong>Yape</strong>.
+                            Al confirmar, se abrirá una ventana segura de Culqi para
+                            ingresar los datos de tu tarjeta. Nosotros nunca vemos
+                            ni almacenamos tu número de tarjeta.
                         </p>
                     </div>
                 </div>
@@ -122,12 +103,11 @@
                     Por favor selecciona un método de pago
                 </div>
 
-                <button class="btn btn-agro w-100 py-2 mt-3" onclick="procesarPago()" id="btn-pagar">
+                <button class="btn btn-agro w-100 py-2 mt-3" data-accion="procesar-pago" id="btn-pagar">
                     <i class="bi bi-lock me-2"></i>Confirmar Pago
                 </button>
 
-                <button class="btn btn-outline-secondary w-100 mt-2" 
-                        onclick="window.location.href='/comprobante.html'">
+                <button class="btn btn-outline-secondary w-100 mt-2" data-accion="volver">
                     <i class="bi bi-arrow-left me-2"></i>Volver
                 </button>
             </div>

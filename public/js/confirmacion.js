@@ -140,3 +140,17 @@ function verMisPedidos() {
 }
 
 window.addEventListener('DOMContentLoaded', cargarConfirmacion);
+
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+
+    switch (el.dataset.accion) {
+        case 'volver-inicio': window.location.href = '/'; break;
+        case 'ver-pedidos':   verMisPedidos(); break;
+        case 'imprimir':      window.print(); break;
+    }
+});

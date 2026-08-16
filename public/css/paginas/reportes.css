@@ -1,0 +1,14 @@
+/* ============================================================
+   ALIVET — Estilos específicos de Reportes
+   Enlazar DESPUÉS de /css/styles.css y /css/paneladmin.css
+   (que traen el sidebar, topbar, stat-card y tablas compartidas
+   del panel admin).
+   ============================================================ */
+
+.export-card {
+    background: white; border-radius: 16px; padding: 26px; text-align: center;
+    box-shadow: var(--agro-shadow-sm); height: 100%;
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+.export-card:hover { transform: translateY(-4px); box-shadow: var(--agro-shadow-md); }
+.export-icon { font-size: 2.6rem; }

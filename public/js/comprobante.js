@@ -169,3 +169,18 @@ function precargarDocumento() {
         document.getElementById('ruc').value = numDoc;
     }
 }
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+
+    switch (el.dataset.accion) {
+        case 'seleccionar-tipo':  seleccionarTipo(el.dataset.valor); break;
+        case 'validar-dni':       validarDNI(); break;
+        case 'validar-ruc':       validarRUC(); break;
+        case 'continuar-pago':    continuarPago(); break;
+        case 'volver-envio':      window.location.href = '/envio.html'; break;
+    }
+});
