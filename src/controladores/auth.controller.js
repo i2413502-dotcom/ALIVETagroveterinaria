@@ -8,6 +8,13 @@ const emailService = require('../servicios/email.service');
 const pendingRegistrations = new Map();
 
 const login = async (req, res) => {
+    // IMPORTANTE PARA LA APP MÓVIL: la respuesta de este endpoint
+    // (token + cargo) es lo que usuario_service.dart guarda en
+    // SharedPreferences al hacer login. El campo `cargo` es el que
+    // dashboard_screen.dart lee para decidir si mostrar o esconder
+    // las tarjetas de Colaboradores/Promociones/Nuevo producto/etc.
+    // Si algún día se cambia el nombre de este campo acá, hay que
+    // actualizarlo también en usuario_service.dart (login()).
     try {
         const { correo, password, contrasena } = req.body;
         const pass = password || contrasena;
@@ -25,8 +32,13 @@ const login = async (req, res) => {
         if (colaborador) rol = 'COLABORADOR';
         else if (cliente) rol = 'CLIENTE';
 
+        // El cargo (Administrador/Gerente/Vendedor/Asistente de ventas)
+        // va DENTRO del token para que verificarCargo() lo pueda leer
+        // sin tener que consultar la base en cada request.
+        const cargo = colaborador ? colaborador.cargo : null;
+
         const token = jwt.sign(
-            { id: persona.id_persona, rol },
+            { id: persona.id_persona, rol, cargo },
             process.env.JWT_SECRET,
             { expiresIn: '30m' }
         );
@@ -34,6 +46,7 @@ const login = async (req, res) => {
         res.json({
             token,
             rol,
+            cargo,
             nombre: persona.nombres,
             apellido: persona.apellido_paterno
         });

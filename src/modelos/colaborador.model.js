@@ -76,6 +76,8 @@ exports.resetPassword = async (id, nuevaPassword) => {
 // poder eliminar), y borra la fila de `colaborador` y su `persona`
 // asociada. Ninguna otra tabla referencia a `colaborador`, así que
 // no hay riesgo de FK como sí lo hay con productos vendidos.
+// Lo llama tanto el botón "Eliminar" del panel web como el ícono
+// de basurero en la pantalla "Colaboradores" de la app móvil.
 exports.eliminar = async (id) => {
     const [[col]] = await db.query(
         'SELECT id_persona, estado FROM colaborador WHERE id_colaborador=?', [id]

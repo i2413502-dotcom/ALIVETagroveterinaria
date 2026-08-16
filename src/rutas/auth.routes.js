@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../config/upload');
-const { verificarToken, verificarRol } = require('../middlewares/auth.middleware');
+const { verificarToken, verificarRol, verificarCargo } = require('../middlewares/auth.middleware');
 
 // Cada bloque de endpoints vive en su propio controlador (ver src/controladores/):
 //   auth.controller.js       -> login, registro, verificación OTP
@@ -34,9 +34,16 @@ router.put('/cambiar-password',   verificarToken, passwordController.cambiarPass
 router.post('/fcm-token',         verificarToken, perfilController.guardarFcmToken);
 router.put('/guardar-direccion',  verificarToken, perfilController.guardarDireccionHabitual);
 
-// Antes sin protección alguna — ahora exclusivo de colaboradores
+// "/login" también lo usa la app móvil (usuario_service.dart): el
+// token que devuelve acá ahora incluye el `cargo`, y la app lo
+// guarda para decidir qué tarjetas mostrar en el dashboard.
+//
+// "/enviar-promocion" lo consume la pantalla "Promociones" de la
+// app (Accesos rápidos, solo Administrador) — antes sin protección
+// alguna, ahora exclusivo del Administrador (el resto de los
+// cargos no manda promociones masivas).
 router.post('/enviar-promocion',
-    verificarToken, verificarRol('COLABORADOR'),
+    verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador'),
     upload.single('imagen'),
     promocionController.enviarPromocion
 );

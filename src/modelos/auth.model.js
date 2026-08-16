@@ -14,9 +14,17 @@ const findCliente = async (idPersona) => {
     return rows[0];
 };
 
+// Trae el JOIN con `cargo` (Administrador/Gerente/Vendedor/
+// Asistente de ventas) — antes solo traía `SELECT *` sin el
+// nombre del cargo. Se agregó para que auth.controller.js pueda
+// meter el cargo dentro del token del login, y con eso la app
+// móvil sepa qué tarjetas del dashboard mostrar/ocultar.
 const findColaborador = async (idPersona) => {
     const [rows] = await db.query(
-        'SELECT * FROM colaborador WHERE id_persona = ?', [idPersona]
+        `SELECT col.*, car.nombre AS cargo
+         FROM colaborador col
+         LEFT JOIN cargo car ON col.id_cargo = car.id_cargo
+         WHERE col.id_persona = ?`, [idPersona]
     );
     return rows[0];
 };

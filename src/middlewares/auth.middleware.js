@@ -18,15 +18,27 @@ const jwt = require('jsonwebtoken');
 const verificarToken = (req, res, next) => {
   const header = req.headers.authorization;
 
-  if (!header || !header.startsWith('Bearer ')) {
+  // La mayoría de las peticiones (la app, el panel web con fetch)
+  // mandan el token por header. Pero cuando el link se abre
+  // directamente en un navegador (ej. "Abrir en Chrome" para
+  // descargar un PDF desde la app móvil), el navegador NO puede
+  // agregar el header Authorization — por eso también aceptamos
+  // el token como "?token=" en la URL, solo como respaldo cuando
+  // no viene el header.
+  let token = null;
+  if (header && header.startsWith('Bearer ')) {
+    token = header.split(' ')[1];
+  } else if (req.query.token) {
+    token = req.query.token;
+  }
+
+  if (!token) {
     return res.status(401).json({ mensaje: 'No autorizado: token no proporcionado' });
   }
 
-  const token = header.split(' ')[1];
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // decoded = { id, rol, iat, exp }  (igual al payload de auth.controller.js -> login)
+    // decoded = { id, rol, cargo, iat, exp }  (igual al payload de auth.controller.js -> login)
     req.usuario = decoded;
     next();
   } catch (error) {
@@ -54,4 +66,34 @@ const verificarRol = (...rolesPermitidos) => {
   };
 };
 
-module.exports = { verificarToken, verificarRol };
+// ─────────────────────────────────────────────────────────────
+//  verificarCargo — restringe por CARGO dentro de COLABORADOR
+//  (Administrador/Gerente/Vendedor/Asistente de ventas), no solo
+//  por rol. El cargo viene embebido en el token desde el login
+//  (auth.controller.js), así que no hace falta ir a la base.
+//
+//  USADO PARA LA APP MÓVIL: la app oculta ciertas tarjetas del
+//  dashboard según el cargo (dashboard_screen.dart: _esAdministrador
+//  / _puedeGestionarInventario), pero ESTE middleware es el que
+//  realmente protege — bloquea el pedido aunque alguien llame a la
+//  API directamente sin pasar por la app o el botón oculto.
+//
+//  Uso (después de verificarToken):
+//    router.delete('/:id', verificarToken, verificarCargo('Administrador'), ctrl.eliminar);
+//
+//  Si el token es de antes de este cambio (no tiene `cargo`),
+//  lo trata como sin permiso — obliga a volver a iniciar sesión,
+//  que es lo correcto para que el nuevo cargo quede registrado.
+// ─────────────────────────────────────────────────────────────
+const verificarCargo = (...cargosPermitidos) => {
+  return (req, res, next) => {
+    if (!req.usuario || !cargosPermitidos.includes(req.usuario.cargo)) {
+      return res.status(403).json({
+        mensaje: 'Esta acción es exclusiva del Administrador. Si tu cargo cambió recientemente, vuelve a iniciar sesión.'
+      });
+    }
+    next();
+  };
+};
+
+module.exports = { verificarToken, verificarRol, verificarCargo };

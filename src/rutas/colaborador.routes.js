@@ -1,10 +1,18 @@
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controladores/colaborador.controller');
-const { verificarToken, verificarRol } = require('../middlewares/auth.middleware');
+const { verificarToken, verificarRol, verificarCargo } = require('../middlewares/auth.middleware');
 
-// Todo este módulo es exclusivo del panel de administrador
-router.use(verificarToken, verificarRol('COLABORADOR'));
+// Este archivo lo consume tanto el panel web como la app móvil
+// (pantalla "Colaboradores" del dashboard Flutter). Gestión de
+// colaboradores: exclusivo del Administrador (no cualquier
+// colaborador). Los demás cargos (Gerente/Vendedor/Asistente de
+// ventas) no ven ni tocan esta sección — solo Accesos rápidos.
+// La app móvil además OCULTA la tarjeta "Colaboradores" si el
+// cargo no es Administrador, pero este bloqueo de acá es el que
+// de verdad protege, aunque alguien intente llamar a la API
+// directamente sin pasar por la app.
+router.use(verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador'));
 
 router.get('/',                   ctrl.getAll);
 router.get('/cargos',             ctrl.getCargos);

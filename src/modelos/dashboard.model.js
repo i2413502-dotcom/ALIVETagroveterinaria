@@ -53,6 +53,28 @@ exports.getProductosMasVendidos = async () => {
     return rows;
 };
 
+// Top clientes por monto comprado — para elegir a quién mandarle
+// una promoción desde la pantalla de Promociones (móvil y web).
+// Solo cuenta pedidos ya efectivos (mismo criterio que ventas).
+exports.getTopClientes = async (limite = 10) => {
+    const n = Math.max(1, Math.min(parseInt(limite) || 10, 50));
+    const [rows] = await db.query(`
+        SELECT 
+            per.correo,
+            per.nombres,
+            COUNT(*)                 AS total_pedidos,
+            COALESCE(SUM(pe.total), 0) AS total_gastado
+        FROM pedido pe
+        JOIN cliente c  ON pe.id_cliente = c.id_cliente
+        JOIN persona per ON c.id_persona = per.id_persona
+        WHERE pe.estado IN ('PAGADO','ENVIADO','ENTREGADO')
+        GROUP BY per.id_persona, per.correo, per.nombres
+        ORDER BY total_gastado DESC
+        LIMIT ${n}
+    `);
+    return rows;
+};
+
 // Stock actual 
 exports.getStockProductos = async () => {
     const [rows] = await db.query(`
