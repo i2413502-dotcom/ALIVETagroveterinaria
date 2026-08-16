@@ -11,5 +11,6 @@ router.get('/cargos',             ctrl.getCargos);
 router.post('/',                  ctrl.create);
 router.put('/:id',                ctrl.update);
 router.put('/:id/reset-password', ctrl.resetPassword);
+router.delete('/:id',             ctrl.eliminar);
 
 module.exports = router;

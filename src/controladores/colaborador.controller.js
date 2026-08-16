@@ -30,3 +30,19 @@ exports.resetPassword = async (req, res) => {
         res.json({ mensaje: 'Contraseña restablecida correctamente' });
     } catch (e) { res.status(500).json({ mensaje: e.message }); }
 };
+
+exports.eliminar = async (req, res) => {
+    try {
+        await model.eliminar(req.params.id);
+        res.json({ mensaje: 'Colaborador eliminado correctamente' });
+    } catch (e) {
+        if (e.codigo === 'DEBE_DESACTIVAR') {
+            return res.status(409).json({ mensaje: e.message });
+        }
+        if (e.message === 'Colaborador no encontrado') {
+            return res.status(404).json({ mensaje: e.message });
+        }
+        console.error('Error al eliminar colaborador:', e);
+        res.status(500).json({ mensaje: 'Error al eliminar colaborador' });
+    }
+};

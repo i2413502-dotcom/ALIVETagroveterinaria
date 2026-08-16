@@ -70,3 +70,22 @@ exports.resetPassword = async (id, nuevaPassword) => {
     if (!col) throw new Error('Colaborador no encontrado');
     await db.query('UPDATE persona SET password=? WHERE id_persona=?', [hash, col.id_persona]);
 };
+
+// Borrado físico: primero exige que el colaborador ya esté INACTIVO
+// (mismo criterio de seguridad que Productos — desactivar antes de
+// poder eliminar), y borra la fila de `colaborador` y su `persona`
+// asociada. Ninguna otra tabla referencia a `colaborador`, así que
+// no hay riesgo de FK como sí lo hay con productos vendidos.
+exports.eliminar = async (id) => {
+    const [[col]] = await db.query(
+        'SELECT id_persona, estado FROM colaborador WHERE id_colaborador=?', [id]
+    );
+    if (!col) throw new Error('Colaborador no encontrado');
+    if (col.estado === 'ACTIVO') {
+        const err = new Error('No se puede eliminar un colaborador activo. Desactívalo primero.');
+        err.codigo = 'DEBE_DESACTIVAR';
+        throw err;
+    }
+    await db.query('DELETE FROM colaborador WHERE id_colaborador=?', [id]);
+    await db.query('DELETE FROM persona WHERE id_persona=?', [col.id_persona]);
+};
