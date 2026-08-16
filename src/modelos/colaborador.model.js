@@ -20,6 +20,7 @@ exports.getCargos = async () => {
     return rows;
 };
 
+// Se utiliza para el móvil
 exports.create = async (data) => {
     const { nombres, apellido_paterno, apellido_materno,
             correo, telefono, password, dni, id_cargo, usuario } = data;
@@ -27,8 +28,8 @@ exports.create = async (data) => {
     const hash = await bcrypt.hash(password, 10);
 
     const [r1] = await db.query(
-        `INSERT INTO persona (nombres, apellido_paterno, apellido_materno, correo, telefono, password, estado, fecha_creacion)
-         VALUES (?, ?, ?, ?, ?, ?, 'ACTIVO', NOW())`,
+        `INSERT INTO persona (nombres, apellido_paterno, apellido_materno, correo, telefono, password, estado, fecha_creacion, password_actualizada_en)
+         VALUES (?, ?, ?, ?, ?, ?, 'ACTIVO', NOW(), NOW())`,
         [nombres, apellido_paterno || null, apellido_materno || null,
          correo, telefono || null, hash]
     );
@@ -62,22 +63,39 @@ exports.update = async (id, data) => {
     );
 };
 
+// Se utiliza para el móvil
+exports.getDatosParaPassword = async (idColaborador) => {
+    const [[fila]] = await db.query(
+        `SELECT per.id_persona, per.nombres, per.correo, per.password, per.password_anterior,
+                col.usuario
+         FROM colaborador col
+         JOIN persona per ON col.id_persona = per.id_persona
+         WHERE col.id_colaborador = ?`,
+        [idColaborador]
+    );
+    return fila || null;
+};
+
 exports.resetPassword = async (id, nuevaPassword) => {
     const hash    = await bcrypt.hash(nuevaPassword, 10);
     const [[col]] = await db.query(
         'SELECT id_persona FROM colaborador WHERE id_colaborador=?', [id]
     );
     if (!col) throw new Error('Colaborador no encontrado');
-    await db.query('UPDATE persona SET password=? WHERE id_persona=?', [hash, col.id_persona]);
+
+    const [[persona]] = await db.query(
+        'SELECT password FROM persona WHERE id_persona=?', [col.id_persona]
+    );
+
+    await db.query(
+        `UPDATE persona
+         SET password=?, password_anterior=?, password_actualizada_en=NOW()
+         WHERE id_persona=?`,
+        [hash, persona ? persona.password : null, col.id_persona]
+    );
 };
 
-// Borrado físico: primero exige que el colaborador ya esté INACTIVO
-// (mismo criterio de seguridad que Productos — desactivar antes de
-// poder eliminar), y borra la fila de `colaborador` y su `persona`
-// asociada. Ninguna otra tabla referencia a `colaborador`, así que
-// no hay riesgo de FK como sí lo hay con productos vendidos.
-// Lo llama tanto el botón "Eliminar" del panel web como el ícono
-// de basurero en la pantalla "Colaboradores" de la app móvil.
+// Se utiliza para el móvil
 exports.eliminar = async (id) => {
     const [[col]] = await db.query(
         'SELECT id_persona, estado FROM colaborador WHERE id_colaborador=?', [id]

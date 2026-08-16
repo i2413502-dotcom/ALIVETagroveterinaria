@@ -18,6 +18,10 @@ const promocionController = require('../controladores/promocion.controller');
 
 // Públicas — no requieren sesión iniciada
 router.post('/login',              authController.login);
+// Se utiliza para el móvil
+router.post('/login-verificar-otp', authController.loginVerificarOtp);
+// Se utiliza para el móvil
+router.post('/renovar-password-vencida', authController.renovarPasswordVencida);
 router.post('/registro',           authController.register);
 router.post('/verify-otp',          authController.verifyOtp);
 router.get('/consultar-documento', documentoController.consultarDocumento);
@@ -31,17 +35,12 @@ router.get('/perfil',             verificarToken, perfilController.getPerfil);
 router.get('/datos-envio',        verificarToken, perfilController.getDatosEnvio);
 router.put('/actualizar-perfil',  verificarToken, perfilController.actualizarPerfil);
 router.put('/cambiar-password',   verificarToken, passwordController.cambiarPassword);
+// Se utiliza para el móvil
+router.put('/cambiar-password-verificar-otp', verificarToken, passwordController.cambiarPasswordVerificarOtp);
 router.post('/fcm-token',         verificarToken, perfilController.guardarFcmToken);
 router.put('/guardar-direccion',  verificarToken, perfilController.guardarDireccionHabitual);
 
-// "/login" también lo usa la app móvil (usuario_service.dart): el
-// token que devuelve acá ahora incluye el `cargo`, y la app lo
-// guarda para decidir qué tarjetas mostrar en el dashboard.
-//
-// "/enviar-promocion" lo consume la pantalla "Promociones" de la
-// app (Accesos rápidos, solo Administrador) — antes sin protección
-// alguna, ahora exclusivo del Administrador (el resto de los
-// cargos no manda promociones masivas).
+// Se utiliza para el móvil
 router.post('/enviar-promocion',
     verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador'),
     upload.single('imagen'),
