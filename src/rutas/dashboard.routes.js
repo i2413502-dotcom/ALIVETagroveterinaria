@@ -1,10 +1,5 @@
 // ─────────────────────────────────────────────────────────────
 //  dashboard.routes.js — atiende al panel web Y a la app móvil.
-//  La app llama a "/api/dashboard" para el resumen del inicio
-//  (Pedidos, Por vencer, Productos activos, Stock bajo — visible
-//  para cualquier colaborador) y a "ventas-mes"/"productos-
-//  vendidos"/"top-clientes"/"stock" para la pantalla "Gráficos"
-//  (Accesos rápidos, solo Administrador/Gerente).
 // ─────────────────────────────────────────────────────────────
 const express = require('express');
 const router  = express.Router();

@@ -1,4 +1,7 @@
 const model = require('../modelos/colaborador.model');
+const emailService = require('../servicios/email.service');
+
+const pendingColaboradores = new Map();
 
 exports.getAll = async (req, res) => {
     try { res.json(await model.getAll()); }
@@ -8,6 +11,68 @@ exports.getAll = async (req, res) => {
 exports.getCargos = async (req, res) => {
     try { res.json(await model.getCargos()); }
     catch (e) { res.status(500).json({ mensaje: e.message }); }
+};
+
+// Se utiliza para el móvil
+exports.solicitarCreacion = async (req, res) => {
+    try {
+        const { correo } = req.body;
+        if (!correo) return res.status(400).json({ mensaje: 'Correo requerido' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const pendingId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+        pendingColaboradores.set(pendingId, {
+            datos: req.body,
+            otp,
+            expiresAt: Date.now() + 15 * 60 * 1000
+        });
+
+        try {
+            await emailService.sendOtpEmail(correo, otp);
+        } catch (emailError) {
+            console.error('Error al enviar OTP de colaborador:', emailError.message);
+        }
+
+        res.json({
+            mensaje: 'Código de verificación enviado al correo del colaborador',
+            pendingId,
+            otp: process.env.NODE_ENV === 'production' ? undefined : otp
+        });
+    } catch (e) {
+        console.error('Error al solicitar creación de colaborador:', e);
+        res.status(500).json({ mensaje: 'Error al solicitar creación' });
+    }
+};
+
+// Se utiliza para el móvil
+exports.confirmarCreacion = async (req, res) => {
+    try {
+        const { pendingId, otp } = req.body;
+        if (!pendingId || !otp) {
+            return res.status(400).json({ mensaje: 'Código y ID requeridos' });
+        }
+
+        const pending = pendingColaboradores.get(pendingId);
+        if (!pending) {
+            return res.status(400).json({ mensaje: 'Solicitud expirada o inválida' });
+        }
+        if (Date.now() > pending.expiresAt) {
+            pendingColaboradores.delete(pendingId);
+            return res.status(400).json({ mensaje: 'El código ha expirado' });
+        }
+        if (pending.otp !== otp) {
+            return res.status(400).json({ mensaje: 'Código incorrecto' });
+        }
+
+        const id = await model.create(pending.datos);
+        pendingColaboradores.delete(pendingId);
+
+        res.status(201).json({ id_colaborador: id, mensaje: 'Colaborador creado correctamente' });
+    } catch (e) {
+        console.error('Error al confirmar creación de colaborador:', e);
+        res.status(500).json({ mensaje: e.message });
+    }
 };
 
 exports.create = async (req, res) => {
