@@ -7,9 +7,12 @@ const { verificarToken } = require('../middlewares/auth.middleware');
 // notificaciones push antes de iniciar sesión (ver public/js/notificaciones.js).
 router.post('/registrar-token', ctrl.registrarToken);
 
-// Se utiliza para el móvil
+// NOTA: estos dos endpoints no tenían NINGÚN middleware de autenticación
+// en app.js, y exponen el historial interno de notificaciones (pedidos,
+// alertas de stock, etc.) a cualquiera que conociera la URL. Actualmente
+// tampoco los está llamando ninguna página del frontend todavía — quedan
+// protegidos y listos para cuando se conecte el panel de notificaciones.
 router.get('/',           verificarToken, ctrl.listar);
-// Se utiliza para el móvil
 router.put('/:id/leer',   verificarToken, ctrl.marcarLeida);
 
 module.exports = router;

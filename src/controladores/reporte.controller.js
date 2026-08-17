@@ -1,30 +1,23 @@
 const Reporte      = require('../modelos/reporte.model');
 const pdfService   = require('../servicios/pdf-reporte.service');
 const excelService = require('../servicios/excel-reporte.service');
-const responder = require('../utils/responder');
 
 const ERR_DEP = 'Dependencia faltante. Ejecuta "npm install pdfkit exceljs" y reinicia el servidor.';
 
 // ════════════ JSON (KPIs / gráficos / tabla) ════════════
 exports.resumen = async (req, res) => {
     try { res.json(await Reporte.getResumen()); }
-    catch (e) {
-        responder.error(res, 500, 'Error al obtener resumen', e, 'Error resumen:');
-    }
+    catch (e) { console.error('Error resumen:', e); res.status(500).json({ mensaje: 'Error al obtener resumen' }); }
 };
 
 exports.ventasPorCategoria = async (req, res) => {
     try { res.json(await Reporte.getVentasPorCategoria()); }
-    catch (e) {
-        responder.error(res, 500, 'Error', e, 'Error ventas por categoría:');
-    }
+    catch (e) { console.error('Error ventas por categoría:', e); res.status(500).json({ mensaje: 'Error' }); }
 };
 
 exports.productosStockBajo = async (req, res) => {
     try { res.json(await Reporte.getProductosStockBajo()); }
-    catch (e) {
-        responder.error(res, 500, 'Error', e, 'Error stock bajo:');
-    }
+    catch (e) { console.error('Error stock bajo:', e); res.status(500).json({ mensaje: 'Error' }); }
 };
 
 // ════════════ Exportaciones de Ventas ════════════

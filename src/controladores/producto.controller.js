@@ -2,7 +2,6 @@ const Producto      = require('../modelos/producto.model');
 const imagenModel   = require('../modelos/imagen.model');
 const varianteModel = require('../modelos/variante.model');
 const minioService  = require('../servicios/minio.service');
-const responder = require('../utils/responder');
 
 exports.listar = async (req, res) => {
     try {
@@ -13,7 +12,8 @@ exports.listar = async (req, res) => {
             res.json(resultado.productos);
         }
     } catch (err) {
-        responder.error(res, 500, 'Error al obtener productos', err, 'Error en listar productos:');
+        console.error('Error en listar productos:', err);
+        res.status(500).json({ mensaje: 'Error al obtener productos' });
     }
 };
 
@@ -25,7 +25,8 @@ exports.obtenerPorId = async (req, res) => {
         if (!producto) return res.status(404).json({ mensaje: 'Producto no encontrado' });
         res.json(producto);
     } catch (err) {
-        responder.error(res, 500, 'Error al obtener producto', err, 'Error en obtener producto por ID:');
+        console.error('Error en obtener producto por ID:', err);
+        res.status(500).json({ mensaje: 'Error al obtener producto' });
     }
 };
 
@@ -43,7 +44,8 @@ exports.crear = async (req, res) => {
 
         res.status(201).json({ id_producto: idProducto, mensaje: 'Producto creado correctamente' });
     } catch (error) {
-        responder.error(res, 500, 'Error al crear producto', error, 'Error al crear producto:');
+        console.error('Error al crear producto:', error);
+        res.status(500).json({ mensaje: 'Error al crear producto' });
     }
 };
 
@@ -62,7 +64,8 @@ exports.actualizar = async (req, res) => {
 
         res.json({ mensaje: 'Producto actualizado' });
     } catch (err) {
-        responder.error(res, 500, 'Error al actualizar producto', err, 'Error en actualizar producto:');
+        console.error('Error en actualizar producto:', err);
+        res.status(500).json({ mensaje: 'Error al actualizar producto' });
     }
 };
 
@@ -111,7 +114,8 @@ exports.cambiarEstado = async (req, res) => {
         await Producto.cambiarEstadoProducto(req.params.id, estado);
         res.json({ mensaje: `Producto ${estado === 'ACTIVO' ? 'activado' : 'desactivado'}` });
     } catch (err) {
-        responder.error(res, 500, 'Error al cambiar estado del producto', err, 'Error al cambiar estado:');
+        console.error('Error al cambiar estado:', err);
+        res.status(500).json({ mensaje: 'Error al cambiar estado del producto' });
     }
 };
 

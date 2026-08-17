@@ -4,7 +4,6 @@ const nubefactService = require('../servicios/nubefact.service');
 
 const pedidoModel = require('../modelos/pedido.model');
 const db          = require('../config/db');
-const responder = require('../utils/responder');
 
 // Emite el comprobante electrónico ante SUNAT vía NubeFacT. Se llama
 // DESPUÉS de que el pago ya quedó confirmado (Yape o Culqi) — nunca
@@ -165,7 +164,8 @@ exports.crearPedido = async (req, res) => {
         });
 
     } catch (err) {
-        responder.error(res, 500, 'Error al procesar el pedido', err, 'Error al crear pedido:');
+        console.error('Error al crear pedido:', err);
+        res.status(500).json({ mensaje: 'Error al procesar el pedido' });
     }
 };
 

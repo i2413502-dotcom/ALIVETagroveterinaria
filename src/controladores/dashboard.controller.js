@@ -26,14 +26,6 @@ exports.getProductosMasVendidos = async (req, res) => {
     }
 };
 
-exports.getTopClientes = async (req, res) => {
-    try {
-        res.json(await dashboardModel.getTopClientes(req.query.limite));
-    } catch (error) {
-        res.status(500).json({ mensaje: "Error al obtener top de clientes" });
-    }
-};
-
 exports.getStockProductos = async (req, res) => {
     try {
         res.json(await dashboardModel.getStockProductos());

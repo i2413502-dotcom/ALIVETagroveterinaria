@@ -5,15 +5,6 @@
     if (!token || rol !== 'COLABORADOR') { window.location.href = '/login.html'; }
 })();
 
-// Se utiliza para el móvil (mismo criterio que dashboard_screen.dart):
-// Reportes es exclusivo de Administrador/Gerente.
-(function () {
-    const cargo = localStorage.getItem('cargo');
-    if (cargo !== 'Administrador' && cargo !== 'Gerente') {
-        window.location.href = '/dashboard.html';
-    }
-})();
-
 const soles = n => 'S/. ' + (Number(n) || 0).toFixed(2);
 
 function cerrarSesion() {

@@ -7,9 +7,6 @@ const { inyectarAgrobot, PUBLIC_DIR } = require('./middlewares/inyectar-agrobot.
 
 const app = express();
 
-// Se utiliza para el móvil
-app.set('trust proxy', 1);
-
 // ── Middlewares globales ────────────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -38,6 +35,7 @@ app.use('/api/upload',         require('./rutas/subida.routes.js'));
 app.use('/api/notificaciones', require('./rutas/notificacion.routes.js'));
 app.use('/api/imagenes',       require('./rutas/imagen.routes.js'));
 app.use('/api/variantes',      require('./rutas/variante.routes.js'));
+app.use('/api/config',         require('./rutas/config.routes.js'));
 
 // ── Manejador de errores global ───────────────────────────────────
 app.use((err, req, res, next) => {

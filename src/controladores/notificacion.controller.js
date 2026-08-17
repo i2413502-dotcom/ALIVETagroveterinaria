@@ -1,5 +1,4 @@
 const db = require('../config/db');
-const responder = require('../utils/responder');
 
 // Registra (o reactiva) un token de Firebase Cloud Messaging para
 // poder enviarle notificaciones push a este dispositivo.
@@ -15,7 +14,8 @@ async function registrarToken(req, res) {
         );
         res.json({ mensaje: 'Token registrado correctamente' });
     } catch (err) {
-        responder.error(res, 500, 'Error al registrar token', err, 'Error registrando token:');
+        console.error('Error registrando token:', err);
+        res.status(500).json({ mensaje: 'Error al registrar token' });
     }
 }
 
@@ -27,7 +27,8 @@ async function listar(req, res) {
         );
         res.json(rows);
     } catch (err) {
-        responder.error(res, 500, 'Error al obtener notificaciones', err, 'Error obteniendo notificaciones:');
+        console.error('Error obteniendo notificaciones:', err);
+        res.status(500).json({ mensaje: 'Error al obtener notificaciones' });
     }
 }
 
@@ -40,7 +41,8 @@ async function marcarLeida(req, res) {
         );
         res.json({ mensaje: 'Marcada como leída' });
     } catch (err) {
-        responder.error(res, 500, 'Error', err, 'Error marcando notificación:');
+        console.error('Error marcando notificación:', err);
+        res.status(500).json({ mensaje: 'Error' });
     }
 }
 
