@@ -1,22 +1,17 @@
-// Se utiliza para el móvil
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controladores/producto.controller');
-const { verificarToken, verificarRol, verificarCargo } = require('../middlewares/auth.middleware');
-
-const gestionInventario = [verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador', 'Gerente')];
+const { verificarToken, verificarRol } = require('../middlewares/auth.middleware');
 
 // Públicas — el catálogo lo consume la tienda web sin login
 router.get('/buscar-ficha', ctrl.buscarFichaTecnica); // ← ANTES de /:id
-// Se utiliza para el móvil
 router.get('/',             ctrl.listar);
-// Se utiliza para el móvil
 router.get('/:id',          ctrl.obtenerPorId);
 
-// Se utiliza para el móvil
-router.post('/',            ...gestionInventario, ctrl.crear);
-router.put('/:id/estado',   ...gestionInventario, ctrl.cambiarEstado);
-router.put('/:id',          ...gestionInventario, ctrl.actualizar);
-router.delete('/:id',       ...gestionInventario, ctrl.eliminar);
+// Protegidas — solo colaboradores
+router.post('/',            verificarToken, verificarRol('COLABORADOR'), ctrl.crear);
+router.put('/:id/estado',   verificarToken, verificarRol('COLABORADOR'), ctrl.cambiarEstado);
+router.put('/:id',          verificarToken, verificarRol('COLABORADOR'), ctrl.actualizar);
+router.delete('/:id',       verificarToken, verificarRol('COLABORADOR'), ctrl.eliminar);
 
 module.exports = router;

@@ -17,7 +17,7 @@ router.get('/exportar/ventas-excel',    ctrl.exportarVentasExcel);     // Excel 
 router.get('/exportar/productos-excel', ctrl.exportarProductosExcel);  // Inventario
 router.get('/exportar/ventas-powerbi',  ctrl.exportarVentasPowerBI);   // Excel crudo (Power BI)
 
-// Se utiliza para el móvil
+// Exportación genérica por entidad (tabs del dashboard): excel | pdf | powerbi
 router.get('/exportar/:entidad/:formato', ctrl.exportarEntidad);
 
 module.exports = router;

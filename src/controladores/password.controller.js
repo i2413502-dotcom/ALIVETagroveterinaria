@@ -3,8 +3,6 @@ const bcrypt       = require('bcrypt');
 const jwt          = require('jsonwebtoken');
 const authModel     = require('../modelos/auth.model');
 const emailService  = require('../servicios/email.service');
-const { validarPassword } = require('../utils/passwordPolicy');
-const responder = require('../utils/responder');
 
 // Almacén temporal de OTPs para recuperación de contraseña
 const pendingPasswordResets = new Map();
@@ -158,10 +156,9 @@ const resetPasswordOtp = async (req, res) => {
     }
 };
 
-// Se utiliza para el móvil
-const pendingCambiosPassword = new Map();
-
-// Se utiliza para el móvil
+// Cambiar contraseña estando logueado (requiere la contraseña actual)
+// NOTA: antes decodificaba el JWT manualmente aquí; ahora usa req.usuario
+// que ya deja listo el middleware verificarToken (ver auth.routes.js).
 const cambiarPassword = async (req, res) => {
     try {
         const { passwordActual, passwordNueva } = req.body;
@@ -172,56 +169,10 @@ const cambiarPassword = async (req, res) => {
         const valido = await bcrypt.compare(passwordActual, persona.password);
         if (!valido) return res.status(400).json({ mensaje: 'Contraseña actual incorrecta' });
 
-        if (req.usuario.rol !== 'COLABORADOR') {
-            const hash = await bcrypt.hash(passwordNueva, 10);
-            await db.query('UPDATE persona SET password=? WHERE id_persona=?', [hash, req.usuario.id]);
-            return res.json({ mensaje: 'Contraseña cambiada correctamente' });
-        }
+        const hash = await bcrypt.hash(passwordNueva, 10);
+        await db.query('UPDATE persona SET password=? WHERE id_persona=?', [hash, req.usuario.id]);
 
-        // Se utiliza para el móvil
-        const colaborador = await authModel.findColaborador(persona.id_persona);
-        const check = validarPassword(passwordNueva, {
-            nombres: persona.nombres,
-            usuario: colaborador ? colaborador.usuario : null,
-            correo: persona.correo
-        });
-        if (!check.valida) {
-            return res.status(400).json({ mensaje: check.mensaje });
-        }
-
-        // Se utiliza para el móvil
-        const repiteActual = await bcrypt.compare(passwordNueva, persona.password);
-        const repiteAnterior = persona.password_anterior
-            ? await bcrypt.compare(passwordNueva, persona.password_anterior)
-            : false;
-        if (repiteActual || repiteAnterior) {
-            return res.status(400).json({
-                mensaje: 'No puedes usar la misma contraseña que ya tenías antes.'
-            });
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const pendingId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-
-        pendingCambiosPassword.set(pendingId, {
-            idPersona: req.usuario.id,
-            passwordAnterior: persona.password,
-            passwordNueva,
-            otp,
-            expiresAt: Date.now() + 15 * 60 * 1000
-        });
-
-        try {
-            await emailService.sendOtpEmail(persona.correo, otp);
-        } catch (e) {
-            console.error('Error al enviar OTP de cambio de contraseña:', e.message);
-        }
-
-        res.json({
-            requiereOtp: true,
-            pendingId,
-            mensaje: 'Ingresa el código enviado a tu correo para confirmar el cambio de contraseña'
-        });
+        res.json({ mensaje: 'Contraseña cambiada correctamente' });
 
     } catch (err) {
         console.error(err);
@@ -229,43 +180,4 @@ const cambiarPassword = async (req, res) => {
     }
 };
 
-// Se utiliza para el móvil
-const cambiarPasswordVerificarOtp = async (req, res) => {
-    try {
-        const { pendingId, otp } = req.body;
-        if (!pendingId || !otp) {
-            return res.status(400).json({ mensaje: 'Código y ID requeridos' });
-        }
-
-        const pending = pendingCambiosPassword.get(pendingId);
-        if (!pending) {
-            return res.status(400).json({ mensaje: 'Solicitud expirada o inválida' });
-        }
-        if (Date.now() > pending.expiresAt) {
-            pendingCambiosPassword.delete(pendingId);
-            return res.status(400).json({ mensaje: 'El código ha expirado, vuelve a intentar' });
-        }
-        if (pending.otp !== otp) {
-            return res.status(400).json({ mensaje: 'Código incorrecto' });
-        }
-
-        const hash = await bcrypt.hash(pending.passwordNueva, 10);
-        await db.query(
-            `UPDATE persona
-             SET password=?, password_anterior=?, password_actualizada_en=NOW()
-             WHERE id_persona=?`,
-            [hash, pending.passwordAnterior, pending.idPersona]
-        );
-
-        pendingCambiosPassword.delete(pendingId);
-
-        res.json({ mensaje: 'Contraseña cambiada correctamente' });
-    } catch (err) {
-        responder.error(res, 500, 'Error al confirmar el cambio de contraseña', err, 'Error al verificar OTP de cambio de contraseña:');
-    }
-};
-
-module.exports = {
-    forgotPassword, resetPassword, forgotPasswordOtp, resetPasswordOtp,
-    cambiarPassword, cambiarPasswordVerificarOtp
-};
+module.exports = { forgotPassword, resetPassword, forgotPasswordOtp, resetPasswordOtp, cambiarPassword };

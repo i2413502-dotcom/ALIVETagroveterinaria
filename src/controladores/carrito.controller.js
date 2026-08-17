@@ -1,5 +1,4 @@
 const carritoModel = require('../modelos/carrito.model');
-const responder = require('../utils/responder');
 
 exports.obtenerProductosCarrito = async (req, res) => {
     try {
@@ -9,6 +8,7 @@ exports.obtenerProductosCarrito = async (req, res) => {
         const productos = await carritoModel.obtenerProductosPorIds(ids);
         res.json(productos);
     } catch (err) {
-        responder.error(res, 500, 'Error al obtener productos del carrito', err, 'Error en carrito:');
+        console.error("Error en carrito:", err);
+        res.status(500).json({ mensaje: "Error al obtener productos del carrito" });
     }
 };

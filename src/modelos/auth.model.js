@@ -14,13 +14,9 @@ const findCliente = async (idPersona) => {
     return rows[0];
 };
 
-// Se utiliza para el móvil
 const findColaborador = async (idPersona) => {
     const [rows] = await db.query(
-        `SELECT col.*, car.nombre AS cargo
-         FROM colaborador col
-         LEFT JOIN cargo car ON col.id_cargo = car.id_cargo
-         WHERE col.id_persona = ?`, [idPersona]
+        'SELECT * FROM colaborador WHERE id_persona = ?', [idPersona]
     );
     return rows[0];
 };

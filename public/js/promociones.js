@@ -4,14 +4,6 @@ if (!token) {
     window.location.href = '/login.html';
 }
 
-// Se utiliza para el móvil: Promociones es exclusivo de Administrador.
-(function () {
-    const cargo = localStorage.getItem('cargo');
-    if (cargo !== 'Administrador') {
-        window.location.href = '/dashboard.html';
-    }
-})();
-
 document.getElementById('imagenPromo').addEventListener('change', (e) => {
     const file = e.target.files[0];
     const preview = document.getElementById('previewImagen');

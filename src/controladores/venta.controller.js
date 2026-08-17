@@ -1,5 +1,4 @@
 const Venta = require('../modelos/venta.model');
-const responder = require('../utils/responder');
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const ERR_DEP = 'Dependencia faltante. Ejecuta "npm install exceljs" y reinicia el servidor.';
@@ -23,7 +22,8 @@ exports.listar = async (req, res) => {
         const resultado = await Venta.listarVentas(req.query);
         res.json(resultado);
     } catch (err) {
-        responder.error(res, 500, 'Error al obtener ventas', err, 'Error al listar ventas:');
+        console.error('Error al listar ventas:', err);
+        res.status(500).json({ mensaje: 'Error al obtener ventas' });
     }
 };
 
@@ -71,7 +71,8 @@ exports.detalle = async (req, res) => {
             totales
         });
     } catch (err) {
-        responder.error(res, 500, 'Error al obtener el detalle', err, 'Error al obtener detalle de venta:');
+        console.error('Error al obtener detalle de venta:', err);
+        res.status(500).json({ mensaje: 'Error al obtener el detalle' });
     }
 };
 
