@@ -16,7 +16,10 @@ const findCliente = async (idPersona) => {
 
 const findColaborador = async (idPersona) => {
     const [rows] = await db.query(
-        'SELECT * FROM colaborador WHERE id_persona = ?', [idPersona]
+        `SELECT col.*, car.nombre AS cargo
+         FROM colaborador col
+         LEFT JOIN cargo car ON col.id_cargo = car.id_cargo
+         WHERE col.id_persona = ?`, [idPersona]
     );
     return rows[0];
 };
