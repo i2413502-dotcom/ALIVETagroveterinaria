@@ -38,10 +38,12 @@ const verificarRol = (...rolesPermitidos) => {
 
 // Se utiliza para el móvil
 const verificarCargo = (...cargosPermitidos) => {
+  const normalizar = (s) => (s || '').toString().trim().toLowerCase();
+  const permitidosNormalizados = cargosPermitidos.map(normalizar);
   return (req, res, next) => {
-    if (!req.usuario || !cargosPermitidos.includes(req.usuario.cargo)) {
+    if (!req.usuario || !permitidosNormalizados.includes(normalizar(req.usuario.cargo))) {
       return res.status(403).json({
-        mensaje: 'Esta acción es exclusiva del Administrador. Si tu cargo cambió recientemente, vuelve a iniciar sesión.'
+        mensaje: 'No tienes permiso para esta acción según tu cargo. Si tu cargo cambió recientemente, vuelve a iniciar sesión.'
       });
     }
     next();
