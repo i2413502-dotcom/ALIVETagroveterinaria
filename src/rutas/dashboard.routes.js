@@ -1,16 +1,11 @@
-// ─────────────────────────────────────────────────────────────
-//  dashboard.routes.js — atiende al panel web Y a la app móvil.
-// ─────────────────────────────────────────────────────────────
+// Se utiliza para el móvil
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controladores/dashboard.controller');
 const { verificarToken, verificarRol, verificarCargo } = require('../middlewares/auth.middleware');
 
 const esColab = [verificarToken, verificarRol('COLABORADOR')];
-// "Gráficos" (ventas por mes, productos más vendidos, top clientes,
-// stock analítico) — información de negocio, no operativa del día a
-// día. Solo Administrador y Gerente. El resumen básico del inicio
-// (/api/dashboard) y Pedidos siguen abiertos a cualquier colaborador.
+// Se utiliza para el móvil
 const graficos = [verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador', 'Gerente')];
 
 router.get('/api/dashboard',                    ...esColab, ctrl.getDashboardData);

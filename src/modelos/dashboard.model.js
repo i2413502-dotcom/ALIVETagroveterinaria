@@ -53,9 +53,7 @@ exports.getProductosMasVendidos = async () => {
     return rows;
 };
 
-// Top clientes por monto comprado — para elegir a quién mandarle
-// una promoción desde la pantalla de Promociones (móvil y web).
-// Solo cuenta pedidos ya efectivos (mismo criterio que ventas).
+// Se utiliza para el móvil
 exports.getTopClientes = async (limite = 10) => {
     const n = Math.max(1, Math.min(parseInt(limite) || 10, 50));
     const [rows] = await db.query(`

@@ -50,14 +50,4 @@ function validarPassword(password, { nombres, usuario, correo } = {}) {
     return { valida: true };
 }
 
-const DIAS_EXPIRACION = 60;
-
-// Se utiliza para el móvil
-function passwordVencida(fechaUltimoCambio) {
-    if (!fechaUltimoCambio) return true;
-    const limite = new Date(fechaUltimoCambio);
-    limite.setDate(limite.getDate() + DIAS_EXPIRACION);
-    return new Date() > limite;
-}
-
-module.exports = { validarPassword, passwordVencida, DIAS_EXPIRACION };
+module.exports = { validarPassword };

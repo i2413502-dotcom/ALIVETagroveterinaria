@@ -1,4 +1,5 @@
 const minioService = require('../servicios/minio.service');
+const responder = require('../utils/responder');
 
 // Sube una imagen de producto a Cloudflare R2 y devuelve su URL pública.
 async function subirImagenProducto(req, res) {
@@ -15,8 +16,7 @@ async function subirImagenProducto(req, res) {
 
         res.json({ url: url, mensaje: 'Imagen subida correctamente' });
     } catch (error) {
-        console.error('Error subiendo a R2:', error);
-        res.status(500).json({ mensaje: 'Error al subir imagen' });
+        responder.error(res, 500, 'Error al subir imagen', error, 'Error subiendo a R2:');
     }
 }
 

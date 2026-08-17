@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const iaService = require('../ia/ia.service');
+const responder = require('../utils/responder');
 
 // Extrae el usuario del JWT si viene en el header. Token inválido o
 // ausente = INVITADO (no es error: la capa 1 atiende sin sesión).
@@ -42,8 +43,7 @@ exports.chat = async (req, res) => {
             productos: resultado.productos || []
         });
     } catch (err) {
-        console.error('Error en chat IA:', err);
-        res.status(500).json({ mensaje: 'Error procesando tu mensaje' });
+        responder.error(res, 500, 'Error procesando tu mensaje', err, 'Error en chat IA:');
     }
 };
 
@@ -56,8 +56,7 @@ exports.history = async (req, res) => {
         const historial = await iaService.obtenerHistorial(userId);
         res.json(historial);
     } catch (err) {
-        console.error('Error obteniendo historial IA:', err);
-        res.status(500).json({ mensaje: 'Error al obtener historial' });
+        responder.error(res, 500, 'Error al obtener historial', err, 'Error obteniendo historial IA:');
     }
 };
 

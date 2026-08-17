@@ -1,4 +1,5 @@
 const model = require('../modelos/animal.model');
+const responder = require('../utils/responder');
 
 // GET /api/animales — Listar todos
 exports.getAll = async (req, res) => {
@@ -6,7 +7,7 @@ exports.getAll = async (req, res) => {
         const animales = await model.getAll();
         res.json(animales);
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -16,7 +17,7 @@ exports.create = async (req, res) => {
         const id = await model.create(req.body);
         res.status(201).json({ id_tipo_animal: id, mensaje: 'Animal creado correctamente' });
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -26,7 +27,7 @@ exports.update = async (req, res) => {
         await model.update(req.params.id, req.body);
         res.json({ mensaje: 'Animal actualizado correctamente' });
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -36,6 +37,6 @@ exports.delete = async (req, res) => {
         await model.delete(req.params.id);
         res.json({ mensaje: 'Animal eliminado correctamente' });
     } catch (error) {
-        res.status(400).json({ mensaje: error.message });
+        responder.error(res, 400, error.message);
     }
 };

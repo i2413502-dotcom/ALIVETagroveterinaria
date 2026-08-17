@@ -3,6 +3,7 @@ const { enviarNotificacion } = require('../servicios/notificacion.service');
 const pedidoModel = require('../modelos/pedido.model');
 const jwt         = require('jsonwebtoken');
 const db          = require('../config/db');
+const responder = require('../utils/responder');
 
 exports.crearPedido = async (req, res) => {
     try {
@@ -55,8 +56,7 @@ exports.crearPedido = async (req, res) => {
         res.status(201).json({ mensaje: 'Pedido creado exitosamente', id_pedido, comprobante, pedido: pedidoCompleto });
 
     } catch (err) {
-        console.error('Error al crear pedido:', err);
-        res.status(500).json({ mensaje: 'Error al procesar el pedido' });
+        responder.error(res, 500, 'Error al procesar el pedido', err, 'Error al crear pedido:');
     }
 };
 

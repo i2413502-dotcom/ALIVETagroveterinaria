@@ -1,8 +1,4 @@
-// ─────────────────────────────────────────────────────────────
-//  categoria.routes.js — atiende al panel web Y a la app móvil.
-//  Crear/editar/eliminar categorías desde la pantalla "Categorías"
-//  de la app (Accesos rápidos) pasa por este mismo bloqueo.
-// ─────────────────────────────────────────────────────────────
+// Se utiliza para el móvil
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controladores/categoria.controller');

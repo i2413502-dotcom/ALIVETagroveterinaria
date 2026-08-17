@@ -1,6 +1,7 @@
 const db     = require('../config/db');
 const bcrypt = require('bcrypt');
 
+// Se utiliza para el móvil
 exports.getAll = async () => {
     const [rows] = await db.query(`
         SELECT col.id_colaborador, col.dni, col.usuario, col.estado,
@@ -15,6 +16,7 @@ exports.getAll = async () => {
     return rows;
 };
 
+// Se utiliza para el móvil
 exports.getCargos = async () => {
     const [rows] = await db.query("SELECT * FROM cargo WHERE estado='ACTIVO' ORDER BY nombre");
     return rows;
@@ -42,6 +44,7 @@ exports.create = async (data) => {
     return r2.insertId;
 };
 
+// Se utiliza para el móvil
 exports.update = async (id, data) => {
     const { nombres, apellido_paterno, apellido_materno,
             telefono, id_cargo, usuario, estado } = data;
@@ -76,6 +79,7 @@ exports.getDatosParaPassword = async (idColaborador) => {
     return fila || null;
 };
 
+// Se utiliza para el móvil
 exports.resetPassword = async (id, nuevaPassword) => {
     const hash    = await bcrypt.hash(nuevaPassword, 10);
     const [[col]] = await db.query(

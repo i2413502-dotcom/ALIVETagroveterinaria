@@ -20,8 +20,6 @@ const promocionController = require('../controladores/promocion.controller');
 router.post('/login',              authController.login);
 // Se utiliza para el móvil
 router.post('/login-verificar-otp', authController.loginVerificarOtp);
-// Se utiliza para el móvil
-router.post('/renovar-password-vencida', authController.renovarPasswordVencida);
 router.post('/registro',           authController.register);
 router.post('/verify-otp',          authController.verifyOtp);
 router.get('/consultar-documento', documentoController.consultarDocumento);

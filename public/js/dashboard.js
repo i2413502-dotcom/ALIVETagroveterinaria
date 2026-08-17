@@ -7,6 +7,32 @@
     if (!token || rol !== 'COLABORADOR') { window.location.href = '/login.html'; }
 })();
 
+// Se utiliza para el móvil (mismo criterio que dashboard_screen.dart):
+// Productos/Categorías/Tipos de Animal/Reportes → Administrador y
+// Gerente. Colaboradores/Promociones → solo Administrador. El resto
+// (Inicio, Pedidos, Clientes, Ventas) queda visible para cualquier
+// colaborador. El backend ya bloquea estas acciones aunque el link
+// esté visible (verificarCargo) — esto es solo para no mostrar un
+// link que al tocarlo va a fallar.
+(function() {
+    const cargo = localStorage.getItem('cargo');
+    const puedeGestionarInventario = cargo === 'Administrador' || cargo === 'Gerente';
+    const esAdministrador = cargo === 'Administrador';
+
+    if (!puedeGestionarInventario) {
+        ['li-productos', 'li-categorias', 'li-animales', 'li-reportes'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('d-none');
+        });
+    }
+    if (!esAdministrador) {
+        ['li-colaboradores', 'li-promociones'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('d-none');
+        });
+    }
+})();
+
 // ═══════════════════════════════════════════════════
 //  VARIABLES GLOBALES
 // ══════════════════════════════════════════════════

@@ -7,6 +7,7 @@ const { verificarToken, verificarRol } = require('../middlewares/auth.middleware
 // NOTA: en app.js esta ruta no tenía NINGÚN middleware de autenticación
 // (cualquiera podía subir archivos al bucket de R2 sin iniciar sesión).
 // Se protege igual que la creación/edición de productos.
+// Se utiliza para el móvil
 router.post('/imagen-producto', verificarToken, verificarRol('COLABORADOR'), upload.single('imagen'), ctrl.subirImagenProducto);
 
 module.exports = router;

@@ -2,17 +2,22 @@ const model = require('../modelos/colaborador.model');
 const emailService = require('../servicios/email.service');
 const bcrypt = require('bcrypt');
 const { validarPassword } = require('../utils/passwordPolicy');
+const responder = require('../utils/responder');
 
 const pendingColaboradores = new Map();
 
 exports.getAll = async (req, res) => {
     try { res.json(await model.getAll()); }
-    catch (e) { res.status(500).json({ mensaje: e.message }); }
+    catch (e) {
+        responder.error(res, 500, e.message);
+    }
 };
 
 exports.getCargos = async (req, res) => {
     try { res.json(await model.getCargos()); }
-    catch (e) { res.status(500).json({ mensaje: e.message }); }
+    catch (e) {
+        responder.error(res, 500, e.message);
+    }
 };
 
 // Se utiliza para el móvil
@@ -47,8 +52,7 @@ exports.solicitarCreacion = async (req, res) => {
             otp: process.env.NODE_ENV === 'production' ? undefined : otp
         });
     } catch (e) {
-        console.error('Error al solicitar creación de colaborador:', e);
-        res.status(500).json({ mensaje: 'Error al solicitar creación' });
+        responder.error(res, 500, 'Error al solicitar creación', e, 'Error al solicitar creación de colaborador:');
     }
 };
 
@@ -93,7 +97,9 @@ exports.create = async (req, res) => {
         }
         const id = await model.create(req.body);
         res.status(201).json({ id_colaborador: id, mensaje: 'Colaborador creado correctamente' });
-    } catch (e) { res.status(500).json({ mensaje: e.message }); }
+    } catch (e) {
+        responder.error(res, 500, e.message);
+    }
 };
 
 // Se utiliza para el móvil
@@ -101,7 +107,9 @@ exports.update = async (req, res) => {
     try {
         await model.update(req.params.id, req.body);
         res.json({ mensaje: 'Colaborador actualizado correctamente' });
-    } catch (e) { res.status(500).json({ mensaje: e.message }); }
+    } catch (e) {
+        responder.error(res, 500, e.message);
+    }
 };
 
 // Se utiliza para el móvil
@@ -130,7 +138,9 @@ exports.resetPassword = async (req, res) => {
 
         await model.resetPassword(req.params.id, req.body.nuevaPassword);
         res.json({ mensaje: 'Contraseña restablecida correctamente' });
-    } catch (e) { res.status(500).json({ mensaje: e.message }); }
+    } catch (e) {
+        responder.error(res, 500, e.message);
+    }
 };
 
 // Se utiliza para el móvil

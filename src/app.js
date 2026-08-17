@@ -7,6 +7,9 @@ const { inyectarAgrobot, PUBLIC_DIR } = require('./middlewares/inyectar-agrobot.
 
 const app = express();
 
+// Se utiliza para el móvil
+app.set('trust proxy', 1);
+
 // ── Middlewares globales ────────────────────────────────────────
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));

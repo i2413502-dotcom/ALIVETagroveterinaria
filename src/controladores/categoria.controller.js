@@ -1,4 +1,5 @@
 const model = require('../modelos/categoria.model');
+const responder = require('../utils/responder');
 
 // GET /api/categorias — Listar todas
 exports.getAll = async (req, res) => {
@@ -6,7 +7,7 @@ exports.getAll = async (req, res) => {
         const categorias = await model.getAll();
         res.json(categorias);
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -16,7 +17,7 @@ exports.create = async (req, res) => {
         const id = await model.create(req.body);
         res.status(201).json({ id_categoria: id, mensaje: 'Categoría creada correctamente' });
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -26,7 +27,7 @@ exports.update = async (req, res) => {
         await model.update(req.params.id, req.body);
         res.json({ mensaje: 'Categoría actualizada correctamente' });
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -36,7 +37,7 @@ exports.delete = async (req, res) => {
         await model.delete(req.params.id);
         res.json({ mensaje: 'Categoría eliminada correctamente' });
     } catch (error) {
-        res.status(400).json({ mensaje: error.message });
+        responder.error(res, 400, error.message);
     }
 };
 
@@ -48,7 +49,7 @@ exports.getSubcategorias = async (req, res) => {
         const subcategorias = await model.getSubcategorias(req.params.id);
         res.json(subcategorias);
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -58,7 +59,7 @@ exports.createSubcategoria = async (req, res) => {
         const id = await model.createSubcategoria(req.body);
         res.status(201).json({ id_subcategoria: id, mensaje: 'Subcategoría creada correctamente' });
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -68,7 +69,7 @@ exports.updateSubcategoria = async (req, res) => {
         await model.updateSubcategoria(req.params.id, req.body);
         res.json({ mensaje: 'Subcategoría actualizada correctamente' });
     } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+        responder.error(res, 500, error.message);
     }
 };
 
@@ -78,6 +79,6 @@ exports.deleteSubcategoria = async (req, res) => {
         await model.deleteSubcategoria(req.params.id);
         res.json({ mensaje: 'Subcategoría eliminada correctamente' });
     } catch (error) {
-        res.status(400).json({ mensaje: error.message });
+        responder.error(res, 400, error.message);
     }
 };

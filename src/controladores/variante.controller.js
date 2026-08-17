@@ -1,5 +1,6 @@
 const varianteModel = require('../modelos/variante.model');
 const productoModel  = require('../modelos/producto.model');
+const responder = require('../utils/responder');
 
 // GET /api/variantes/catalogos — colores/tallas/etapas/presentaciones (público)
 async function catalogos(req, res) {
@@ -7,8 +8,7 @@ async function catalogos(req, res) {
         const data = await varianteModel.obtenerCatalogos();
         res.json(data);
     } catch (err) {
-        console.error('Error obteniendo catálogos de variantes:', err);
-        res.status(500).json({ mensaje: 'Error al obtener catálogos' });
+        responder.error(res, 500, 'Error al obtener catálogos', err, 'Error obteniendo catálogos de variantes:');
     }
 }
 
@@ -18,8 +18,7 @@ async function listarPorProducto(req, res) {
         const variantes = await varianteModel.listarPorProducto(req.params.idProducto);
         res.json(variantes);
     } catch (err) {
-        console.error('Error obteniendo variantes:', err);
-        res.status(500).json({ mensaje: 'Error al obtener variantes' });
+        responder.error(res, 500, 'Error al obtener variantes', err, 'Error obteniendo variantes:');
     }
 }
 

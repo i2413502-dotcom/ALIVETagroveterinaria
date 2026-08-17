@@ -4,6 +4,7 @@ const jwt          = require('jsonwebtoken');
 const authModel     = require('../modelos/auth.model');
 const emailService  = require('../servicios/email.service');
 const { validarPassword } = require('../utils/passwordPolicy');
+const responder = require('../utils/responder');
 
 // Almacén temporal de OTPs para recuperación de contraseña
 const pendingPasswordResets = new Map();
@@ -260,8 +261,7 @@ const cambiarPasswordVerificarOtp = async (req, res) => {
 
         res.json({ mensaje: 'Contraseña cambiada correctamente' });
     } catch (err) {
-        console.error('Error al verificar OTP de cambio de contraseña:', err);
-        res.status(500).json({ mensaje: 'Error al confirmar el cambio de contraseña' });
+        responder.error(res, 500, 'Error al confirmar el cambio de contraseña', err, 'Error al verificar OTP de cambio de contraseña:');
     }
 };
 

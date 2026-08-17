@@ -1,12 +1,4 @@
-// ─────────────────────────────────────────────────────────────
-//  producto.routes.js — este mismo backend atiende tanto al
-//  panel web (public/*.html) COMO a la app móvil Flutter
-//  (Proyecto Movil MR1 / ALEVET). Las restricciones de acá abajo
-//  (verificarCargo) aplican para las DOS: si un Vendedor intenta
-//  crear/editar/eliminar un producto desde la app móvil, este
-//  mismo bloqueo lo frena, sin importar si la app oculta o no
-//  el botón "Nuevo producto" en el dashboard.
-// ─────────────────────────────────────────────────────────────
+// Se utiliza para el móvil
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controladores/producto.controller');
@@ -16,12 +8,12 @@ const gestionInventario = [verificarToken, verificarRol('COLABORADOR'), verifica
 
 // Públicas — el catálogo lo consume la tienda web sin login
 router.get('/buscar-ficha', ctrl.buscarFichaTecnica); // ← ANTES de /:id
+// Se utiliza para el móvil
 router.get('/',             ctrl.listar);
+// Se utiliza para el móvil
 router.get('/:id',          ctrl.obtenerPorId);
 
-// Crear/editar/eliminar productos: Administrador y Gerente. Vendedor
-// y Asistente de ventas pueden ver/buscar productos (Escanear), pero
-// no dar de alta ni tocar precios/stock del catálogo.
+// Se utiliza para el móvil
 router.post('/',            ...gestionInventario, ctrl.crear);
 router.put('/:id/estado',   ...gestionInventario, ctrl.cambiarEstado);
 router.put('/:id',          ...gestionInventario, ctrl.actualizar);

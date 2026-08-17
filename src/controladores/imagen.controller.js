@@ -1,6 +1,7 @@
 const imagenModel   = require('../modelos/imagen.model');
 const productoModel = require('../modelos/producto.model');
 const minioService  = require('../servicios/minio.service');
+const responder = require('../utils/responder');
 
 // POST /api/imagenes/:idProducto — sube un archivo a R2 y lo asocia al producto
 async function subir(req, res) {
@@ -16,8 +17,7 @@ async function subir(req, res) {
 
         res.status(201).json({ id_imagen: idImagen, url_imagen: url, mensaje: 'Imagen agregada' });
     } catch (err) {
-        console.error('Error subiendo imagen:', err);
-        res.status(500).json({ mensaje: 'Error al subir la imagen' });
+        responder.error(res, 500, 'Error al subir la imagen', err, 'Error subiendo imagen:');
     }
 }
 
@@ -27,8 +27,7 @@ async function listar(req, res) {
         const imagenes = await imagenModel.listarPorProducto(req.params.idProducto);
         res.json(imagenes);
     } catch (err) {
-        console.error('Error obteniendo imágenes:', err);
-        res.status(500).json({ mensaje: 'Error al obtener imágenes' });
+        responder.error(res, 500, 'Error al obtener imágenes', err, 'Error obteniendo imágenes:');
     }
 }
 
@@ -41,8 +40,7 @@ async function marcarPrincipal(req, res) {
         await imagenModel.marcarPrincipal(imagen.id_imagen, imagen.id_producto);
         res.json({ mensaje: 'Imagen marcada como principal' });
     } catch (err) {
-        console.error('Error marcando imagen principal:', err);
-        res.status(500).json({ mensaje: 'Error al actualizar' });
+        responder.error(res, 500, 'Error al actualizar', err, 'Error marcando imagen principal:');
     }
 }
 
@@ -62,8 +60,7 @@ async function eliminar(req, res) {
 
         res.json({ mensaje: 'Imagen eliminada' });
     } catch (err) {
-        console.error('Error eliminando imagen:', err);
-        res.status(500).json({ mensaje: 'Error al eliminar imagen' });
+        responder.error(res, 500, 'Error al eliminar imagen', err, 'Error eliminando imagen:');
     }
 }
 

@@ -3,6 +3,7 @@ const jwt        = require('jsonwebtoken');
 const authModel  = require('../modelos/auth.model');
 const emailService = require('../servicios/email.service');
 const { validarPassword, passwordVencida } = require('../utils/passwordPolicy');
+const responder = require('../utils/responder');
 
 // Almacén temporal de registros pendientes de verificación por OTP
 // (en producción conviene usar Redis con expiración nativa en vez de memoria)
@@ -202,8 +203,7 @@ const renovarPasswordVencida = async (req, res) => {
             mensaje: 'Contraseña renovada. Ingresa el código enviado a tu correo para completar el inicio de sesión'
         });
     } catch (error) {
-        console.error('Error al renovar contraseña vencida:', error);
-        res.status(500).json({ mensaje: 'Error al renovar la contraseña' });
+        responder.error(res, 500, 'Error al renovar la contraseña', error, 'Error al renovar contraseña vencida:');
     }
 };
 
@@ -235,8 +235,7 @@ const loginVerificarOtp = async (req, res) => {
 
         res.json(generarTokenParaPersona(persona, colaborador, 'COLABORADOR'));
     } catch (error) {
-        console.error('Error al verificar OTP de login:', error);
-        res.status(500).json({ mensaje: 'Error al verificar el código' });
+        responder.error(res, 500, 'Error al verificar el código', error, 'Error al verificar OTP de login:');
     }
 };
 

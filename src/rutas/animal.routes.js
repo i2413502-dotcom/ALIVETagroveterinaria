@@ -1,8 +1,4 @@
-// ─────────────────────────────────────────────────────────────
-//  animal.routes.js — atiende al panel web Y a la app móvil.
-//  Pantalla "Animales" (Accesos rápidos, solo Administrador/
-//  Gerente) usa exactamente estos mismos endpoints.
-// ─────────────────────────────────────────────────────────────
+// Se utiliza para el móvil
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controladores/animal.controller');
