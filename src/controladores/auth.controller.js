@@ -2,7 +2,7 @@ const bcrypt     = require('bcrypt');
 const jwt        = require('jsonwebtoken');
 const authModel  = require('../modelos/auth.model');
 const emailService = require('../servicios/email.service');
-const { validarPassword, passwordVencida } = require('../utils/passwordPolicy');
+const { validarPassword } = require('../utils/passwordPolicy');
 const responder = require('../utils/responder');
 
 // Almacén temporal de registros pendientes de verificación por OTP
@@ -90,19 +90,6 @@ const login = async (req, res) => {
             return res.json(generarTokenParaPersona(persona, colaborador, rol));
         }
 
-        // Se utiliza para el móvil
-        if (passwordVencida(persona.password_actualizada_en)) {
-            const renewalToken = jwt.sign(
-                { id: persona.id_persona, tipo: 'renovar_password' },
-                process.env.JWT_SECRET,
-                { expiresIn: '15m' }
-            );
-            return res.status(200).json({
-                passwordVencida: true,
-                renewalToken,
-                mensaje: 'Tu contraseña venció (se renueva cada 60 días). Elige una nueva para continuar.'
-            });
-        }
 
         const otp = Math.floor(10000 + Math.random() * 90000).toString();
         const pendingLoginId = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -132,80 +119,6 @@ const login = async (req, res) => {
 };
 
 // Se utiliza para el móvil
-const renovarPasswordVencida = async (req, res) => {
-    try {
-        const { renewalToken, passwordNueva } = req.body;
-        if (!renewalToken || !passwordNueva) {
-            return res.status(400).json({ mensaje: 'Datos incompletos' });
-        }
-
-        let decoded;
-        try {
-            decoded = jwt.verify(renewalToken, process.env.JWT_SECRET);
-        } catch (e) {
-            return res.status(400).json({ mensaje: 'Token de renovación inválido o vencido, vuelve a iniciar sesión' });
-        }
-        if (decoded.tipo !== 'renovar_password') {
-            return res.status(400).json({ mensaje: 'Token inválido' });
-        }
-
-        const persona = await authModel.findPersonaById(decoded.id);
-        if (!persona) return res.status(404).json({ mensaje: 'Cuenta no encontrada' });
-        const colaborador = await authModel.findColaborador(persona.id_persona);
-
-        const check = validarPassword(passwordNueva, {
-            nombres: persona.nombres,
-            usuario: colaborador ? colaborador.usuario : null,
-            correo: persona.correo
-        });
-        if (!check.valida) {
-            return res.status(400).json({ mensaje: check.mensaje });
-        }
-
-        const repiteActual = await bcrypt.compare(passwordNueva, persona.password);
-        const repiteAnterior = persona.password_anterior
-            ? await bcrypt.compare(passwordNueva, persona.password_anterior)
-            : false;
-        if (repiteActual || repiteAnterior) {
-            return res.status(400).json({
-                mensaje: 'No puedes usar la misma contraseña que ya tenías antes.'
-            });
-        }
-
-        const db = require('../config/db');
-        const hash = await bcrypt.hash(passwordNueva, 10);
-        await db.query(
-            `UPDATE persona
-             SET password=?, password_anterior=?, password_actualizada_en=NOW()
-             WHERE id_persona=?`,
-            [hash, persona.password, persona.id_persona]
-        );
-
-        // Se utiliza para el móvil
-        const otp = Math.floor(10000 + Math.random() * 90000).toString();
-        const pendingLoginId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-
-        pendingLogins.set(pendingLoginId, {
-            idPersona: persona.id_persona,
-            otp,
-            expiresAt: Date.now() + VENTANA_OTP_LOGIN_MS
-        });
-
-        try {
-            await emailService.sendOtpEmail(persona.correo, otp);
-        } catch (emailError) {
-            console.error('Error al enviar OTP de login tras renovar contraseña:', emailError.message);
-        }
-
-        res.json({
-            requiereOtp: true,
-            pendingLoginId,
-            mensaje: 'Contraseña renovada. Ingresa el código enviado a tu correo para completar el inicio de sesión'
-        });
-    } catch (error) {
-        responder.error(res, 500, 'Error al renovar la contraseña', error, 'Error al renovar contraseña vencida:');
-    }
-};
 
 // Se utiliza para el móvil
 const loginVerificarOtp = async (req, res) => {
@@ -355,4 +268,4 @@ const verifyOtp = async (req, res) => {
     }
 };
 
-module.exports = { login, loginVerificarOtp, renovarPasswordVencida, register, verifyOtp };
+module.exports = { login, loginVerificarOtp, register, verifyOtp };
