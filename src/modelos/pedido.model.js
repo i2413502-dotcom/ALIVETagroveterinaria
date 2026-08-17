@@ -40,139 +40,28 @@ exports.crearDetallePedido = async (id_pedido, items) => {
     }
 };
 
-// pasarela: null (Yape, cobro manual) | 'CULQI' (cobro con tarjeta)
-// respuestaPasarela: objeto crudo devuelto por la pasarela, para auditoría
-exports.crearPago = async (id_pedido, id_tipo_pago, monto, codigoTransaccion, pasarela = null, respuestaPasarela = null) => {
+exports.crearPago = async (id_pedido, id_tipo_pago, monto, codigoTransaccion) => {
     const [result] = await db.query(
         `INSERT INTO pago 
-         (id_pedido, id_tipo_pago, monto, estado, codigo_transaccion, pasarela, respuesta_pasarela, fecha_pago)
-         VALUES (?, ?, ?, 'COMPLETADO', ?, ?, ?, NOW())`,
-        [id_pedido, id_tipo_pago, monto, codigoTransaccion, pasarela,
-         respuestaPasarela ? JSON.stringify(respuestaPasarela) : null]
+         (id_pedido, id_tipo_pago, monto, estado, codigo_transaccion, fecha_pago)
+         VALUES (?, ?, ?, 'COMPLETADO', ?, NOW())`,
+        [id_pedido, id_tipo_pago, monto, codigoTransaccion]
     );
     return result.insertId;
 };
 
-// Datos del cliente que necesita NubeFacT/SUNAT para el comprobante
-// (razón social si es factura, DNI/nombre si es boleta, dirección, correo)
-exports.obtenerDatosClienteParaComprobante = async (id_cliente) => {
-    const [rows] = await db.query(
-        `SELECT per.correo, per.nombres, per.apellido_paterno, per.apellido_materno,
-                c.numero_documento, td.nombre AS tipo_documento,
-                c.razon_social, c.direccion_habitual
-         FROM cliente c
-         JOIN persona per ON per.id_persona = c.id_persona
-         LEFT JOIN tipo_documento td ON td.id_tipo_documento = c.id_tipo_documento
-         WHERE c.id_cliente = ?`,
-        [id_cliente]
+exports.crearComprobante = async (id_pedido, tipo) => {
+    const serie = tipo === 'factura' ? 'F001' : 'B001';
+    const numero = String(id_pedido).padStart(6, '0');
+    
+    const [result] = await db.query(
+        `INSERT INTO comprobante 
+         (id_pedido, serie, numero, fecha_emision)
+         VALUES (?, ?, ?, NOW())`,
+        [id_pedido, serie, numero]
     );
-    if (!rows.length) return null;
-    const r = rows[0];
-    return {
-        correo: r.correo,
-        numero_documento: r.numero_documento,
-        tipo_documento: r.tipo_documento,
-        razon_social: r.razon_social,
-        direccion: r.direccion_habitual,
-        nombre_completo: [r.nombres, r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' ')
-    };
+    return { serie, numero, id: result.insertId };
 };
-
-// Siguiente número correlativo para una serie (B001/F001), de forma
-// segura ante pedidos concurrentes: usa una transacción con bloqueo de
-// fila (FOR UPDATE) para que dos pedidos simultáneos nunca reciban el
-// mismo número — SUNAT exige correlativos estrictamente secuenciales
-// sin huecos ni repeticiones por serie.
-async function obtenerSiguienteNumero(conn, serie) {
-    const [rows] = await conn.query(
-        'SELECT numero FROM comprobante WHERE serie = ? ORDER BY id_comprobante DESC LIMIT 1 FOR UPDATE',
-        [serie]
-    );
-    const ultimo = rows.length ? parseInt(rows[0].numero, 10) || 0 : 0;
-    return String(ultimo + 1).padStart(6, '0');
-}
-
-// Crea el comprobante con todos los datos que SUNAT/NubeFacT necesitan
-// (antes solo se guardaba serie/numero, el resto quedaba NULL).
-// tipo: 'factura' | 'boleta'
-exports.crearComprobante = async (id_pedido, tipo, id_cliente, totales) => {
-    const esFactura = tipo === 'factura';
-    const serie = esFactura ? 'F001' : 'B001';
-    const id_tipo_comprobante = esFactura ? 2 : 1; // catálogo tipo_comprobante
-
-    const cliente = await exports.obtenerDatosClienteParaComprobante(id_cliente);
-
-    const conn = await db.getConnection();
-    try {
-        await conn.beginTransaction();
-
-        const numero = await obtenerSiguienteNumero(conn, serie);
-
-        const [result] = await conn.query(
-            `INSERT INTO comprobante
-                (id_pedido, serie, numero, fecha_emision, tipo, id_tipo_comprobante,
-                 ruc_cliente, razon_social, direccion_fiscal, dni_cliente, nombre_cliente,
-                 subtotal, igv, total, estado_sunat)
-             VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE')`,
-            [
-                id_pedido, serie, numero, esFactura ? 'FACTURA' : 'BOLETA', id_tipo_comprobante,
-                esFactura ? cliente?.numero_documento : null,
-                esFactura ? cliente?.razon_social : null,
-                cliente?.direccion || null,
-                !esFactura ? cliente?.numero_documento : null,
-                !esFactura ? cliente?.nombre_completo : null,
-                totales.subtotal, totales.igv, totales.total
-            ]
-        );
-
-        await conn.commit();
-        return { id: result.insertId, serie, numero, cliente };
-    } catch (err) {
-        await conn.rollback();
-        throw err;
-    } finally {
-        conn.release();
-    }
-};
-
-// Guarda la respuesta de NubeFacT/SUNAT en el comprobante ya creado.
-exports.actualizarComprobanteSunat = async (id_comprobante, datos) => {
-    await db.query(
-        `UPDATE comprobante SET
-            estado_sunat  = ?,
-            hash_cpe      = ?,
-            xml_cpe_url   = ?,
-            cdr_sunat_url = ?,
-            archivo_pdf   = ?
-         WHERE id_comprobante = ?`,
-        [
-            datos.estado_sunat,
-            datos.hash_cpe || null,
-            datos.xml_cpe_url || null,
-            datos.cdr_sunat_url || null,
-            datos.archivo_pdf || null,
-            id_comprobante
-        ]
-    );
-};
-
-// Detalle de items de un pedido, con la imagen PRINCIPAL del producto
-// (antes leía producto.imagen, columna heredada que ya no se actualiza
-// desde que las imágenes viven en imagen_producto — ver imagen.model.js).
-async function obtenerDetallesConImagen(id_pedido) {
-    const [detalles] = await db.query(
-        `SELECT dp.*, pr.nombre AS producto_nombre, pr.marca AS marca_producto,
-                img.url_imagen AS imagen
-         FROM detalle_pedido dp
-         JOIN producto pr ON dp.id_producto = pr.id_producto
-         LEFT JOIN imagen_producto img
-                ON img.id_producto = pr.id_producto AND img.es_principal = 1
-         WHERE dp.id_pedido = ?`,
-        [id_pedido]
-    );
-    return detalles.map(d => ({ ...d, marca: d.marca || d.marca_producto || null }));
-}
-exports.obtenerDetallesConImagen = obtenerDetallesConImagen;
 
 exports.obtenerPedidoCompleto = async (id_pedido) => {
     const [pedido] = await db.query(
@@ -191,7 +80,19 @@ exports.obtenerPedidoCompleto = async (id_pedido) => {
         [id_pedido]
     );
 
-    const detallesConMarca = await obtenerDetallesConImagen(id_pedido);
+    const [detalles] = await db.query(
+        `SELECT dp.*, pr.nombre AS producto_nombre, pr.imagen, pr.marca AS marca_producto
+         FROM detalle_pedido dp
+         JOIN producto pr ON dp.id_producto = pr.id_producto
+         WHERE dp.id_pedido = ?`,
+        [id_pedido]
+    );
+
+    // ✅ Usar marca del detalle si existe, sino la del producto
+    const detallesConMarca = detalles.map(d => ({
+        ...d,
+        marca: d.marca || d.marca_producto || null
+    }));
 
     return { ...pedido[0], detalles: detallesConMarca };
 };

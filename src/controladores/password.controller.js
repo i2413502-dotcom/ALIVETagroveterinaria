@@ -79,7 +79,7 @@ const forgotPasswordOtp = async (req, res) => {
             return res.json({ mensaje: 'Si el correo está registrado, recibirás un código' });
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp = Math.floor(10000 + Math.random() * 90000).toString();
         const pendingId = Date.now().toString(36) + Math.random().toString(36).substr(2);
 
         pendingPasswordResets.set(pendingId, {

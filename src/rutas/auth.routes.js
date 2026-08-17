@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../config/upload');
-const { verificarToken, verificarRol } = require('../middlewares/auth.middleware');
+const { verificarToken, verificarRol, verificarCargo } = require('../middlewares/auth.middleware');
 
 // Cada bloque de endpoints vive en su propio controlador (ver src/controladores/):
 //   auth.controller.js       -> login, registro, verificación OTP
@@ -18,6 +18,8 @@ const promocionController = require('../controladores/promocion.controller');
 
 // Públicas — no requieren sesión iniciada
 router.post('/login',              authController.login);
+// Se utiliza para el móvil
+router.post('/login-verificar-otp', authController.loginVerificarOtp);
 router.post('/registro',           authController.register);
 router.post('/verify-otp',          authController.verifyOtp);
 router.get('/consultar-documento', documentoController.consultarDocumento);
@@ -31,12 +33,14 @@ router.get('/perfil',             verificarToken, perfilController.getPerfil);
 router.get('/datos-envio',        verificarToken, perfilController.getDatosEnvio);
 router.put('/actualizar-perfil',  verificarToken, perfilController.actualizarPerfil);
 router.put('/cambiar-password',   verificarToken, passwordController.cambiarPassword);
+// Se utiliza para el móvil
+router.put('/cambiar-password-verificar-otp', verificarToken, passwordController.cambiarPasswordVerificarOtp);
 router.post('/fcm-token',         verificarToken, perfilController.guardarFcmToken);
 router.put('/guardar-direccion',  verificarToken, perfilController.guardarDireccionHabitual);
 
-// Antes sin protección alguna — ahora exclusivo de colaboradores
+// Se utiliza para el móvil
 router.post('/enviar-promocion',
-    verificarToken, verificarRol('COLABORADOR'),
+    verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador'),
     upload.single('imagen'),
     promocionController.enviarPromocion
 );
