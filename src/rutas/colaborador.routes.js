@@ -8,8 +8,11 @@ router.use(verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administ
 
 router.get('/',                   ctrl.getAll);
 router.get('/cargos',             ctrl.getCargos);
+router.post('/solicitar-creacion', ctrl.solicitarCreacion);
+router.post('/confirmar-creacion', ctrl.confirmarCreacion);
 router.post('/',                  ctrl.create);
 router.put('/:id',                ctrl.update);
 router.put('/:id/reset-password', ctrl.resetPassword);
+router.delete('/:id',             ctrl.eliminar);
 
 module.exports = router;
