@@ -179,3 +179,11 @@ function filtrarSoloDigitos(input) {
 }
 filtrarSoloDigitos(document.getElementById('numeroDocumento'));
 filtrarSoloDigitos(document.getElementById('telefono'));
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+    if (el.dataset.accion === 'consultar-documento') consultarDocumento();
+});

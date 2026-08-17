@@ -1,0 +1,58 @@
+/* ============================================================
+   ALIVET — Estilos específicos de la página de perfil
+   Usa las variables definidas en /css/styles.css — enlazar
+   ese archivo ANTES que este.
+   ============================================================ */
+
+body { background-color: #f0f4f1; }
+
+.avatar {
+    width: 90px; height: 90px; border-radius: 50%; background: var(--agro-green);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto;
+}
+.nav-perfil .nav-link { color: #333; border-radius: 10px; padding: 10px 15px; }
+.nav-perfil .nav-link.active { background: var(--agro-green); color: white; }
+.nav-perfil .nav-link:hover:not(.active) { background: #e8f5e9; }
+/* Botón Cerrar Sesión: alerta suave de marca */
+.nav-perfil .logout-link { background: #fdecee; color: #c0392b !important; font-weight: 600; }
+.nav-perfil .logout-link:hover { background: #c0392b; color: #fff !important; }
+
+.card-perfil { border-radius: 15px; border: none; }
+
+.btn-agro { background-color: var(--agro-green); color: white; border: none; }
+.btn-agro:hover { background-color: var(--agro-green-dark); color: white; }
+
+/* Timeline de estado del pedido */
+.timeline-estado { display: flex; justify-content: space-between; position: relative; margin: 20px 0 10px; }
+.timeline-estado::before {
+    content: ''; position: absolute; top: 18px; left: 0; right: 0;
+    height: 4px; background: #dee2e6; z-index: 0;
+}
+.timeline-step {
+    display: flex; flex-direction: column; align-items: center;
+    flex: 1; position: relative; z-index: 1;
+}
+.timeline-step .step-icon {
+    width: 38px; height: 38px; border-radius: 50%; background: #dee2e6; color: #aaa;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    border: 3px solid #dee2e6; transition: all 0.3s;
+}
+.timeline-step.activo .step-icon    { background: var(--agro-green); color: white; border-color: var(--agro-green); }
+.timeline-step.pasado .step-icon    { background: #d4edda; color: var(--agro-green); border-color: var(--agro-green); }
+.timeline-step.cancelado .step-icon { background: #f8d7da; color: #dc3545; border-color: #dc3545; }
+.timeline-step .step-label { font-size: 0.7rem; margin-top: 6px; color: #666; text-align: center; }
+.timeline-step.activo .step-label    { color: var(--agro-green); font-weight: bold; }
+.timeline-step.cancelado .step-label { color: #dc3545; font-weight: bold; }
+
+.pedido-card {
+    border-radius: 12px; border: 1px solid #e0e0e0;
+    transition: box-shadow 0.2s; cursor: pointer;
+}
+.pedido-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.detalle-productos { background: #f8f9fa; border-radius: 10px; padding: 12px; }
+.prod-item {
+    display: flex; align-items: center; gap: 10px; padding: 6px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+.prod-item:last-child { border-bottom: none; }
+.prod-img { width: 45px; height: 45px; object-fit: cover; border-radius: 8px; }

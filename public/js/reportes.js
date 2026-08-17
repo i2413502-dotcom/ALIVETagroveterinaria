@@ -109,3 +109,17 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarVentasPorCategoria();
     cargarStockBajo();
 });
+
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+    if (el.tagName === 'A') e.preventDefault();
+
+    switch (el.dataset.accion) {
+        case 'cerrar-sesion': cerrarSesion(); break;
+        case 'exportar':      exportar(el.dataset.endpoint, el.dataset.archivo, el); break;
+    }
+});

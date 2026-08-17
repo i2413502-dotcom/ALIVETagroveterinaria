@@ -1,0 +1,9 @@
+/* ============================================================
+   ALIVET — Estilos específicos de Ventas
+   Enlazar DESPUÉS de /css/styles.css y /css/paneladmin.css
+   (que traen el sidebar, topbar, stat-card y tablas compartidas
+   del panel admin).
+   ============================================================ */
+
+.filtros-bar { background: white; border-radius: 16px; padding: 18px 22px; box-shadow: var(--agro-shadow-sm); }
+.filtros-bar .form-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #6b7280; }

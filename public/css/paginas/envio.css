@@ -1,0 +1,27 @@
+/* ============================================================
+   ALIVET — Estilos específicos de la página de envío
+   Usa las variables definidas en /css/styles.css — enlazar
+   ese archivo ANTES que este.
+   ============================================================ */
+
+body { background-color: #f0f4f1; }
+
+.card-envio { border-radius: 15px; }
+
+.btn-agro { background-color: var(--agro-green); color: white; }
+.btn-agro:hover { background-color: var(--agro-green-dark); color: white; }
+
+.paso {
+    display: flex; align-items: center; justify-content: center;
+    width: 35px; height: 35px; border-radius: 50%;
+    background: #ddd; color: #666; font-weight: bold;
+}
+.paso.activo { background: var(--agro-green); color: white; }
+.linea { flex: 1; height: 3px; background: #ddd; }
+.linea.activa { background: var(--agro-green); }
+
+.costo-envio-badge {
+    background: #e8f5e9; border: 2px solid var(--agro-green);
+    border-radius: 10px; padding: 10px 15px;
+    display: none;
+}

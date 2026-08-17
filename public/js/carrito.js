@@ -60,19 +60,19 @@ function renderizarCarrito() {
                     </div>
                     <div class="col-3 d-flex align-items-center gap-2">
                         <button class="btn btn-sm btn-outline-secondary"
-                                onclick="cambiarCantidad(${item.id_producto}, ${cantidad - 1}, '${item.color || ''}', '${item.talla || ''}')">-</button>
+                                data-accion="restar-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">-</button>
                         <input type="number" class="form-control form-control-sm cantidad-input"
                                value="${cantidad}" min="1"
-                               onchange="cambiarCantidad(${item.id_producto}, this.value, '${item.color || ''}', '${item.talla || ''}')">
+                               data-accion="input-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">
                         <button class="btn btn-sm btn-outline-secondary"
-                                onclick="cambiarCantidad(${item.id_producto}, ${cantidad + 1}, '${item.color || ''}', '${item.talla || ''}')">+</button>
+                                data-accion="sumar-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">+</button>
                     </div>
                     <div class="col-2 text-center fw-bold text-success">
                         S/. ${itemSubtotal.toFixed(2)}
                     </div>
                     <div class="col-1 text-center">
                         <button class="btn btn-sm btn-danger"
-                                onclick="eliminarProducto(${item.id_producto}, '${item.color || ''}', '${item.talla || ''}')">
+                                data-accion="eliminar-producto" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -136,4 +136,51 @@ function finalizarCompra() {
 window.addEventListener('DOMContentLoaded', () => {
     renderizarCarrito();
     actualizarContadorCarrito();
+});
+
+
+// Cambia la cantidad sumando/restando 1 desde los botones +/-
+function cambiarCantidadBoton(id, delta, color, talla) {
+    color = color || null;
+    talla = talla || null;
+    const carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+    const item = carrito.find(p => p.id_producto === id
+        && (p.color || null) === color
+        && (p.talla || null) === talla);
+    if (!item) return;
+    cambiarCantidad(id, item.cantidad + delta, color, talla);
+}
+
+// Muestra el ícono de perfil en vez de "iniciar sesión" si ya hay sesión activa
+function actualizarBotonUsuario() {
+    const token = localStorage.getItem('token');
+    const btn = document.getElementById('btn-usuario');
+    if (btn && token) btn.href = '/perfil.html';
+}
+
+window.addEventListener('DOMContentLoaded', actualizarBotonUsuario);
+
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+
+    const id    = Number(el.dataset.id);
+    const color = el.dataset.color;
+    const talla = el.dataset.talla;
+
+    switch (el.dataset.accion) {
+        case 'restar-cantidad':    cambiarCantidadBoton(id, -1, color, talla); break;
+        case 'sumar-cantidad':     cambiarCantidadBoton(id, 1, color, talla); break;
+        case 'eliminar-producto':  eliminarProducto(id, color, talla); break;
+        case 'finalizar-compra':   finalizarCompra(); break;
+    }
+});
+
+document.addEventListener('change', function (e) {
+    const el = e.target.closest('[data-accion="input-cantidad"]');
+    if (!el) return;
+    cambiarCantidad(Number(el.dataset.id), el.value, el.dataset.color, el.dataset.talla);
 });

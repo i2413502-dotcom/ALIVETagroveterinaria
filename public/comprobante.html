@@ -7,29 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        :root { --verde: #06A049; --verde-oscuro: #047a37; }
-        body { background-color: #f0f4f1; font-family: 'Segoe UI', sans-serif; }
-        .main-header { background-color: var(--verde); padding: 10px 0; }
-        .card-comp { border-radius: 15px; }
-        .btn-agro { background-color: var(--verde); color: white; }
-        .btn-agro:hover { background-color: var(--verde-oscuro); color: white; }
-        .paso { 
-            display: flex; align-items: center; justify-content: center;
-            width: 35px; height: 35px; border-radius: 50%; 
-            background: #ddd; color: #666; font-weight: bold;
-        }
-        .paso.activo { background: var(--verde); color: white; }
-        .linea { flex: 1; height: 3px; background: #ddd; }
-        .linea.activa { background: var(--verde); }
-        .tipo-card {
-            border: 2px solid #ddd; border-radius: 12px; padding: 20px;
-            cursor: pointer; transition: 0.2s; text-align: center;
-        }
-        .tipo-card:hover { border-color: var(--verde); }
-        .tipo-card.seleccionado { border-color: var(--verde); background: #f0fff4; }
-        .tipo-card i { font-size: 2rem; color: var(--verde); }
-    </style>
+    <link rel="stylesheet" href="/css/paginas/comprobante.css">
 </head>
 <body>
 
@@ -74,14 +52,14 @@
                 <!-- Selección tipo -->
                 <div class="row g-3 mb-4">
                     <div class="col-6">
-                        <div class="tipo-card" id="card-boleta" onclick="seleccionarTipo('boleta')">
+                        <div class="tipo-card" id="card-boleta" data-accion="seleccionar-tipo" data-valor="boleta">
                             <i class="bi bi-receipt"></i>
                             <h6 class="fw-bold mt-2">Boleta</h6>
                             <small class="text-muted">Para personas naturales</small>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="tipo-card" id="card-factura" onclick="seleccionarTipo('factura')">
+                        <div class="tipo-card" id="card-factura" data-accion="seleccionar-tipo" data-valor="factura">
                             <i class="bi bi-file-earmark-text"></i>
                             <h6 class="fw-bold mt-2">Factura</h6>
                             <small class="text-muted">Para empresas</small>
@@ -97,7 +75,7 @@
                         <div class="input-group">
                             <input type="text" class="form-control" id="dni" 
                                    placeholder="Ingresa tu DNI (8 dígitos)" maxlength="8">
-                            <button class="btn btn-outline-success" onclick="validarDNI()">
+                            <button class="btn btn-outline-success" data-accion="validar-dni">
                                 Validar
                             </button>
                         </div>
@@ -118,7 +96,7 @@
                         <div class="input-group">
                             <input type="text" class="form-control" id="ruc" 
                                    placeholder="Ingresa el RUC (11 dígitos)" maxlength="11">
-                            <button class="btn btn-outline-success" onclick="validarRUC()">
+                            <button class="btn btn-outline-success" data-accion="validar-ruc">
                                 Validar
                             </button>
                         </div>
@@ -140,12 +118,12 @@
                     Por favor selecciona un tipo de comprobante
                 </div>
 
-                <button class="btn btn-agro w-100 py-2 mt-3" onclick="continuarPago()">
+                <button class="btn btn-agro w-100 py-2 mt-3" data-accion="continuar-pago">
                     Continuar al pago
                     <i class="bi bi-arrow-right ms-2"></i>
                 </button>
 
-                <button class="btn btn-outline-secondary w-100 mt-2" onclick="window.location.href='/envio.html'">
+                <button class="btn btn-outline-secondary w-100 mt-2" data-accion="volver-envio">
                     <i class="bi bi-arrow-left me-2"></i>Volver al envío
                 </button>
             </div>

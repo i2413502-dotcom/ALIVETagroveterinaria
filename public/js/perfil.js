@@ -132,7 +132,7 @@ async function cargarPedidos() {
             const timeline = construirTimeline(p.estado);
 
             return `
-            <div class="pedido-card mb-3 p-3 bg-white" onclick="toggleDetalle(${p.id_pedido}, this)">
+            <div class="pedido-card mb-3 p-3 bg-white" data-accion="toggle-detalle" data-id="${p.id_pedido}">
                 <!-- Cabecera del pedido -->
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -353,7 +353,23 @@ window.addEventListener('DOMContentLoaded', () => {
     const seccionPendiente = localStorage.getItem('perfilSeccion');
     if (seccionPendiente) {
         localStorage.removeItem('perfilSeccion');
-        const link = document.querySelector(`.nav-perfil .nav-link[onclick*="'${seccionPendiente}'"]`);
+        const link = document.querySelector(`.nav-perfil .nav-link[data-valor="${seccionPendiente}"]`);
         mostrarSeccion(seccionPendiente, link);
+    }
+});
+
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+    if (el.tagName === 'A') e.preventDefault();
+
+    switch (el.dataset.accion) {
+        case 'seccion':          mostrarSeccion(el.dataset.valor, el); break;
+        case 'cerrar-sesion':    cerrarSesion(); break;
+        case 'cargar-pedidos':   cargarPedidos(); break;
+        case 'toggle-detalle':   toggleDetalle(Number(el.dataset.id)); break;
     }
 });

@@ -1,0 +1,31 @@
+/* ============================================================
+   ALIVET — Estilos específicos de la página de pago (checkout)
+   Usa las variables definidas en /css/styles.css — enlazar
+   ese archivo ANTES que este.
+   ============================================================ */
+
+body { background-color: #f0f4f1; }
+
+.card-pago { border-radius: 15px; }
+
+.btn-agro { background-color: var(--agro-green); color: white; }
+.btn-agro:hover { background-color: var(--agro-green-dark); color: white; }
+
+.paso {
+    display: flex; align-items: center; justify-content: center;
+    width: 35px; height: 35px; border-radius: 50%;
+    background: #ddd; color: #666; font-weight: bold;
+}
+.paso.activo { background: var(--agro-green); color: white; }
+.linea { flex: 1; height: 3px; background: #ddd; }
+.linea.activa { background: var(--agro-green); }
+
+.metodo-card {
+    border: 2px solid #ddd; border-radius: 12px; padding: 15px;
+    cursor: pointer; transition: 0.2s; text-align: center;
+}
+.metodo-card:hover { border-color: var(--agro-green); }
+.metodo-card.seleccionado { border-color: var(--agro-green); background: #f0fff4; }
+.metodo-card img { height: 45px; object-fit: contain; }
+
+#form-tarjeta input { letter-spacing: 2px; }

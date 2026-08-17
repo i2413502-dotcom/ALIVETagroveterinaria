@@ -1,6 +1,12 @@
 const RUTA_IMG = '/img/productos/';
 const IMG_ERROR = 'https://via.placeholder.com/400x400?text=Sin+Imagen';
 
+// Guarda el producto de la página actual para que agregarAlCarrito() y
+// sumar() no necesiten recibir todos sus datos por argumento (antes se
+// pasaban a mano por el onclick, con un escape manual de comillas para
+// el nombre — frágil ante nombres con apóstrofes).
+let productoActual = null;
+
 function convertirUrlDrive(url) {
     if (!url) return '#';
     const matchOpen = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
@@ -154,7 +160,7 @@ function construirSelectorAtributos(p) {
                         <button type="button"
                             class="btn btn-sm ${i === 0 ? 'btn-success' : 'btn-outline-secondary'}"
                             style="border-radius:20px; min-width:70px"
-                            onclick="seleccionarOpcion(this, 'selector-colores')">
+                            data-accion="seleccionar-opcion" data-grupo="selector-colores">
                             ${c}
                         </button>`).join('')}
                 </div>
@@ -173,7 +179,7 @@ function construirSelectorAtributos(p) {
                         <button type="button"
                             class="btn btn-sm ${i === 0 ? 'btn-success' : 'btn-outline-secondary'}"
                             style="border-radius:6px; min-width:50px; font-weight:600"
-                            onclick="seleccionarOpcion(this, 'selector-tallas')">
+                            data-accion="seleccionar-opcion" data-grupo="selector-tallas">
                             ${t}
                         </button>`).join('')}
                 </div>
@@ -204,6 +210,7 @@ async function cargarDetalleProducto() {
         const res = await fetch(`/api/productos/${id}`);
         if (!res.ok) throw new Error('Producto no encontrado');
         const p = await res.json();
+        productoActual = p; // usado por agregarAlCarrito() y sumar()
 
         const imgVal = p.imagen ? p.imagen.trim() : '';
         const img = imgVal ? (imgVal.startsWith('http') ? imgVal : `${RUTA_IMG}${imgVal}`) : IMG_ERROR;
@@ -243,22 +250,17 @@ async function cargarDetalleProducto() {
                     <label class="fw-bold">Cantidad:</label>
                     <div class="d-flex align-items-center gap-2">
                         <button class="btn btn-outline-secondary btn-sm rounded-circle"
-                                onclick="restar()">-</button>
+                                data-accion="restar-cantidad">-</button>
                         <input type="number" id="cantidad" value="1" min="1" max="${p.stock_actual}"
                                class="form-control text-center" style="width:65px;">
                         <button class="btn btn-outline-secondary btn-sm rounded-circle"
-                                onclick="sumar(${p.stock_actual})">+</button>
+                                data-accion="sumar-cantidad">+</button>
                     </div>
                 </div>
 
                 <div class="d-flex gap-2 flex-wrap">
                     ${!sinStock ? `
-                    <button class="btn btn-success px-4 py-2"
-                            onclick="agregarAlCarrito(${p.id_producto},
-                                '${p.nombre.replace(/'/g, "\\'")}',
-                                ${p.precio_venta},
-                                '${p.imagen ? p.imagen.trim() : ''}',
-                                ${p.stock_actual})">
+                    <button class="btn btn-success px-4 py-2" data-accion="agregar-carrito">
                         <i class="bi bi-cart-plus me-2"></i>Agregar al carrito
                     </button>` :
                     `<span class="btn btn-secondary px-4 py-2 disabled">
@@ -285,12 +287,16 @@ function restar() {
     if (parseInt(input.value) > 1) input.value = parseInt(input.value) - 1;
 }
 
-function sumar(stock) {
+function sumar() {
     const input = document.getElementById('cantidad');
+    const stock = productoActual ? productoActual.stock_actual : Infinity;
     if (parseInt(input.value) < stock) input.value = parseInt(input.value) + 1;
 }
 
-function agregarAlCarrito(id, nombre, precio, imagen, stock) {
+function agregarAlCarrito() {
+    if (!productoActual) return;
+    const { id_producto: id, nombre, precio_venta: precio, imagen, stock_actual: stock } = productoActual;
+
     const cantidad = parseInt(document.getElementById('cantidad').value);
     if (cantidad < 1 || cantidad > stock) { alert('Cantidad no válida'); return; }
 
@@ -313,7 +319,7 @@ function agregarAlCarrito(id, nombre, precio, imagen, stock) {
             id_producto: id,
             nombre,
             precio: parseFloat(precio),
-            imagen,
+            imagen: imagen ? imagen.trim() : '',
             cantidad,
             color: colorElegido,
             talla: tallaElegida
@@ -370,4 +376,27 @@ async function cargarRecomendados(idCategoria, idActual) {
 window.addEventListener('DOMContentLoaded', () => {
     cargarDetalleProducto();
     actualizarContadorCarrito();
+});
+// ═══════════════════════════════════════════════════
+//  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
+//
+//  NOTA: el selector de color/talla de esta página todavía lee de
+//  p.colores/p.tallas (texto separado por comas) — el campo LEGADO
+//  que la migración de base de datos reemplazó por variante_producto.
+//  Sigue funcionando para productos viejos que aún tengan ese texto,
+//  pero no refleja variantes creadas con el nuevo sistema (con su
+//  propio precio/stock por combinación). Reconstruir este selector
+//  contra /api/variantes/producto/:id es la pantalla de "variantes e
+//  imágenes múltiples" que quedó pendiente del frontend.
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-accion]');
+    if (!el) return;
+
+    switch (el.dataset.accion) {
+        case 'seleccionar-opcion': seleccionarOpcion(el, el.dataset.grupo); break;
+        case 'restar-cantidad':    restar(); break;
+        case 'sumar-cantidad':     sumar(); break;
+        case 'agregar-carrito':    agregarAlCarrito(); break;
+    }
 });
