@@ -264,7 +264,7 @@ document.getElementById('envioForm').addEventListener('submit', async (e) => {
             referencias:         null,
             id_distrito:         null,
             id_zona:             null,
-            direccion_completa:  'Recojo en tienda — ALIVET (Pichanaki, Junín)',
+            direccion_completa:  'Recojo en tienda — ALIVET (HUANCAYO, Junín)',
             costo_envio:         0,
             total:               subtotalProductos
         };
