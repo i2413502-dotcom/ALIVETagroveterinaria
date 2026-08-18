@@ -490,11 +490,17 @@ async function previsualizarImagen(input) {
     reader.readAsDataURL(file);
 
     // Limpiar URL previa y subir a R2 en segundo plano
+       // Limpiar URL previa y subir a R2 en segundo plano
     document.getElementById('prod-imagen-final').value = '';
     try {
+        const token = localStorage.getItem('token');
         const formData = new FormData();
         formData.append('imagen', file);
-        const upRes = await fetch('/api/upload/imagen-producto', { method: 'POST', body: formData });
+        const upRes = await fetch('/api/upload/imagen-producto', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+        });
         if (!upRes.ok) { console.error('Upload error', upRes.status); return; }
         const upData = await upRes.json();
         if (upData.url) {
