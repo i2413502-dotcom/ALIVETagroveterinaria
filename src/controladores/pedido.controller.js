@@ -255,10 +255,16 @@ exports.obtenerDetallePedido = async (req, res) => {
         if (!clienteRows.length) return res.status(404).json({ mensaje: 'Cliente no encontrado' });
         const id_cliente = clienteRows[0].id_cliente;
 
-        const [pedidoRows] = await db.query(
-            'SELECT * FROM pedido WHERE id_pedido = ? AND id_cliente = ?',
-            [req.params.id, id_cliente]
-        );
+        const [pedidoRows] = await db.query(`
+            SELECT p.*, per.nombres AS cliente_nombre, per.correo AS cliente_correo,
+                   d.nombre AS nombre_distrito, tc.nombre AS tipo_comprobante
+            FROM pedido p
+            JOIN cliente c ON p.id_cliente = c.id_cliente
+            JOIN persona per ON c.id_persona = per.id_persona
+            LEFT JOIN distrito d ON p.id_distrito = d.id_distrito
+            LEFT JOIN tipo_comprobante tc ON p.id_tipo_comprobante = tc.id_tipo_comprobante
+            WHERE p.id_pedido = ? AND p.id_cliente = ?
+        `, [req.params.id, id_cliente]);
         if (!pedidoRows.length) return res.status(404).json({ mensaje: 'Pedido no encontrado' });
 
         const pedido = pedidoRows[0];
@@ -277,7 +283,14 @@ exports.obtenerDetallePedido = async (req, res) => {
             marca: d.marca || d.marca_producto || null
         }));
 
-        res.json({ ...pedido, detalles: detallesConMarca });
+        const [compRows] = await db.query(`
+            SELECT id_comprobante, serie, numero, tipo, fecha_emision,
+                   ruc_cliente, razon_social, direccion_fiscal, dni_cliente, nombre_cliente,
+                   subtotal, igv, total, estado_sunat, archivo_pdf
+            FROM comprobante WHERE id_pedido = ?
+        `, [req.params.id]);
+
+        res.json({ ...pedido, detalles: detallesConMarca, comprobante: compRows[0] || null });
     } catch (err) {
         console.error(err);
         res.status(500).json({ mensaje: 'Error al obtener detalle del pedido' });

@@ -48,7 +48,7 @@ async function crearPreferencia({ idPedidoTemporal, items, costoEnvio, emailComp
             // pendiente corresponde el pago que llega después.
             external_reference: String(idPedidoTemporal),
             back_urls: {
-                success: `${urlBase}/confirmacion.html`,
+                success: `${urlBase}/confirmacion.html?id_pedido=${idPedidoTemporal}`,
                 failure: `${urlBase}/pago.html?estado=fallido`,
                 pending: `${urlBase}/pago.html?estado=pendiente`
             },

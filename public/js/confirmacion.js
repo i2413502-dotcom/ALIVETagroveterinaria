@@ -1,17 +1,66 @@
-// Datos del emisor — REEMPLAZAR por los datos reales de la empresa (sobre todo el RUC)
+// Datos del emisor — datos reales de AGROVETERINARIA ALIVET S.A.C.
 const EMISOR = {
     razon:     'AGROVETERINARIA ALIVET S.A.C.',
-    ruc:       '20000000000',
-    direccion: 'Jr. Calixto N°276, Huancayo, Junín - Perú',
+    ruc:       '20611500859',
+    direccion: 'Jr. Calixto N°276 / Jr. Amazonas N°753, Huancayo, Junín - Perú',
     telefono:  '954 800 966'
 };
 
-function cargarConfirmacion() {
-    const ultimoPedido = JSON.parse(localStorage.getItem('ultimoPedido'));
-    if (!ultimoPedido) { window.location.href = '/'; return; }
+async function cargarConfirmacion() {
+    const params   = new URLSearchParams(window.location.search);
+    const idPedido = params.get('id_pedido');
 
-    const { id_pedido, comprobante, pedido } = ultimoPedido;
-    const esFactura = (pedido.tipo_comprobante || '').toLowerCase().includes('factura');
+    let pedido, comprobante, id_pedido;
+
+    if (idPedido) {
+        // Flujo actual: Mercado Pago redirige aquí con ?id_pedido=... —
+        // se pide el pedido real al backend (ya debería estar PAGADO,
+        // el webhook lo confirma por detrás casi al mismo tiempo).
+        const token = localStorage.getItem('token');
+        try {
+            const resp = await fetch(`/api/pedidos/mispedidos/${idPedido}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!resp.ok) throw new Error('No se pudo obtener el pedido');
+            pedido = await resp.json();
+            comprobante = pedido.comprobante;
+            id_pedido = idPedido;
+        } catch (err) {
+            console.error('Error cargando el pedido de la confirmación:', err);
+            // El pago puede haber llegado 1-2 segundos antes que el webhook
+            // termine de procesar. Reintenta una vez más tras una pequeña espera.
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+                const resp2 = await fetch(`/api/pedidos/mispedidos/${idPedido}`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                });
+                pedido = await resp2.json();
+                comprobante = pedido.comprobante;
+                id_pedido = idPedido;
+            } catch {
+                window.location.href = '/perfil.html';
+                return;
+            }
+        }
+    } else {
+        // Compatibilidad con el flujo antiguo (si algo todavía deja
+        // datos en localStorage.ultimoPedido).
+        const ultimoPedido = JSON.parse(localStorage.getItem('ultimoPedido'));
+        if (!ultimoPedido) { window.location.href = '/'; return; }
+        id_pedido   = ultimoPedido.id_pedido;
+        comprobante = ultimoPedido.comprobante;
+        pedido      = ultimoPedido.pedido;
+    }
+
+    if (!comprobante) {
+        // El pago llegó pero el webhook todavía no terminó de crear el
+        // comprobante — no es un error, solo hay que esperar un poco.
+        document.getElementById('numero-pedido').innerHTML =
+            `Pedido N° <strong>${id_pedido}</strong> — tu comprobante se está generando, actualiza esta página en unos segundos.`;
+        return;
+    }
+
+    const esFactura = comprobante.tipo === 'FACTURA';
     const tituloDoc = esFactura ? 'FACTURA ELECTRÓNICA' : 'BOLETA DE VENTA ELECTRÓNICA';
 
     document.getElementById('numero-pedido').innerHTML = `
@@ -54,9 +103,19 @@ function cargarConfirmacion() {
     const opGravada = +(total / 1.18).toFixed(2);
     const igv       = +(total - opGravada).toFixed(2);
 
-    const docCliente = pedido.cliente_documento
-        ? `${esFactura ? 'RUC' : 'DNI'}: ${pedido.cliente_documento}` : '';
-    const fecha = new Date(pedido.fecha_pedido).toLocaleDateString('es-PE');
+    const docCliente = esFactura
+        ? (comprobante.ruc_cliente ? `RUC: ${comprobante.ruc_cliente}` : '')
+        : (comprobante.dni_cliente ? `DNI: ${comprobante.dni_cliente}` : '');
+    const nombreCliente = esFactura
+        ? (comprobante.razon_social || pedido.cliente_nombre || '-')
+        : (comprobante.nombre_cliente || pedido.cliente_nombre || '-');
+    const fecha = new Date(comprobante.fecha_emision || pedido.fecha_pedido).toLocaleDateString('es-PE');
+
+    const estadoSunatBadge = comprobante.estado_sunat === 'ACEPTADO'
+        ? '<span class="badge bg-success px-3 py-2 ms-2"><i class="bi bi-patch-check me-1"></i>Aceptado por SUNAT</span>'
+        : comprobante.estado_sunat === 'OBSERVADO' || comprobante.estado_sunat === 'RECHAZADO'
+            ? '<span class="badge bg-danger px-3 py-2 ms-2"><i class="bi bi-exclamation-triangle me-1"></i>Revisar comprobante</span>'
+            : '<span class="badge bg-secondary px-3 py-2 ms-2"><i class="bi bi-hourglass-split me-1"></i>Comprobante en proceso</span>';
 
     document.getElementById('detalle-pedido').innerHTML = `
     <div class="boleta">
@@ -77,7 +136,7 @@ function cargarConfirmacion() {
 
         <div class="d-flex justify-content-between small border-top border-bottom py-2 mb-2">
             <div>
-                <strong>Cliente:</strong> ${pedido.cliente_nombre || '-'}<br>
+                <strong>Cliente:</strong> ${nombreCliente}<br>
                 ${docCliente ? `<strong>${docCliente}</strong>` : ''}
             </div>
             <div class="text-end">
@@ -115,7 +174,18 @@ function cargarConfirmacion() {
         <div class="mt-3 no-print">
             <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i>Pago completado</span>
             <span class="badge bg-warning text-dark px-3 py-2 ms-2"><i class="bi bi-clock me-1"></i>Pendiente de envío</span>
+            ${estadoSunatBadge}
         </div>
+
+        ${comprobante.archivo_pdf ? `
+        <div class="mt-2 no-print">
+            <a href="${comprobante.archivo_pdf}" target="_blank" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Descargar ${tituloDoc.toLowerCase()} oficial (SUNAT)
+            </a>
+        </div>` : `
+        <div class="mt-2 small text-muted no-print">
+            <i class="bi bi-hourglass-split me-1"></i>El comprobante oficial ante SUNAT se está generando/procesando. La representación de arriba es solo una vista previa.
+        </div>`}
     </div>`;
 
     document.getElementById('detalle-envio').innerHTML = `
