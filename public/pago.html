@@ -73,54 +73,24 @@
                 </h5>
 
                 <!-- Métodos -->
-                <div class="row g-3 mb-4">
-                    <div class="col-6">
-                        <div class="metodo-card" id="card-yape" onclick="seleccionarMetodo('yape')">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Yape_logo.svg/200px-Yape_logo.svg.png" 
-                                 alt="Yape" class="mb-2">
-                            <h6 class="fw-bold mb-0">Yape</h6>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="metodo-card" id="card-tarjeta" onclick="seleccionarMetodo('tarjeta')">
-                            <i class="bi bi-credit-card" style="font-size:2.5rem;color:#06A049;"></i>
-                            <h6 class="fw-bold mb-0 mt-1">Tarjeta</h6>
-                        </div>
-                    </div>
-                </div>
+    <div class="alert alert-info">
+    <h6 class="fw-bold"><i class="bi bi-shield-lock me-2"></i>Pago seguro con Mercado Pago</h6>
+    <p class="mb-0 small">
+        Serás redirigido a Mercado Pago para pagar con tarjeta, Yape, Plin o tu
+        cuenta Mercado Pago. Por seguridad, no almacenamos datos de tarjetas ni
+        de cuentas — todo el pago se procesa en la plataforma de Mercado Pago.
+    </p>
+</div>
 
-                <!-- Form Yape -->
-                <div id="form-yape" class="d-none">
-                    <div class="alert alert-success">
-                        <h6 class="fw-bold"><i class="bi bi-phone me-2"></i>Pago con Yape</h6>
-                        <p class="mb-1">Escanea el QR o envía al número:</p>
-                        <h4 class="fw-bold text-success">954 800 966</h4>
-                        <p class="mb-0 small">Concepto: Tu nombre + número de pedido</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Número de operación Yape</label>
-                        <input type="text" class="form-control" id="codigo-yape"
-                               inputmode="numeric" placeholder="Ej: 00123456">
-                        <small class="text-muted">Lo encuentras en la constancia de tu Yape.</small>
-                    </div>
-                </div>
+              <div id="form-mercadopago" class="d-none">
+    <div class="alert alert-info mb-0">
+        <h6 class="fw-bold"><i class="bi bi-shield-lock me-2"></i>Pago con tarjeta</h6>
+        <p class="mb-0 small">Serás redirigido a Mercado Pago para completar tu pago de forma segura.</p>
+    </div>
+</div>
 
-                <!-- Form Tarjeta: sin recolección de datos de tarjeta (pasarela segura externa) -->
-                <div id="form-tarjeta" class="d-none">
-                    <div class="alert alert-info mb-0">
-                        <h6 class="fw-bold"><i class="bi bi-shield-lock me-2"></i>Pago con tarjeta</h6>
-                        <p class="mb-0 small">
-                            Próximamente el pago con tarjeta se procesará mediante una
-                            <strong>pasarela segura</strong> (Mercado Pago / Izipay / Niubiz).
-                            Por seguridad <strong>no almacenamos datos de tarjetas</strong>.
-                            Por ahora completa tu compra con <strong>Yape</strong>.
-                        </p>
-                    </div>
-                </div>
+                
 
-                <div id="mensaje-metodo" class="alert alert-warning d-none">
-                    Por favor selecciona un método de pago
-                </div>
 
                 <button class="btn btn-agro w-100 py-2 mt-3" onclick="procesarPago()" id="btn-pagar">
                     <i class="bi bi-lock me-2"></i>Confirmar Pago

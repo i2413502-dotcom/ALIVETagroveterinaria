@@ -1,43 +1,4 @@
-let metodoSeleccionado = null;
-
-function seleccionarMetodo(metodo) {
-    metodoSeleccionado = metodo;
-
-    document.getElementById('card-yape').classList.remove('seleccionado');
-    document.getElementById('card-tarjeta').classList.remove('seleccionado');
-    document.getElementById('form-yape').classList.add('d-none');
-    document.getElementById('form-tarjeta').classList.add('d-none');
-    document.getElementById('mensaje-metodo').classList.add('d-none');
-
-    if (metodo === 'yape') {
-        document.getElementById('card-yape').classList.add('seleccionado');
-        document.getElementById('form-yape').classList.remove('d-none');
-    } else {
-        document.getElementById('card-tarjeta').classList.add('seleccionado');
-        document.getElementById('form-tarjeta').classList.remove('d-none');
-    }
-}
-
 async function procesarPago() {
-    if (!metodoSeleccionado) {
-        document.getElementById('mensaje-metodo').classList.remove('d-none');
-        return;
-    }
-
-    let codigoTransaccion = '';
-
-    if (metodoSeleccionado === 'yape') {
-        codigoTransaccion = document.getElementById('codigo-yape').value.trim();
-        if (!/^\d{6,}$/.test(codigoTransaccion)) {
-            alert('Ingresa un número de operación Yape válido (solo dígitos, mínimo 6).');
-            return;
-        }
-    } else {
-        // Pago con tarjeta deshabilitado: no se recolectan datos de tarjeta (pasarela segura externa)
-        alert('El pago con tarjeta estará disponible mediante una pasarela segura. Por ahora usa Yape.');
-        return;
-    }
-
     // Obtener todos los datos guardados
     const carrito = JSON.parse(localStorage.getItem('carrito')) || [];
     const datosEnvio = JSON.parse(localStorage.getItem('datosEnvio'));
@@ -53,50 +14,37 @@ async function procesarPago() {
     // Mostrar loading
     const btn = document.getElementById('btn-pagar');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Redirigiendo a Mercado Pago...';
 
     try {
-        const pedidoData = {
-            carrito,
-            datosEnvio,
-            datosComprobante,
-            metodoPago: metodoSeleccionado,
-            codigoTransaccion
-        };
-
-        const response = await fetch('/api/pedidos/crear', {
+        const response = await fetch('/api/pedidos/crear-con-mercadopago', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify(pedidoData)
+            body: JSON.stringify({ carrito, datosEnvio, datosComprobante })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            alert(data.mensaje || 'Error al procesar el pago');
+            alert(data.mensaje || 'Error al iniciar el pago');
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-lock me-2"></i>Confirmar Pago';
+            btn.innerHTML = '<i class="bi bi-lock me-2"></i>Pagar con Mercado Pago';
             return;
         }
 
-        // Guardar id del pedido para confirmación
-        localStorage.setItem('ultimoPedido', JSON.stringify(data));
-
-        // Limpiar carrito
-        localStorage.removeItem('carrito');
-        localStorage.removeItem('datosEnvio');
-        localStorage.removeItem('datosComprobante');
-
-        window.location.href = '/confirmacion.html';
+        // NO se limpia el carrito/localStorage aquí: eso pasa recién en
+        // confirmacion.html, y solo porque Mercado Pago te redirige ahí
+        // (back_urls.success) cuando el pago fue aprobado de verdad.
+        window.location.href = data.init_point || data.sandbox_init_point;
 
     } catch (err) {
         console.error(err);
         alert('Error al conectar con el servidor');
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-lock me-2"></i>Confirmar Pago';
+        btn.innerHTML = '<i class="bi bi-lock me-2"></i>Pagar con Mercado Pago';
     }
 }
 
@@ -123,8 +71,24 @@ function cargarResumen() {
     }).join('');
 
     document.getElementById('resumen-subtotal').innerText = 'S/. ' + subtotal.toFixed(2);
-    document.getElementById('resumen-envio').innerText = 'S/. ' + datosEnvio.costo_envio.toFixed(2);
+    document.getElementById('resumen-envio').innerText = 'S/. ' + (datosEnvio.costo_envio || 0).toFixed(2);
     document.getElementById('resumen-total').innerText = 'S/. ' + datosEnvio.total.toFixed(2);
 }
 
-window.addEventListener('DOMContentLoaded', cargarResumen);
+// Si Mercado Pago redirige de vuelta con un pago fallido o pendiente
+// (back_urls.failure / pending), avisar al cliente.
+function mostrarEstadoRetorno() {
+    const params = new URLSearchParams(window.location.search);
+    const estado = params.get('estado');
+    if (!estado) return;
+    const mensajes = {
+        fallido: 'El pago no pudo completarse. Puedes intentarlo nuevamente.',
+        pendiente: 'Tu pago está pendiente de confirmación. Te avisaremos cuando se apruebe.'
+    };
+    if (mensajes[estado]) alert(mensajes[estado]);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    cargarResumen();
+    mostrarEstadoRetorno();
+});

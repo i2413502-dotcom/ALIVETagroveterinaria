@@ -120,6 +120,15 @@ async function validarRUC() {
         if (data.success) {
             document.getElementById('razon-social').value     = data.razonSocial || '';
             document.getElementById('direccion-fiscal').value = data.direccion   || '';
+
+            // RUC que empieza en 20 = persona jurídica (empresa): dirección
+            // fiscal obligatoria y visible. RUC que empieza en 10 = persona
+            // natural con negocio: la dirección no es obligatoria para SUNAT.
+            const esJuridica = ruc.startsWith('20');
+            const campoDireccion = document.getElementById('direccion-fiscal').closest('.mb-3');
+            document.getElementById('direccion-fiscal').required = esJuridica;
+            if (campoDireccion) campoDireccion.style.display = esJuridica ? '' : 'none';
+
             resultado.innerHTML = '<small class="text-success"><i class="bi bi-check-circle me-1"></i>RUC válido</small>';
         } else {
             resultado.innerHTML = `<small class="text-danger">${data.mensaje || 'No se encontró información para ese RUC'}</small>`;
@@ -141,9 +150,17 @@ function continuarPago() {
         datosComprobante.dni    = document.getElementById('dni').value.trim();
         datosComprobante.nombre = document.getElementById('nombre-boleta').value.trim();
     } else {
-        datosComprobante.ruc            = document.getElementById('ruc').value.trim();
+        const ruc = document.getElementById('ruc').value.trim();
+        const dirFiscal = document.getElementById('direccion-fiscal').value.trim();
+
+        if (ruc.startsWith('20') && !dirFiscal) {
+            alert('La dirección fiscal es obligatoria para RUC de empresa (20...)');
+            return;
+        }
+
+        datosComprobante.ruc            = ruc;
         datosComprobante.razon_social   = document.getElementById('razon-social').value.trim();
-        datosComprobante.direccion_fiscal = document.getElementById('direccion-fiscal').value.trim();
+        datosComprobante.direccion_fiscal = dirFiscal;
     }
 
     localStorage.setItem('datosComprobante', JSON.stringify(datosComprobante));
@@ -184,3 +201,19 @@ document.addEventListener('click', function (e) {
         case 'volver-envio':      window.location.href = '/envio.html'; break;
     }
 });
+
+// ── Autobúsqueda: Enter o al completar los dígitos requeridos ──
+function activarAutobusquedaComprobante(inputId, fn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const largoEsperado = inputId === 'dni' ? 8 : 11;
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); fn(); }
+    });
+    input.addEventListener('input', () => {
+        if (input.value.trim().length === largoEsperado) fn();
+    });
+}
+activarAutobusquedaComprobante('dni', validarDNI);
+activarAutobusquedaComprobante('ruc', validarRUC);

@@ -1,6 +1,33 @@
 let subtotalProductos = 0;
 let costoEnvioActual  = 0;
 let distritoActual    = null;
+let tipoEntrega        = 'DELIVERY';
+
+function seleccionarEntrega(tipo) {
+    tipoEntrega = tipo;
+    document.getElementById('card-delivery').classList.toggle('seleccionado', tipo === 'DELIVERY');
+    document.getElementById('card-recojo').classList.toggle('seleccionado', tipo === 'RECOJO_TIENDA');
+    document.getElementById('bloque-delivery').classList.toggle('d-none', tipo === 'RECOJO_TIENDA');
+    document.getElementById('info-recojo').classList.toggle('d-none', tipo !== 'RECOJO_TIENDA');
+
+    const camposDelivery = ['departamento', 'provincia', 'distrito', 'zona-envio', 'direccion'];
+
+    if (tipo === 'RECOJO_TIENDA') {
+        costoEnvioActual = 0;
+        document.getElementById('resumen-envio').innerText = 'Gratis (recojo en tienda)';
+        document.getElementById('resumen-total').innerText = 'S/. ' + subtotalProductos.toFixed(2);
+        camposDelivery.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.required = false;
+        });
+    } else {
+        camposDelivery.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.required = true;
+        });
+        actualizarCostoEnvio();
+    }
+}
 
 function verificarLogin() {
     const token = localStorage.getItem('token');
@@ -200,41 +227,63 @@ document.getElementById('envioForm').addEventListener('submit', async (e) => {
     const zonaSelect = document.getElementById('zona-envio');
 
     if (!/^9\d{8}$/.test(telefono)) { alert('El teléfono debe tener 9 dígitos y empezar con 9'); return; }
-    if (!distSelect.value) { alert('Por favor selecciona un distrito'); return; }
-    if (!distritoActual)   { alert('Por favor selecciona un distrito válido'); return; }
-    if (!zonaSelect.value) { alert('Por favor selecciona una zona de envío'); return; }
 
-    const depNombre  = depSelect.options[depSelect.selectedIndex].text;
-    const provNombre = provSelect.options[provSelect.selectedIndex].text;
-    const distNombre = distSelect.options[distSelect.selectedIndex].text;
+    let datosEnvio;
 
-    const datosEnvio = {
-        nombre,
-        telefono,
-        direccion,
-        referencias,
-        id_distrito:         distritoActual.id,
-        id_zona:             parseInt(zonaSelect.value, 10),
-        nombre_distrito:     distNombre,
-        nombre_provincia:    provNombre,
-        nombre_departamento: depNombre,
-        direccion_completa:  `${direccion}, ${distNombre}, ${provNombre}, ${depNombre}`,
-        costo_envio:         costoEnvioActual,
-        total:               subtotalProductos + costoEnvioActual
-    };
+    if (tipoEntrega === 'DELIVERY') {
+        if (!distSelect.value) { alert('Por favor selecciona un distrito'); return; }
+        if (!distritoActual)   { alert('Por favor selecciona un distrito válido'); return; }
+        if (!zonaSelect.value) { alert('Por favor selecciona una zona de envío'); return; }
+        if (!direccion)        { alert('Ingresa la dirección exacta'); return; }
+
+        const depNombre  = depSelect.options[depSelect.selectedIndex].text;
+        const provNombre = provSelect.options[provSelect.selectedIndex].text;
+        const distNombre = distSelect.options[distSelect.selectedIndex].text;
+
+        datosEnvio = {
+            tipo_entrega:        'DELIVERY',
+            nombre,
+            telefono,
+            direccion,
+            referencias,
+            id_distrito:         distritoActual.id,
+            id_zona:             parseInt(zonaSelect.value, 10),
+            nombre_distrito:     distNombre,
+            nombre_provincia:    provNombre,
+            nombre_departamento: depNombre,
+            direccion_completa:  `${direccion}, ${distNombre}, ${provNombre}, ${depNombre}`,
+            costo_envio:         costoEnvioActual,
+            total:               subtotalProductos + costoEnvioActual
+        };
+    } else {
+        datosEnvio = {
+            tipo_entrega:        'RECOJO_TIENDA',
+            nombre,
+            telefono,
+            direccion:           null,
+            referencias:         null,
+            id_distrito:         null,
+            id_zona:             null,
+            direccion_completa:  'Recojo en tienda — ALIVET (Pichanaki, Junín)',
+            costo_envio:         0,
+            total:               subtotalProductos
+        };
+    }
 
     localStorage.setItem('datosEnvio', JSON.stringify(datosEnvio));
 
-    // Guardar dirección habitual para futuros pedidos
-    try {
-        const token = localStorage.getItem('token');
-        await fetch('/api/auth/guardar-direccion', {
-            method:  'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ direccion, referencia: referencias, telefono })
-        });
-    } catch (err) {
-        console.error('Error guardando dirección:', err);
+    // Guardar dirección habitual para futuros pedidos (solo aplica a delivery)
+    if (tipoEntrega === 'DELIVERY') {
+        try {
+            const token = localStorage.getItem('token');
+            await fetch('/api/auth/guardar-direccion', {
+                method:  'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ direccion, referencia: referencias, telefono })
+            });
+        } catch (err) {
+            console.error('Error guardando dirección:', err);
+        }
     }
 
     window.location.href = '/comprobante.html';
@@ -255,4 +304,5 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarDepartamentos();
     cargarDatosCliente();
     filtrarTelefono();
+    seleccionarEntrega('DELIVERY');
 });

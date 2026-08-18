@@ -51,6 +51,31 @@
                 </h5>
 
                 <form id="envioForm" class="form-agro">
+
+                    <!-- Método de entrega -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="metodo-card" id="card-delivery" onclick="seleccionarEntrega('DELIVERY')">
+                                <i class="bi bi-truck" style="font-size:1.8rem;color:#06A049;"></i>
+                                <h6 class="fw-bold mt-1 mb-0">Delivery</h6>
+                                <small class="text-muted">Recibe en tu dirección</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metodo-card" id="card-recojo" onclick="seleccionarEntrega('RECOJO_TIENDA')">
+                                <i class="bi bi-shop" style="font-size:1.8rem;color:#06A049;"></i>
+                                <h6 class="fw-bold mt-1 mb-0">Recojo en tienda</h6>
+                                <small class="text-muted">Retira sin costo de envío</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="info-recojo" class="alert alert-success d-none">
+                        <strong>Recojo en tienda — ALIVET</strong><br>
+                        <i class="bi bi-geo-alt me-1"></i>Pichanaki, Junín<br>
+                        <i class="bi bi-clock me-1"></i>Lunes a Domingo, 9:00 a.m. – 9:00 p.m.
+                    </div>
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Nombre completo</label>
@@ -65,62 +90,64 @@
                         </div>
                     </div>
 
-                    <!-- UBIGEO -->
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Departamento</label>
-                            <select class="form-select" id="departamento" required 
-                                    onchange="cargarProvincias()">
-                                <option value="">Seleccione...</option>
-                            </select>
+                    <div id="bloque-delivery">
+                        <!-- UBIGEO -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Departamento</label>
+                                <select class="form-select" id="departamento" required 
+                                        onchange="cargarProvincias()">
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Provincia</label>
+                                <select class="form-select" id="provincia" required 
+                                        onchange="cargarDistritos()" disabled>
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Distrito</label>
+                                <select class="form-select" id="distrito" required
+                                        onchange="actualizarDistritoActual()" disabled>
+                                    <option value="">Seleccione...</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Provincia</label>
-                            <select class="form-select" id="provincia" required 
-                                    onchange="cargarDistritos()" disabled>
-                                <option value="">Seleccione...</option>
-                            </select>
+
+                        <!-- Zona de envío -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Zona de Envío</label>
+                                <select class="form-select" id="zona-envio" required
+                                        onchange="actualizarCostoEnvio()">
+                                    <option value="">Seleccione zona...</option>
+                                    <option value="1">Zona Centro — S/. 5.00</option>
+                                    <option value="2">Zona Norte — S/. 8.00</option>
+                                    <option value="3">Zona Sur — S/. 10.00</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Distrito</label>
-                            <select class="form-select" id="distrito" required
-                                    onchange="actualizarDistritoActual()" disabled>
-                                <option value="">Seleccione...</option>
-                            </select>
+
+                        <!-- Costo de envío -->
+                        <div class="costo-envio-badge mb-3" id="costo-envio-badge">
+                            <i class="bi bi-truck me-2 text-success"></i>
+                            <strong>Costo de envío:</strong>
+                            <span class="text-success fw-bold fs-5 ms-2" id="costo-envio-texto">S/. 0.00</span>
                         </div>
-                    </div>
 
-                    <!-- Zona de envío -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Zona de Envío</label>
-                            <select class="form-select" id="zona-envio" required
-                                    onchange="actualizarCostoEnvio()">
-                                <option value="">Seleccione zona...</option>
-                                <option value="1">Zona Centro — S/. 5.00</option>
-                                <option value="2">Zona Norte — S/. 8.00</option>
-                                <option value="3">Zona Sur — S/. 10.00</option>
-                            </select>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Dirección exacta</label>
+                            <input type="text" class="form-control" id="direccion"
+                                   placeholder="Ej: Jr. Lima 123, Piso 2" required>
                         </div>
-                    </div>
 
-                    <!-- Costo de envío -->
-                    <div class="costo-envio-badge mb-3" id="costo-envio-badge">
-                        <i class="bi bi-truck me-2 text-success"></i>
-                        <strong>Costo de envío:</strong>
-                        <span class="text-success fw-bold fs-5 ms-2" id="costo-envio-texto">S/. 0.00</span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Dirección exacta</label>
-                        <input type="text" class="form-control" id="direccion"
-                               placeholder="Ej: Jr. Lima 123, Piso 2" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Referencias <span class="text-muted fw-normal">(opcional)</span></label>
-                        <textarea class="form-control" id="referencias" rows="2"
-                                  placeholder="Ej: Casa de color azul, frente al parque"></textarea>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Referencias <span class="text-muted fw-normal">(opcional)</span></label>
+                            <textarea class="form-control" id="referencias" rows="2"
+                                      placeholder="Ej: Casa de color azul, frente al parque"></textarea>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-agro w-100 py-2">

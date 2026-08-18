@@ -3,6 +3,7 @@ const jwt        = require('jsonwebtoken');
 const authModel  = require('../modelos/auth.model');
 const emailService = require('../servicios/email.service');
 const { validarPassword } = require('../utils/passwordPolicy');
+const { validarCorreoExiste } = require('../utils/emailValidator');
 const responder = require('../utils/responder');
 
 // Almacén temporal de registros pendientes de verificación por OTP
@@ -176,6 +177,15 @@ const register = async (req, res) => {
         const existe = await authModel.findByEmail(correo);
         if (existe) return res.status(400).json({ mensaje: "Correo ya registrado" });
 
+        // Antes de generar y enviar el OTP: verificar que el dominio del
+        // correo pueda recibir mensajes (evita mandar el código a un
+        // dominio inexistente o mal escrito, y el "hay demoras" que
+        // reportaste al enterarte tarde de que el correo no existía).
+        const chequeoCorreo = await validarCorreoExiste(correo);
+        if (!chequeoCorreo.valido) {
+            return res.status(400).json({ mensaje: chequeoCorreo.motivo });
+        }
+
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
         const pendingId = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -268,4 +278,13 @@ const verifyOtp = async (req, res) => {
     }
 };
 
-module.exports = { login, loginVerificarOtp, register, verifyOtp };
+// Validación "en vivo" mientras el usuario escribe el correo en el
+// formulario (antes de enviar el formulario completo). GET /api/auth/validar-correo?correo=...
+const validarCorreo = async (req, res) => {
+    const { correo } = req.query;
+    if (!correo) return res.status(400).json({ valido: false, motivo: 'Falta el correo' });
+    const resultado = await validarCorreoExiste(correo);
+    res.json(resultado);
+};
+
+module.exports = { login, loginVerificarOtp, register, verifyOtp, validarCorreo };

@@ -187,3 +187,50 @@ document.addEventListener('click', function (e) {
     if (!el) return;
     if (el.dataset.accion === 'consultar-documento') consultarDocumento();
 });
+
+// ── Autobúsqueda: Enter o al completar los dígitos requeridos ──
+function activarAutobusqueda(inputId, tipoSelectId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            consultarDocumento();
+        }
+    });
+
+    input.addEventListener('input', () => {
+        const tipo = document.getElementById(tipoSelectId).value;
+        const len = input.value.length;
+        if ((tipo === 'DNI' && len === 8) || (tipo === 'RUC' && len === 11)) {
+            consultarDocumento();
+        }
+    });
+}
+activarAutobusqueda('numeroDocumento', 'tipoDocumento');
+
+// ── Validación en vivo del correo (existencia del dominio) ──
+const correoInputEl = document.getElementById('correo');
+let debounceCorreo;
+if (correoInputEl) {
+    correoInputEl.addEventListener('input', () => {
+        clearTimeout(debounceCorreo);
+        const estadoCorreo = document.getElementById('correo-estado');
+        if (!estadoCorreo) return;
+        estadoCorreo.textContent = '';
+        debounceCorreo = setTimeout(async () => {
+            if (!correoInputEl.value.includes('@')) return;
+            estadoCorreo.textContent = 'Verificando...';
+            estadoCorreo.style.color = '';
+            try {
+                const res = await fetch(`/api/auth/validar-correo?correo=${encodeURIComponent(correoInputEl.value.trim())}`);
+                const data = await res.json();
+                estadoCorreo.textContent = data.valido ? '✅ Correo válido' : `❌ ${data.motivo}`;
+                estadoCorreo.style.color = data.valido ? 'green' : 'crimson';
+            } catch {
+                estadoCorreo.textContent = '';
+            }
+        }, 600); // debounce: espera a que el usuario deje de escribir
+    });
+}

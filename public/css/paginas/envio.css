@@ -25,3 +25,11 @@ body { background-color: #f0f4f1; }
     border-radius: 10px; padding: 10px 15px;
     display: none;
 }
+
+/* Tarjetas de método de entrega (Delivery / Recojo en tienda) */
+.metodo-card {
+    border: 2px solid #ddd; border-radius: 12px; padding: 15px;
+    cursor: pointer; transition: 0.2s; text-align: center;
+}
+.metodo-card:hover { border-color: var(--agro-green, #06A049); }
+.metodo-card.seleccionado { border-color: var(--agro-green, #06A049); background: #f0fff4; }

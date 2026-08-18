@@ -23,6 +23,7 @@ router.post('/login-verificar-otp', authController.loginVerificarOtp);
 router.post('/registro',           authController.register);
 router.post('/verify-otp',          authController.verifyOtp);
 router.get('/consultar-documento', documentoController.consultarDocumento);
+router.get('/validar-correo',      authController.validarCorreo);
 router.post('/forgot-password',     passwordController.forgotPassword);
 router.post('/reset-password',      passwordController.resetPassword);
 router.post('/forgot-password-otp', passwordController.forgotPasswordOtp);

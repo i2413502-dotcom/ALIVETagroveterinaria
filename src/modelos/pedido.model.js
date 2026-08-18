@@ -1,16 +1,17 @@
 const db = require('../config/db');
 
 exports.crearPedido = async (datos) => {
-    const { id_cliente, id_distrito, id_tipo_comprobante,
-            total, costo_envio, direccion_entrega } = datos;
+    const { id_cliente, id_distrito, id_zona, id_tipo_comprobante,
+            total, costo_envio, direccion_entrega, tipo_entrega } = datos;
 
     const [result] = await db.query(
         `INSERT INTO pedido
-         (id_cliente, id_distrito, id_tipo_comprobante, total, costo_envio,
-          direccion_entrega, estado, fecha_pedido)
-         VALUES (?, ?, ?, ?, ?, ?, 'PENDIENTE', NOW())`,
-        [id_cliente, parseInt(id_distrito, 10), id_tipo_comprobante,
-         total, costo_envio, direccion_entrega]
+         (id_cliente, id_distrito, id_zona, id_tipo_comprobante, total, costo_envio,
+          direccion_entrega, tipo_entrega, estado, fecha_pedido)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDIENTE', NOW())`,
+        [id_cliente, id_distrito ? parseInt(id_distrito, 10) : null,
+         id_zona ? parseInt(id_zona, 10) : null, id_tipo_comprobante,
+         total, costo_envio, direccion_entrega, tipo_entrega || 'DELIVERY']
     );
     return result.insertId;
 };
@@ -40,27 +41,68 @@ exports.crearDetallePedido = async (id_pedido, items) => {
     }
 };
 
-exports.crearPago = async (id_pedido, id_tipo_pago, monto, codigoTransaccion) => {
+exports.crearPago = async (id_pedido, id_tipo_pago, monto, codigoTransaccion, pasarela, respuestaPasarela) => {
     const [result] = await db.query(
         `INSERT INTO pago 
-         (id_pedido, id_tipo_pago, monto, estado, codigo_transaccion, fecha_pago)
-         VALUES (?, ?, ?, 'COMPLETADO', ?, NOW())`,
-        [id_pedido, id_tipo_pago, monto, codigoTransaccion]
+         (id_pedido, id_tipo_pago, monto, estado, codigo_transaccion, pasarela, respuesta_pasarela, fecha_pago)
+         VALUES (?, ?, ?, 'COMPLETADO', ?, ?, ?, NOW())`,
+        [
+            id_pedido, id_tipo_pago, monto, codigoTransaccion || null,
+            pasarela || null,
+            respuestaPasarela ? JSON.stringify(respuestaPasarela) : null
+        ]
     );
     return result.insertId;
 };
 
-exports.crearComprobante = async (id_pedido, tipo) => {
+exports.crearComprobante = async (id_pedido, tipo, datosCliente = {}) => {
     const serie = tipo === 'factura' ? 'F001' : 'B001';
     const numero = String(id_pedido).padStart(6, '0');
-    
+    const tipoDb = tipo === 'factura' ? 'FACTURA' : 'BOLETA';
+
     const [result] = await db.query(
-        `INSERT INTO comprobante 
-         (id_pedido, serie, numero, fecha_emision)
-         VALUES (?, ?, ?, NOW())`,
-        [id_pedido, serie, numero]
+        `INSERT INTO comprobante
+         (id_pedido, id_tipo_comprobante, serie, numero, fecha_emision, tipo,
+          ruc_cliente, razon_social, direccion_fiscal, dni_cliente, nombre_cliente,
+          estado_sunat)
+         VALUES (?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, 'PENDIENTE')`,
+        [
+            id_pedido,
+            tipo === 'factura' ? 2 : 1, // id_tipo_comprobante: 1=Boleta, 2=Factura (ver tabla tipo_comprobante)
+            serie, numero, tipoDb,
+            tipo === 'factura' ? (datosCliente.ruc || null) : null,
+            tipo === 'factura' ? (datosCliente.razon_social || null) : null,
+            tipo === 'factura' ? (datosCliente.direccion_fiscal || null) : null,
+            tipo === 'boleta' ? (datosCliente.dni || null) : null,
+            tipo === 'boleta' ? (datosCliente.nombre || null) : null
+        ]
     );
     return { serie, numero, id: result.insertId };
+};
+
+// Guarda los montos calculados (subtotal/IGV/total) del comprobante — se
+// llama junto con crearComprobante o justo antes de emitir ante SUNAT.
+exports.actualizarMontosComprobante = async (id_comprobante, { subtotal, igv, total }) => {
+    await db.query(
+        `UPDATE comprobante SET subtotal = ?, igv = ?, total = ? WHERE id_comprobante = ?`,
+        [subtotal, igv, total, id_comprobante]
+    );
+};
+
+// Actualiza el resultado de la emisión ante SUNAT vía NubeFacT (se llama
+// después de crearComprobante, cuando el pago ya fue confirmado).
+exports.actualizarEstadoSunat = async (id_comprobante, { estado_sunat, archivo_pdf, xml_cpe_url, cdr_sunat_url, hash_cpe, sunat_description }) => {
+    await db.query(
+        `UPDATE comprobante
+         SET estado_sunat = ?, archivo_pdf = ?, xml_cpe_url = ?, cdr_sunat_url = ?, hash_cpe = ?, sunat_description = ?
+         WHERE id_comprobante = ?`,
+        [
+            estado_sunat,
+            archivo_pdf || null, xml_cpe_url || null, cdr_sunat_url || null, hash_cpe || null,
+            sunat_description || null,
+            id_comprobante
+        ]
+    );
 };
 
 exports.obtenerPedidoCompleto = async (id_pedido) => {
