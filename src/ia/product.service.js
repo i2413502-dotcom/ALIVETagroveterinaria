@@ -79,6 +79,23 @@ const detectarCategoria = (mensaje) => {
     return null;
 };
 
+// ── Preguntas de "superlativo": el más barato / el más caro / lo nuevo.
+// La búsqueda por texto (LIKE %palabra%) NUNCA puede responder esto,
+// porque no hay ningún nombre de producto que buscar — hay que ordenar
+// la tabla por precio o fecha en vez de filtrar por texto. Antes esto
+// devolvía 0 resultados y el bot respondía "no encontré ese producto".
+const RX_BARATO = /\b(mas |más )?(barato|economico|económico|econ[oó]mico|menor precio|precio mas bajo|precio m[aá]s bajo|menos precio|el mas barato|el m[aá]s barato)\b/;
+const RX_CARO   = /\b(mas |más )?(caro|costoso|mayor precio|precio mas alto|precio m[aá]s alto|el mas caro|el m[aá]s caro)\b/;
+const RX_NUEVO  = /\b(nuevo|nuevos|reci[eé]n llegado|recien llegado|ultimos productos|últimos productos|lo nuevo|novedades)\b/;
+
+const detectarIntencionExtremo = (mensaje) => {
+    const txt = normalizar(mensaje);
+    if (RX_BARATO.test(txt)) return 'BARATO';
+    if (RX_CARO.test(txt))   return 'CARO';
+    if (RX_NUEVO.test(txt))  return 'NUEVO';
+    return null;
+};
+
 const esProductoValido = (p) => {
     if (!p.nombre || p.nombre.trim().length < 3) return false;
     if (NOMBRE_PRUEBA.test(p.nombre.trim())) return false;
@@ -87,6 +104,23 @@ const esProductoValido = (p) => {
 
 exports.buscarProductos = async (mensaje) => {
     const categoria = detectarCategoria(mensaje);
+
+    // 1) ¿Es una pregunta de "el más barato/caro/nuevo"? Resolver con
+    //    ORDER BY, no con búsqueda de texto.
+    const intencion = detectarIntencionExtremo(mensaje);
+    if (intencion) {
+        try {
+            const productos = intencion === 'NUEVO'
+                ? await iaModel.getProductosNuevos(categoria)
+                : await iaModel.getProductosExtremos(intencion, categoria);
+            const validos = productos.filter(esProductoValido);
+            if (validos.length > 0) return validos;
+            // Si no hay nada en esa categoría, seguir con la búsqueda normal
+            // por si el mensaje también tenía palabras clave de producto.
+        } catch (err) {
+            console.error(`[AgroBot] Error en consulta de extremos (${intencion}):`, err.message);
+        }
+    }
 
     const palabrasClave = normalizar(mensaje)
         .replace(/[^a-z0-9ñ\s]/g, ' ')

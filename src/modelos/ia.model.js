@@ -185,6 +185,73 @@ exports.searchProducts = async (query, categoria = null) => {
     return rows;
 };
 
+// Producto(s) más barato(s) o más caro(s) — para preguntas tipo "cuál es
+// el producto con menos precio" que la búsqueda por texto (LIKE) nunca
+// puede responder, porque no hay ninguna palabra de producto que buscar.
+exports.getProductosExtremos = async (orden, categoria = null) => {
+    const direccion = orden === 'CARO' ? 'DESC' : 'ASC';
+
+    if (categoria) {
+        const [rows] = await db.query(
+            `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                    p.descripcion, p.stock_actual,
+                    IFNULL(p.imagen, '') AS imagen,
+                    c.nombre AS categoria
+             FROM producto p
+             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+             WHERE c.nombre = ? AND p.estado = 'ACTIVO' AND p.precio_venta IS NOT NULL
+             ORDER BY p.precio_venta ${direccion}
+             LIMIT 3`,
+            [categoria]
+        );
+        return rows;
+    }
+
+    const [rows] = await db.query(
+        `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                p.descripcion, p.stock_actual,
+                IFNULL(p.imagen, '') AS imagen,
+                c.nombre AS categoria
+         FROM producto p
+         LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+         WHERE p.estado = 'ACTIVO' AND p.precio_venta IS NOT NULL
+         ORDER BY p.precio_venta ${direccion}
+         LIMIT 3`
+    );
+    return rows;
+};
+
+// Productos más recientes ("qué llegó nuevo")
+exports.getProductosNuevos = async (categoria = null) => {
+    if (categoria) {
+        const [rows] = await db.query(
+            `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                    p.descripcion, p.stock_actual,
+                    IFNULL(p.imagen, '') AS imagen,
+                    c.nombre AS categoria
+             FROM producto p
+             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+             WHERE c.nombre = ? AND p.estado = 'ACTIVO'
+             ORDER BY p.fecha_creacion DESC
+             LIMIT 3`,
+            [categoria]
+        );
+        return rows;
+    }
+    const [rows] = await db.query(
+        `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                p.descripcion, p.stock_actual,
+                IFNULL(p.imagen, '') AS imagen,
+                c.nombre AS categoria
+         FROM producto p
+         LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+         WHERE p.estado = 'ACTIVO'
+         ORDER BY p.fecha_creacion DESC
+         LIMIT 3`
+    );
+    return rows;
+};
+
 // ── Stats para Admin (SOLO LECTURA — ninguna query de escritura) ──
 exports.getAdminStats = async () => {
     const [[clientes]]    = await db.query(`SELECT COUNT(*) total FROM cliente`);
