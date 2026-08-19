@@ -11,7 +11,7 @@ exports.bajoPorStock = async (req, res) => {
             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
             LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
             LEFT JOIN imagen_producto img ON img.id_producto = p.id_producto AND img.es_principal = 1
-            WHERE p.stock_actual <= p.stock_minimo AND p.estado = 'ACTIVO'
+            WHERE p.stock_actual <= p.stock_minimo
         `;
         const params = [];
         if (id_tipo_animal) {
