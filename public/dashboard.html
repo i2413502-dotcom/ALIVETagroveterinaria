@@ -508,16 +508,40 @@
                         </div>
                         <div class="col-12 mb-2">
                             <label class="form-label fw-bold small">
-                                <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>Ficha Técnica (PDF en Google Drive)
+                                <i class="bi bi-file-earmark-pdf me-1 text-danger"></i>Ficha Técnica (PDF)
                             </label>
-                            <div class="input-group input-group-sm mb-1">
-                                <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
-                                <input type="url" id="prod-ficha-tecnica"
-                                       class="form-control form-control-sm"
-                                       placeholder="Pega aquí el enlace de Google Drive del PDF...">
-                                <button type="button" class="btn btn-outline-danger btn-sm"
+                            <ul class="nav nav-tabs mb-2" id="tabsFicha">
+                                <li class="nav-item">
+                                    <a class="nav-link active" href="#" data-accion="tab-ficha" data-valor="archivo">
+                                        <i class="bi bi-upload me-1"></i>Subir desde PC
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" data-accion="tab-ficha" data-valor="url">
+                                        <i class="bi bi-link me-1"></i>URL / Drive
+                                    </a>
+                                </li>
+                            </ul>
+                            <div id="tab-ficha-archivo">
+                                <input type="file" class="form-control form-control-sm" id="prod-ficha-pdf-file"
+                                       accept="application/pdf" onchange="subirFichaTecnicaPdf(this)">
+                                <span id="ficha-pdf-spinner" class="d-none small text-danger mt-1 d-block">
+                                    <span class="spinner-border spinner-border-sm"></span> Subiendo...
+                                </span>
+                            </div>
+                            <div id="tab-ficha-url" class="d-none">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                                    <input type="url" id="prod-ficha-tecnica-url"
+                                           class="form-control form-control-sm"
+                                           placeholder="Pega aquí el enlace de Google Drive del PDF...">
+                                </div>
+                            </div>
+                            <input type="hidden" id="prod-ficha-tecnica">
+                            <div class="input-group input-group-sm mt-1">
+                                <button type="button" class="btn btn-outline-danger btn-sm w-100"
                                         data-accion="ficha-tecnica">
-                                    <i class="bi bi-eye"></i> Ver
+                                    <i class="bi bi-eye"></i> Ver ficha técnica actual
                                 </button>
                             </div>
                             <div id="ficha-preview" class="d-none mt-1">
@@ -528,8 +552,9 @@
                             </div>
                             <small class="text-muted">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Sube el PDF a la carpeta <strong>"Fichas Tecnicas Agroveterinaria"</strong> en Drive
-                                → clic derecho → <strong>"Compartir enlace"</strong> → copia y pega aquí.
+                                Sube el PDF directo, o si prefieres Google Drive: sube el archivo a la
+                                carpeta <strong>"Fichas Tecnicas Agroveterinaria"</strong> → clic derecho →
+                                <strong>"Compartir enlace"</strong> → pégalo en la pestaña URL / Drive.
                             </small>
                         </div>
                     </div>

@@ -335,13 +335,12 @@ async function cargarProductos() {
             return;
         }
         tbody.innerHTML = productosLista.map(p => {
-            if (!p.imagen && p.imagen_principal) p.imagen = p.imagen_principal;
             const stockEstado = p.stock_actual <= p.stock_minimo
                 ? '<span class="badge bg-danger">Stock Bajo</span>'
                 : '<span class="badge bg-success">Normal</span>';
             const imgSrc = p.imagen
                 ? (p.imagen.startsWith('http') ? p.imagen : `/img/productos/${p.imagen}`)
-                : '/img/logo-alivet.jpg';
+                : '/img/logo.jpeg';
 
             const inactivo = p.estado === 'INACTIVO';
 
@@ -367,7 +366,7 @@ async function cargarProductos() {
             <tr class="${inactivo ? 'opacity-50' : ''}">
                 <td>${p.id_producto}</td>
                 <td><img src="${imgSrc}" alt="img" style="width:45px;height:45px;object-fit:cover;border-radius:8px;"
-                         onerror="this.onerror=null;this.src='/img/logo-alivet.jpg';"></td>
+                         onerror="this.onerror=null;this.src='/img/logo.jpeg';"></td>
                 <td><strong>${p.nombre}</strong>${inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
                 <td>${p.categoria || '-'}</td>
                 <td>${p.tipo_animal || '-'}</td>
@@ -422,6 +421,7 @@ function limpiarFormularioProducto() {
         'prod-categoria','prod-animal',
         // medicamento
         'prod-marca-med','prod-presentacion','prod-vencimiento','prod-composicion','prod-modo-uso','prod-ficha-tecnica',
+        'prod-ficha-pdf-file','prod-ficha-tecnica-url',
         // accesorio
         'prod-marca-acc','prod-ficha-acc',
         // alimento
@@ -478,6 +478,13 @@ function switchTab(tab, link) {
     link.classList.add('active');
 }
 
+function switchTabFicha(tab, link) {
+    document.getElementById('tab-ficha-archivo').classList.toggle('d-none', tab !== 'archivo');
+    document.getElementById('tab-ficha-url').classList.toggle('d-none',     tab !== 'url');
+    document.querySelectorAll('#tabsFicha .nav-link').forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+}
+
 async function previsualizarImagen(input) {
     const file = input.files[0];
     if (!file) return;
@@ -511,6 +518,43 @@ async function previsualizarImagen(input) {
         }
     } catch (err) {
         console.error('Error al subir imagen a R2:', err);
+    }
+}
+
+// Sube el PDF de ficha técnica a R2 (mismo patrón que previsualizarImagen,
+// pero llamando a /api/upload/ficha-tecnica). Al terminar, deja la URL
+// pública en el mismo campo de texto que ya usaba el link de Drive, así
+// el resto del formulario (guardar producto) no necesita ningún cambio.
+async function subirFichaTecnicaPdf(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const spinner = document.getElementById('ficha-pdf-spinner');
+    spinner.classList.remove('d-none');
+
+    try {
+        const token = localStorage.getItem('token');
+        const formData = new FormData();
+        formData.append('archivo', file);
+        const upRes = await fetch('/api/upload/ficha-tecnica', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+        });
+        if (!upRes.ok) {
+            console.error('Upload error', upRes.status);
+            alert('No se pudo subir el PDF. Intenta de nuevo.');
+            return;
+        }
+        const upData = await upRes.json();
+        if (upData.url) {
+            document.getElementById('prod-ficha-tecnica').value = upData.url;
+        }
+    } catch (err) {
+        console.error('Error al subir ficha técnica a R2:', err);
+        alert('No se pudo subir el PDF. Intenta de nuevo.');
+    } finally {
+        spinner.classList.add('d-none');
     }
 }
 
@@ -549,6 +593,8 @@ async function editarProducto(id) {
     const elComp       = document.getElementById('prod-composicion');
     const elModoUso    = document.getElementById('prod-modo-uso');
     const elFicha      = document.getElementById('prod-ficha-tecnica');
+    const elFichaUrl    = document.getElementById('prod-ficha-tecnica-url');
+    if (elFichaUrl) elFichaUrl.value = p.ficha_tecnica || '';
     if (elMarca)   elMarca.value   = p.marca        || '';
     if (elPresent) elPresent.value = p.presentacion || '';
     if (elVenc && p.fecha_vencimiento) {
@@ -637,6 +683,32 @@ async function guardarProducto() {
         }
     }
 
+    // Ficha técnica: igual que la imagen — priorizar el PDF ya subido,
+    // si no hay, usar la URL manual (Drive); si hay archivo elegido pero
+    // aún no terminó de subir, subirlo ahora antes de guardar.
+    const fichaFileInput = document.getElementById('prod-ficha-pdf-file');
+    const fichaUrlManual = document.getElementById('prod-ficha-tecnica-url')?.value.trim() || '';
+    const fichaUrlSubida = document.getElementById('prod-ficha-tecnica').value.trim();
+    let fichaFinal = fichaUrlSubida || fichaUrlManual;
+
+    if (fichaFileInput && fichaFileInput.files.length > 0 && !fichaUrlSubida) {
+        const fichaFormData = new FormData();
+        fichaFormData.append('archivo', fichaFileInput.files[0]);
+        const token = localStorage.getItem('token');
+        const fichaUpRes = await fetch('/api/upload/ficha-tecnica', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: fichaFormData
+        });
+        if (!fichaUpRes.ok) {
+            const fichaUpErr = await fichaUpRes.json().catch(() => ({}));
+            alert('Error al subir la ficha técnica: ' + (fichaUpErr.mensaje || fichaUpRes.status));
+            return;
+        }
+        const fichaUpData = await fichaUpRes.json();
+        if (fichaUpData.url) fichaFinal = fichaUpData.url;
+    }
+
     const data = {
         nombre:            document.getElementById('prod-nombre').value,
         descripcion:       document.getElementById('prod-descripcion').value,
@@ -667,7 +739,7 @@ async function guardarProducto() {
 
         modo_uso: esMed ? document.getElementById('prod-modo-uso')?.value || null : null,
 
-        ficha_tecnica: esMed ? document.getElementById('prod-ficha-tecnica')?.value     || null
+        ficha_tecnica: esMed ? (fichaFinal || null)
                      : esAcc ? document.getElementById('prod-ficha-acc')?.value         || null
                      : esAli ? document.getElementById('prod-ficha-ali')?.value         || null
                      : null,
@@ -961,8 +1033,10 @@ function cargarTags(tipo, valores) {
 
 // ── Buscar ficha técnica en Wikipedia ─────────────────────────
 function verFichaTecnica() {
-    const url = document.getElementById('prod-ficha-tecnica').value.trim();
-    if (!url) return alert('Primero pega el enlace de Google Drive');
+    const urlSubida = document.getElementById('prod-ficha-tecnica').value.trim();
+    const urlManual = document.getElementById('prod-ficha-tecnica-url')?.value.trim() || '';
+    const url = urlSubida || urlManual;
+    if (!url) return alert('Primero sube un PDF o pega el enlace de Google Drive');
 
     // Convertir enlace de Drive a enlace de vista previa si es necesario
     const urlFinal = convertirUrlDrive(url);
@@ -1308,6 +1382,7 @@ document.addEventListener('click', function (e) {
         case 'modal-animal':        mostrarModalAnimal(); break;
         case 'modal-colaborador':   mostrarModalColaborador(); break;
         case 'tab-imagen':          switchTab(el.dataset.valor, el); break;
+        case 'tab-ficha':           switchTabFicha(el.dataset.valor, el); break;
         case 'ficha-tecnica':       verFichaTecnica(); break;
         case 'agregar-tag':         agregarTag(el.dataset.valor); break;
         case 'guardar-producto':    guardarProducto(); break;
