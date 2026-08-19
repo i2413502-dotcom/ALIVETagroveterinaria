@@ -134,6 +134,9 @@ exports.crearPedidoConMercadoPago = async (req, res) => {
         });
 
     } catch (err) {
+        if (err.stockInsuficiente) {
+            return res.status(409).json({ mensaje: err.message });
+        }
         responder.error(res, 500, 'Error al iniciar el pago con Mercado Pago', err, 'Error al crear pedido con Mercado Pago:');
     }
 };

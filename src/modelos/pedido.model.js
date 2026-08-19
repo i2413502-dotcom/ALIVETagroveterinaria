@@ -18,6 +18,19 @@ exports.crearPedido = async (datos) => {
 
 exports.crearDetallePedido = async (id_pedido, items) => {
     for (const item of items) {
+        // Verificar stock disponible ANTES de descontar — evita que el
+        // stock quede en negativo si se compra más de lo que hay.
+        const [[productoActual]] = await db.query(
+            'SELECT nombre, stock_actual FROM producto WHERE id_producto = ?',
+            [item.id_producto]
+        );
+        if (!productoActual || productoActual.stock_actual < item.cantidad) {
+            const nombreProd = productoActual ? productoActual.nombre : `#${item.id_producto}`;
+            const err = new Error(`Stock insuficiente para "${nombreProd}"`);
+            err.stockInsuficiente = true;
+            throw err;
+        }
+
         await db.query(
             `INSERT INTO detalle_pedido 
              (id_pedido, id_producto, cantidad, precio_unitario, subtotal, color, talla, marca)
@@ -37,6 +50,13 @@ exports.crearDetallePedido = async (id_pedido, items) => {
             `UPDATE producto SET stock_actual = stock_actual - ? 
              WHERE id_producto = ?`,
             [item.cantidad, item.id_producto]
+        );
+        // Si el stock llegó a 0, desactivar el producto automáticamente
+        // (ya no aparece disponible en el catálogo hasta que se reponga).
+        await db.query(
+            `UPDATE producto SET estado = 'INACTIVO'
+             WHERE id_producto = ? AND stock_actual <= 0`,
+            [item.id_producto]
         );
     }
 };

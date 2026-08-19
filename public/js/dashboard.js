@@ -1240,8 +1240,23 @@ async function guardarColaborador() {
 // ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
+// Oculta los links del menú lateral que no corresponden al cargo del
+// colaborador logueado (mismo criterio de permisos que usa el backend
+// en cada ruta — ver comentario en dashboard.routes.js / producto.routes.js).
+function aplicarRestriccionesPorCargo() {
+    const cargo = localStorage.getItem('cargo') || '';
+    document.querySelectorAll('[data-restringido]').forEach(el => {
+        const nivel = el.dataset.restringido;
+        const permitido =
+            (nivel === 'admin' && cargo === 'Administrador') ||
+            (nivel === 'admin-gerente' && (cargo === 'Administrador' || cargo === 'Gerente'));
+        if (!permitido) el.classList.add('d-none');
+    });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     verificarAcceso();
+    aplicarRestriccionesPorCargo();
     modalProducto    = new bootstrap.Modal(document.getElementById('modalProducto'));
     modalCategoria   = new bootstrap.Modal(document.getElementById('modalCategoria'));
     modalAnimal      = new bootstrap.Modal(document.getElementById('modalAnimal'));

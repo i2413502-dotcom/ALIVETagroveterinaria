@@ -84,6 +84,13 @@ exports.actualizarStock = async (req, res) => {
              WHERE id_producto = ?`,
             [cantidad, fecha_vencimiento || null, id]
         );
+        // Si se repuso stock y el producto había sido desactivado
+        // automáticamente por quedarse en 0, se reactiva solo.
+        await db.query(
+            `UPDATE producto SET estado = 'ACTIVO'
+             WHERE id_producto = ? AND stock_actual > 0 AND estado = 'INACTIVO'`,
+            [id]
+        );
         res.json({ mensaje: 'Stock actualizado correctamente' });
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al actualizar stock' });
