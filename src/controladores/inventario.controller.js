@@ -5,7 +5,7 @@ exports.bajoPorStock = async (req, res) => {
         const { id_tipo_animal } = req.query;
         let sql = `
             SELECT p.id_producto, p.nombre, COALESCE(img.url_imagen, p.imagen) AS imagen,
-                   p.precio_venta, p.stock_actual, p.stock_minimo, p.codigo_barra,
+                   p.precio_venta, p.stock_actual, p.stock_minimo, p.codigo_barra, p.estado,
                    c.nombre AS categoria, ta.nombre AS tipo_animal
             FROM producto p
             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
@@ -18,7 +18,7 @@ exports.bajoPorStock = async (req, res) => {
             sql += ' AND p.id_tipo_animal = ?';
             params.push(id_tipo_animal);
         }
-        sql += ' ORDER BY p.stock_actual ASC';
+        sql += " ORDER BY (p.estado = 'ACTIVO') DESC, p.stock_actual ASC";
         const [rows] = await db.query(sql, params);
         res.json(rows);
     } catch (error) {

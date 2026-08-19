@@ -5,7 +5,7 @@ exports.getDashboardData = async () => {
     const [[pedidosPendientes]] = await db.query("SELECT COUNT(*) total FROM pedido WHERE estado='PENDIENTE'");
     const [[pedidosEntregados]] = await db.query("SELECT COUNT(*) total FROM pedido WHERE estado='ENTREGADO'");
     const [[productos]]         = await db.query("SELECT COUNT(*) total FROM producto WHERE estado='ACTIVO'");
-    const [[stockBajo]]         = await db.query("SELECT COUNT(*) total FROM producto WHERE stock_actual <= stock_minimo AND estado='ACTIVO'");
+    const [[stockBajo]]         = await db.query("SELECT COUNT(*) total FROM producto WHERE stock_actual <= stock_minimo");
     const [[ventasTotal]]       = await db.query("SELECT COALESCE(SUM(total),0) total FROM pedido WHERE estado IN ('PAGADO','ENVIADO','ENTREGADO')");
 
     return {
