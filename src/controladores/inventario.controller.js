@@ -4,12 +4,13 @@ exports.bajoPorStock = async (req, res) => {
     try {
         const { id_tipo_animal } = req.query;
         let sql = `
-            SELECT p.id_producto, p.nombre, p.imagen, p.precio_venta,
-                   p.stock_actual, p.stock_minimo, p.codigo_barra,
+            SELECT p.id_producto, p.nombre, COALESCE(img.url_imagen, p.imagen) AS imagen,
+                   p.precio_venta, p.stock_actual, p.stock_minimo, p.codigo_barra,
                    c.nombre AS categoria, ta.nombre AS tipo_animal
             FROM producto p
             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
             LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
+            LEFT JOIN imagen_producto img ON img.id_producto = p.id_producto AND img.es_principal = 1
             WHERE p.stock_actual <= p.stock_minimo AND p.estado = 'ACTIVO'
         `;
         const params = [];
@@ -30,13 +31,14 @@ exports.porVencer = async (req, res) => {
         const { id_tipo_animal } = req.query;
         const dias = req.query.dias || 30;
         let sql = `
-            SELECT p.id_producto, p.nombre, p.imagen, p.precio_venta,
-                   p.stock_actual, p.fecha_vencimiento, p.codigo_barra,
+            SELECT p.id_producto, p.nombre, COALESCE(img.url_imagen, p.imagen) AS imagen,
+                   p.precio_venta, p.stock_actual, p.fecha_vencimiento, p.codigo_barra,
                    DATEDIFF(p.fecha_vencimiento, NOW()) AS dias_restantes,
                    c.nombre AS categoria, ta.nombre AS tipo_animal
             FROM producto p
             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
             LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
+            LEFT JOIN imagen_producto img ON img.id_producto = p.id_producto AND img.es_principal = 1
             WHERE p.fecha_vencimiento IS NOT NULL
               AND p.fecha_vencimiento >= NOW()
               AND p.fecha_vencimiento <= DATE_ADD(NOW(), INTERVAL ? DAY)
@@ -59,10 +61,12 @@ exports.buscarPorCodigo = async (req, res) => {
     try {
         const { codigo } = req.params;
         const [rows] = await db.query(
-            `SELECT p.*, c.nombre AS categoria, ta.nombre AS tipo_animal
+            `SELECT p.*, COALESCE(img.url_imagen, p.imagen) AS imagen,
+                    c.nombre AS categoria, ta.nombre AS tipo_animal
              FROM producto p
              LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
              LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
+             LEFT JOIN imagen_producto img ON img.id_producto = p.id_producto AND img.es_principal = 1
              WHERE p.codigo_barra = ? AND p.estado = 'ACTIVO'`,
             [codigo]
         );

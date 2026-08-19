@@ -9,11 +9,8 @@ exports.obtenerProductos = async (filtros = {}) => {
     const limite = parseInt(filtros.limite) || 20;
     const offset = (pagina - 1) * limite;
 
-    // El catálogo público solo ve ACTIVO y con stock disponible;
-    // el panel admin puede incluir inactivos y sin stock (para gestionarlos).
-    const filtroEstado = filtros.incluirInactivos
-        ? 'WHERE 1=1'
-        : "WHERE p.estado = 'ACTIVO' AND p.stock_actual > 0";
+    // El catálogo público solo ve ACTIVO; el panel admin puede incluir inactivos
+    const filtroEstado = filtros.incluirInactivos ? 'WHERE 1=1' : "WHERE p.estado = 'ACTIVO'";
 
     let sql = `
         SELECT p.id_producto, p.nombre, p.descripcion, p.precio_venta,
@@ -23,7 +20,7 @@ exports.obtenerProductos = async (filtros = {}) => {
                p.id_categoria, c.nombre AS categoria,
                p.id_subcategoria, sc.nombre AS subcategoria,
                p.id_tipo_animal, ta.nombre AS tipo_animal,
-               img.url_imagen AS imagen_principal,
+               COALESCE(img.url_imagen, p.imagen) AS imagen,
                (SELECT COUNT(*) FROM variante_producto v WHERE v.id_producto = p.id_producto) AS total_variantes
         FROM producto p
         LEFT JOIN categoria_producto c     ON p.id_categoria = c.id_categoria
@@ -129,6 +126,13 @@ exports.obtenerProductoPorId = async (id) => {
 
     producto.imagenes  = imagenes;
     producto.variantes = variantes;
+    // La columna vieja "imagen" casi siempre está NULL en productos
+    // nuevos (ahora viven en imagen_producto). Si no hay valor legacy,
+    // usamos la imagen marcada como principal (o la primera disponible).
+    if (!producto.imagen) {
+        const principal = imagenes.find(img => img.es_principal) || imagenes[0];
+        producto.imagen = principal ? principal.url_imagen : null;
+    }
     return producto;
 };
 
