@@ -21,4 +21,23 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // 5 MB
 });
 
+// Configuración separada solo para fichas técnicas en PDF (ej. prospecto
+// de un medicamento). No se mezcla con la de imágenes de arriba.
+const uploadPdf = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        const mimeOk = file.mimetype === 'application/pdf';
+        const extOk  = /\.pdf$/i.test(file.originalname);
+        if (mimeOk && extOk) {
+            cb(null, true);
+        } else {
+            const err = new Error('Formato no permitido. Solo se aceptan archivos PDF.');
+            err.code = 'INVALID_FILE_TYPE';
+            cb(err, false);
+        }
+    },
+    limits: { fileSize: 10 * 1024 * 1024 } // 10 MB (los PDF pesan más que una imagen)
+});
+
 module.exports = upload;
+module.exports.pdf = uploadPdf;

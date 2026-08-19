@@ -8,5 +8,6 @@ const { verificarToken, verificarRol } = require('../middlewares/auth.middleware
 // (cualquiera podía subir archivos al bucket de R2 sin iniciar sesión).
 // Se protege igual que la creación/edición de productos.
 router.post('/imagen-producto', verificarToken, verificarRol('COLABORADOR'), upload.single('imagen'), ctrl.subirImagenProducto);
+router.post('/ficha-tecnica', verificarToken, verificarRol('COLABORADOR'), upload.pdf.single('archivo'), ctrl.subirFichaTecnica);
 
 module.exports = router;
