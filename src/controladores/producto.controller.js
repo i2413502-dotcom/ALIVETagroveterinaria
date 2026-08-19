@@ -23,6 +23,11 @@ exports.obtenerPorId = async (req, res) => {
     try {
         const producto = await Producto.obtenerProductoPorId(req.params.id);
         if (!producto) return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        // Ficha pública: si está inactivo o sin stock, no debe mostrarse
+        // en la tienda (aunque el registro siga existiendo en la BD).
+        if (producto.estado !== 'ACTIVO' || producto.stock_actual <= 0) {
+            return res.status(404).json({ mensaje: 'Producto no disponible' });
+        }
         res.json(producto);
     } catch (err) {
         console.error('Error en obtener producto por ID:', err);

@@ -335,12 +335,13 @@ async function cargarProductos() {
             return;
         }
         tbody.innerHTML = productosLista.map(p => {
+            if (!p.imagen && p.imagen_principal) p.imagen = p.imagen_principal;
             const stockEstado = p.stock_actual <= p.stock_minimo
                 ? '<span class="badge bg-danger">Stock Bajo</span>'
                 : '<span class="badge bg-success">Normal</span>';
             const imgSrc = p.imagen
                 ? (p.imagen.startsWith('http') ? p.imagen : `/img/productos/${p.imagen}`)
-                : '/img/logo.jpeg';
+                : '/img/logo-alivet.jpg';
 
             const inactivo = p.estado === 'INACTIVO';
 
@@ -366,7 +367,7 @@ async function cargarProductos() {
             <tr class="${inactivo ? 'opacity-50' : ''}">
                 <td>${p.id_producto}</td>
                 <td><img src="${imgSrc}" alt="img" style="width:45px;height:45px;object-fit:cover;border-radius:8px;"
-                         onerror="this.onerror=null;this.src='/img/logo.jpeg';"></td>
+                         onerror="this.onerror=null;this.src='/img/logo-alivet.jpg';"></td>
                 <td><strong>${p.nombre}</strong>${inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
                 <td>${p.categoria || '-'}</td>
                 <td>${p.tipo_animal || '-'}</td>

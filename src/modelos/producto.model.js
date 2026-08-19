@@ -9,8 +9,11 @@ exports.obtenerProductos = async (filtros = {}) => {
     const limite = parseInt(filtros.limite) || 20;
     const offset = (pagina - 1) * limite;
 
-    // El catálogo público solo ve ACTIVO; el panel admin puede incluir inactivos
-    const filtroEstado = filtros.incluirInactivos ? 'WHERE 1=1' : "WHERE p.estado = 'ACTIVO'";
+    // El catálogo público solo ve ACTIVO y con stock disponible;
+    // el panel admin puede incluir inactivos y sin stock (para gestionarlos).
+    const filtroEstado = filtros.incluirInactivos
+        ? 'WHERE 1=1'
+        : "WHERE p.estado = 'ACTIVO' AND p.stock_actual > 0";
 
     let sql = `
         SELECT p.id_producto, p.nombre, p.descripcion, p.precio_venta,
