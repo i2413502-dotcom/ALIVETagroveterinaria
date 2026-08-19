@@ -115,6 +115,13 @@ const guardarFcmToken = async (req, res) => {
             'UPDATE colaborador SET fcm_token = ? WHERE id_persona = ?',
             [fcm_token, req.usuario.id]
         );
+        if (fcm_token) {
+            await db.query(
+                `INSERT INTO fcm_tokens (token, activo) VALUES (?, 1)
+                 ON DUPLICATE KEY UPDATE activo = 1, actualizado_at = CURRENT_TIMESTAMP`,
+                [fcm_token]
+            );
+        }
         res.json({ mensaje: 'Token FCM guardado' });
     } catch (err) {
         console.error(err);
