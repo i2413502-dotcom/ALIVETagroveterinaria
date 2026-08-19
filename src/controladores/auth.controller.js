@@ -40,10 +40,13 @@ const VENTANA_OTP_LOGIN_MS = 10 * 60 * 1000; // 10 minutos
 
 function generarTokenParaPersona(persona, colaborador, rol) {
     const cargo = colaborador ? colaborador.cargo : null;
+    // Colaboradores manejan datos sensibles del negocio → sesión corta (2h).
+    // Clientes solo compran → sesión sin vencimiento, se quedan logueados.
+    const opciones = rol === 'CLIENTE' ? {} : { expiresIn: '2h' };
     const token = jwt.sign(
         { id: persona.id_persona, rol, cargo },
         process.env.JWT_SECRET,
-        { expiresIn: '30m' }
+        opciones
     );
     return {
         token,
@@ -261,8 +264,7 @@ const verifyOtp = async (req, res) => {
 
         const token = jwt.sign(
             { id: idPersona, rol: 'CLIENTE' },
-            process.env.JWT_SECRET,
-            { expiresIn: '30m' }
+            process.env.JWT_SECRET
         );
 
         res.json({
