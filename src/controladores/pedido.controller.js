@@ -1,3 +1,5 @@
+const { enviarNotificacion } = require('../servicios/notificacion.service');
+
 const pedidoModel      = require('../modelos/pedido.model');
 const nubefactService  = require('../servicios/nubefact.service');
 const mpService         = require('../servicios/mercadopago.service');
@@ -193,6 +195,13 @@ exports.webhookMercadoPago = async (req, res) => {
 
                 await emitirComprobante(id_pedido, comprobante, datosComprobante, { costo_envio: pedido.costo_envio });
             }
+
+            const pedidoCompleto = await pedidoModel.obtenerPedidoCompleto(id_pedido);
+            await enviarNotificacion(
+                '🛒 Nuevo pedido pagado (Mercado Pago)',
+                `Pedido #${id_pedido} de ${pedidoCompleto.cliente_nombre} por S/. ${pedidoCompleto.total}`,
+                { tipo: 'nuevo_pedido', id_pedido: String(id_pedido) }
+            );
 
         } else if (pago.status === 'rejected') {
             await db.query("UPDATE pedido SET estado = 'CANCELADO' WHERE id_pedido = ?", [id_pedido]);
