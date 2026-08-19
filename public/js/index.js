@@ -67,6 +67,7 @@ function renderizarProductos(productos) {
     }
 
     contenedor.innerHTML = productos.map(p => {
+        if (!p.imagen && p.imagen_principal) p.imagen = p.imagen_principal;
         const imgVal = p.imagen ? p.imagen.trim() : '';
         const img = imgVal ? (imgVal.startsWith('http') ? imgVal : `${RUTA_IMG}${imgVal}`) : IMG_ERROR;
         const stockBadge = p.stock_actual <= 5
@@ -206,6 +207,7 @@ function agregarAlCarrito(event, id) {
 
     const p = productosBase.find(x => x.id_producto === id);
     if (!p) return;
+    if (!p.imagen && p.imagen_principal) p.imagen = p.imagen_principal;
 
     const stock = parseInt(p.stock_actual) || 0;
     if (stock <= 0) { mostrarToast('Producto agotado'); return; }
