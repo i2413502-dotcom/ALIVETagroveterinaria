@@ -1,6 +1,8 @@
 let productosBase    = [];
 let grupoAnimalActivo = '';
+let especieAnimalActiva = ''; // id_tipo_animal elegido dentro del grupo (paso 1b), '' = todas las del grupo
 let animalesConProductos = []; // ids de tipo_animal con al menos 1 producto activo
+let animalesCatalogoPublico = []; // catálogo completo de /api/animales (con su grupo), para el paso 1b
 let paginaActual     = 1;
 const LIMITE         = 20;
 const RUTA_IMG       = '/img/productos/';
@@ -29,9 +31,13 @@ async function obtenerProductos(filtros = {}, pagina = 1) {
         paginaActual = pagina;
         const params = new URLSearchParams({ ...filtros, pagina, limite: LIMITE });
 
-        // Agregar filtro de grupo de animal si está activo
+        // Agregar filtro de grupo de animal si está activo, y de especie
+        // (dentro del grupo) si el cliente afinó más la búsqueda
         if (grupoAnimalActivo) {
             params.set('grupo_animal', grupoAnimalActivo);
+        }
+        if (especieAnimalActiva) {
+            params.set('id_tipo_animal', especieAnimalActiva);
         }
 
         const res  = await fetch('/api/productos?' + params.toString());
@@ -160,7 +166,57 @@ function obtenerFiltrosActuales() {
 // Paso 1 de la cascada: filtrar por Grupo de animal (Mayor/Menor/Todos)
 function filtrarGrupo(grupo, btn) {
     grupoAnimalActivo = grupo;
+    especieAnimalActiva = ''; // cambiar de grupo reinicia la especie elegida
     document.querySelectorAll('#contenedor-grupos .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mostrarEspeciesDelGrupo(grupo);
+    obtenerProductos(obtenerFiltrosActuales(), 1);
+}
+
+// Paso 1b: dentro del grupo elegido, mostrar botones con el nombre de
+// cada especie — SOLO las que tienen al menos un producto disponible.
+// Si el grupo es "Todos" (grupo === ''), no se muestra este nivel.
+function mostrarEspeciesDelGrupo(grupo) {
+    const wrap = document.getElementById('contenedor-especies-wrap');
+    const cont = document.getElementById('contenedor-especies');
+
+    if (!grupo) {
+        wrap.classList.add('d-none');
+        cont.querySelectorAll('.btn').forEach(b => b.remove());
+        return;
+    }
+
+    const especies = animalesCatalogoPublico.filter(a =>
+        a.grupo === grupo && animalesConProductos.includes(a.id_tipo_animal)
+    );
+
+    cont.querySelectorAll('.btn').forEach(b => b.remove());
+
+    if (!especies.length) { wrap.classList.add('d-none'); return; }
+
+    const btnTodos = document.createElement('button');
+    btnTodos.className = 'btn btn-outline-success btn-sm active';
+    btnTodos.dataset.accion = 'filtrar-especie';
+    btnTodos.dataset.id = '';
+    btnTodos.innerHTML = '🐾 Todos';
+    cont.appendChild(btnTodos);
+
+    especies.forEach(a => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline-success btn-sm';
+        btn.dataset.accion = 'filtrar-especie';
+        btn.dataset.id = a.id_tipo_animal;
+        btn.innerHTML = a.nombre;
+        cont.appendChild(btn);
+    });
+
+    wrap.classList.remove('d-none');
+}
+
+// Paso 1b: elegir una especie concreta dentro del grupo activo
+function filtrarEspecie(idAnimal, btn) {
+    especieAnimalActiva = idAnimal || '';
+    document.querySelectorAll('#contenedor-especies .btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     obtenerProductos(obtenerFiltrosActuales(), 1);
 }
@@ -192,6 +248,8 @@ function limpiarFiltros() {
     document.getElementById('filtroPrecioMax').value = '';
     if (inputBuscador) inputBuscador.value = '';
     grupoAnimalActivo = '';
+    especieAnimalActiva = '';
+    mostrarEspeciesDelGrupo('');
     document.querySelectorAll('#contenedor-grupos .btn').forEach(b => b.classList.remove('active'));
     const primero = document.querySelector('#contenedor-grupos .btn');
     if (primero) primero.classList.add('active');
@@ -288,8 +346,9 @@ async function cargarFiltrosGrupos() {
         ]);
         const animales = await resAnimales.json();
         animalesConProductos = await resDisponibles.json();
+        animalesCatalogoPublico = animales.filter(a => a.estado === 'ACTIVO');
 
-        const activos = animales.filter(a => a.estado === 'ACTIVO' && animalesConProductos.includes(a.id_tipo_animal));
+        const activos = animalesCatalogoPublico.filter(a => animalesConProductos.includes(a.id_tipo_animal));
         const hayMayor = activos.some(a => a.grupo === 'MAYOR');
         const hayMenor = activos.some(a => a.grupo === 'MENOR');
 
@@ -348,6 +407,7 @@ document.addEventListener('click', function (e) {
         case 'aplicar-filtros':   aplicarFiltros(); break;
         case 'limpiar-filtros':   limpiarFiltros(); break;
         case 'filtrar-grupo':     filtrarGrupo(el.dataset.grupo, el); break;
+        case 'filtrar-especie':   filtrarEspecie(el.dataset.id, el); break;
         case 'agregar-carrito':   agregarAlCarrito(e, Number(el.dataset.id)); break;
         case 'pagina-productos':  obtenerProductos(obtenerFiltrosActuales(), Number(el.dataset.pagina)); break;
     }
