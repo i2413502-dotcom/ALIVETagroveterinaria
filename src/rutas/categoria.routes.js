@@ -5,6 +5,7 @@ const { verificarToken, verificarRol, verificarCargo } = require('../middlewares
 
 router.get('/',                  ctrl.getAll);             // público (catálogo)
 router.get('/:id/subcategorias', ctrl.getSubcategorias);    // público (formulario en cascada)
+router.get('/:id/subcategorias/admin', verificarToken, verificarRol('COLABORADOR'), ctrl.getSubcategoriasAdmin);
 
 router.post('/',      verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador', 'Gerente'), ctrl.create);
 router.put('/:id',    verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador', 'Gerente'), ctrl.update);

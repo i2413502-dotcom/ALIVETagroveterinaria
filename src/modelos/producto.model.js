@@ -4,6 +4,16 @@ const db = require('../config/db');
 // Incluye la imagen principal y cuántas variantes tiene cada producto,
 // sin traer TODAS las imágenes/variantes (eso es carga pesada, solo
 // se trae completo en obtenerProductoPorId para la ficha de detalle).
+// IDs de tipo_animal que tienen al menos un producto ACTIVO. Se usa en el
+// catálogo público para no mostrar (ni en el filtro de grupo, ni de
+// especie) animales sin productos disponibles.
+exports.obtenerTiposAnimalConProductos = async () => {
+    const [rows] = await db.query(
+        `SELECT DISTINCT id_tipo_animal FROM producto WHERE estado = 'ACTIVO' AND id_tipo_animal IS NOT NULL`
+    );
+    return rows.map(r => r.id_tipo_animal);
+};
+
 exports.obtenerProductos = async (filtros = {}) => {
     const pagina = parseInt(filtros.pagina) || 1;
     const limite = parseInt(filtros.limite) || 20;
@@ -16,7 +26,7 @@ exports.obtenerProductos = async (filtros = {}) => {
         SELECT p.id_producto, p.nombre, p.descripcion, p.precio_venta,
                p.stock_actual, p.stock_minimo, p.estado, p.codigo_barra,
                p.fecha_vencimiento, p.marca, p.peso_presentacion,
-               p.ficha_tecnica, p.composicion, p.modo_uso, p.fecha_creacion,
+               p.ficha_tecnica, p.composicion, p.modo_uso, p.etapa_alimentacion, p.fecha_creacion,
                p.id_categoria, c.nombre AS categoria,
                p.id_subcategoria, sc.nombre AS subcategoria,
                p.id_tipo_animal, ta.nombre AS tipo_animal,
@@ -70,6 +80,15 @@ exports.obtenerProductos = async (filtros = {}) => {
         sqlCount += ' AND p.id_tipo_animal = ?';
         params.push(filtros.id_tipo_animal);
         paramsCount.push(filtros.id_tipo_animal);
+    }
+    // Filtro por grupo de animal (Mayor/Menor): trae productos de CUALQUIER
+    // especie perteneciente a ese grupo. Se usa en el catálogo público, que
+    // filtra primero por grupo antes de categoría/subcategoría.
+    if (filtros.grupo_animal) {
+        sql      += ' AND p.id_tipo_animal IN (SELECT id_tipo_animal FROM tipo_animal WHERE grupo = ?)';
+        sqlCount += ' AND p.id_tipo_animal IN (SELECT id_tipo_animal FROM tipo_animal WHERE grupo = ?)';
+        params.push(filtros.grupo_animal);
+        paramsCount.push(filtros.grupo_animal);
     }
 
     sql += ' ORDER BY p.fecha_creacion DESC LIMIT ? OFFSET ?';
@@ -147,7 +166,7 @@ exports.crearProducto = async (data) => {
         id_categoria, id_subcategoria, id_tipo_animal,
         stock_actual, stock_minimo, codigo_barra, fecha_vencimiento,
         marca, peso_presentacion,
-        ficha_tecnica, composicion, modo_uso
+        ficha_tecnica, composicion, modo_uso, etapa_alimentacion
     } = data;
 
     const [result] = await db.query(
@@ -155,8 +174,8 @@ exports.crearProducto = async (data) => {
          (nombre, descripcion, precio_venta, id_categoria, id_subcategoria,
           id_tipo_animal, stock_actual, stock_minimo, codigo_barra,
           fecha_vencimiento, marca, peso_presentacion,
-          ficha_tecnica, composicion, modo_uso, estado, fecha_creacion)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVO', NOW())`,
+          ficha_tecnica, composicion, modo_uso, etapa_alimentacion, estado, fecha_creacion)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVO', NOW())`,
         [
             nombre,
             descripcion       || null,
@@ -172,7 +191,8 @@ exports.crearProducto = async (data) => {
             peso_presentacion || null,
             ficha_tecnica     || null,
             composicion       || null,
-            modo_uso          || null
+            modo_uso          || null,
+            etapa_alimentacion || null
         ]
     );
     return result.insertId;
@@ -185,7 +205,7 @@ exports.actualizarProducto = async (id, data) => {
         id_categoria, id_subcategoria, id_tipo_animal,
         codigo_barra, stock_minimo,
         marca, peso_presentacion,
-        ficha_tecnica, composicion, modo_uso, fecha_vencimiento
+        ficha_tecnica, composicion, modo_uso, fecha_vencimiento, etapa_alimentacion
     } = data;
 
     const [result] = await db.query(
@@ -204,7 +224,8 @@ exports.actualizarProducto = async (id, data) => {
             ficha_tecnica     = ?,
             composicion       = ?,
             modo_uso          = ?,
-            fecha_vencimiento = ?
+            fecha_vencimiento = ?,
+            etapa_alimentacion = ?
          WHERE id_producto = ?`,
         [
             nombre,
@@ -222,6 +243,7 @@ exports.actualizarProducto = async (id, data) => {
             composicion       || null,
             modo_uso          || null,
             fecha_vencimiento || null,
+            etapa_alimentacion || null,
             id
         ]
     );

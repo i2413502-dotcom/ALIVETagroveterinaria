@@ -5,6 +5,7 @@ const { verificarToken, verificarRol, verificarCargo } = require('../middlewares
 
 // Públicas — el catálogo lo consume la tienda web sin login
 router.get('/buscar-ficha', ctrl.buscarFichaTecnica); // ← ANTES de /:id
+router.get('/meta/animales-disponibles', ctrl.tiposAnimalConProductos); // ← ANTES de /:id
 router.get('/',             ctrl.listar);
 router.get('/:id',          ctrl.obtenerPorId);
 

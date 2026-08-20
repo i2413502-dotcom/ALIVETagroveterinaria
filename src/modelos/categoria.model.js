@@ -44,6 +44,17 @@ exports.getSubcategorias = async (idCategoria) => {
     return rows;
 };
 
+// Todas las subcategorías (activas e inactivas) de una categoría — para el
+// panel de administración, donde se necesita poder reactivar una que se
+// desactivó por error.
+exports.getSubcategoriasAdmin = async (idCategoria) => {
+    const [rows] = await db.query(
+        'SELECT * FROM subcategoria_producto WHERE id_categoria = ? ORDER BY estado DESC, nombre',
+        [idCategoria]
+    );
+    return rows;
+};
+
 exports.createSubcategoria = async ({ id_categoria, nombre, descripcion }) => {
     const [result] = await db.query(
         'INSERT INTO subcategoria_producto (id_categoria, nombre, descripcion) VALUES (?, ?, ?)',

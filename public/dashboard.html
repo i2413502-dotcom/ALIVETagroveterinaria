@@ -284,10 +284,10 @@
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
-                        <tr><th>#</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Documento</th><th>Fecha Registro</th></tr>
+                        <tr><th>#</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Documento</th><th>Fecha Registro</th><th>Estado</th><th>Acciones</th></tr>
                     </thead>
                     <tbody id="tabla-clientes">
-                        <tr><td colspan="6" class="text-center">Cargando...</td></tr>
+                        <tr><td colspan="8" class="text-center">Cargando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -671,6 +671,17 @@
                                    id="prod-peso-ali" placeholder="Ej: 1kg, 5kg, 500g...">
                         </div>
                         <div class="col-md-6 mb-2">
+                            <label class="form-label fw-bold small">Etapa de Alimentación</label>
+                            <select class="form-select form-select-sm" id="prod-etapa-ali">
+                                <option value="">-- No aplica --</option>
+                                <option value="Inicio">Inicio</option>
+                                <option value="Crecimiento">Crecimiento</option>
+                                <option value="Engorde">Engorde</option>
+                                <option value="Producción">Producción</option>
+                                <option value="Acabado">Acabado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
                             <label class="form-label fw-bold small">Fecha de Vencimiento</label>
                             <input type="date" class="form-control form-control-sm"
                                    id="prod-vencimiento-ali" min="">
@@ -734,6 +745,60 @@
                 <button type="button" class="btn btn-success" data-accion="guardar-categoria">
                     <i class="bi bi-check-lg me-1"></i>Guardar
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL SUBCATEGORÍAS: lista + alta rápida, vinculadas a una categoría -->
+<div class="modal fade" id="modalSubcategorias" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-success">
+                    <i class="bi bi-diagram-3 me-2"></i>Subcategorías de <span id="subcat-nombre-categoria"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="subcat-id-categoria">
+                <input type="hidden" id="subcat-id-edicion">
+
+                <!-- Alta / edición rápida -->
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold small">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="subcat-nombre" placeholder="Ej: Antibióticos">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold small">Descripción</label>
+                        <input type="text" class="form-control form-control-sm" id="subcat-descripcion" placeholder="Opcional">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-success btn-sm w-100" data-accion="guardar-subcategoria">
+                            <i class="bi bi-plus-lg"></i> <span id="subcat-btn-texto">Agregar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                            <tr><th>Nombre</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody id="tabla-subcategorias">
+                            <tr><td colspan="4" class="text-center text-muted">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Los cambios aquí se reflejan de inmediato en el desplegable de Subcategoría
+                    del formulario "Nuevo Producto".
+                </small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
@@ -881,9 +946,36 @@
     </div>
 </div>
 
+<!-- MODAL DE CONFIRMACIÓN GENÉRICO (reemplaza confirm() nativo).
+     El estilo (icono/color) cambia según data-tipo, seteado en JS desde
+     confirmarAccion(): 'peligro' (eliminar), 'advertencia' (desactivar/otros). -->
+<div class="modal fade" id="modalConfirmacion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="confirmacion-titulo">
+                    <i class="bi bi-exclamation-triangle-fill me-2" id="confirmacion-icono"></i>
+                    <span id="confirmacion-titulo-texto">Confirmar acción</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-1">
+                <p class="mb-0" id="confirmacion-mensaje"></p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" id="confirmacion-btn-cancelar">Cancelar</button>
+                <button type="button" class="btn" id="confirmacion-btn-confirmar">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenedor de toasts (reemplaza alert() nativo) -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080" id="toasts-alertas"></div>
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/ui-mensajes.js"></script>
 <script src="/js/dashboard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module" src="/js/notificaciones.js"></script>

@@ -1,5 +1,6 @@
 let productosBase    = [];
-let filtroAnimalActivo = 0;
+let grupoAnimalActivo = '';
+let animalesConProductos = []; // ids de tipo_animal con al menos 1 producto activo
 let paginaActual     = 1;
 const LIMITE         = 20;
 const RUTA_IMG       = '/img/productos/';
@@ -28,9 +29,9 @@ async function obtenerProductos(filtros = {}, pagina = 1) {
         paginaActual = pagina;
         const params = new URLSearchParams({ ...filtros, pagina, limite: LIMITE });
 
-        // Agregar filtro animal si está activo
-        if (filtroAnimalActivo > 0) {
-            params.set('id_tipo_animal', filtroAnimalActivo);
+        // Agregar filtro de grupo de animal si está activo
+        if (grupoAnimalActivo) {
+            params.set('grupo_animal', grupoAnimalActivo);
         }
 
         const res  = await fetch('/api/productos?' + params.toString());
@@ -149,16 +150,17 @@ function renderizarPaginacion(paginaActual, totalPaginas, totalProductos, filtro
 // Obtener filtros activos actualmente
 function obtenerFiltrosActuales() {
     return {
-        categoria:  document.getElementById('filtroCategoria')?.value  || '',
-        precio_min: document.getElementById('filtroPrecioMin')?.value  || '',
-        precio_max: document.getElementById('filtroPrecioMax')?.value  || '',
+        categoria:    document.getElementById('filtroCategoria')?.value    || '',
+        subcategoria: document.getElementById('filtroSubcategoria')?.value || '',
+        precio_min:   document.getElementById('filtroPrecioMin')?.value    || '',
+        precio_max:   document.getElementById('filtroPrecioMax')?.value    || '',
     };
 }
 
-// Filtrar por animal
-function filtrarAnimal(idAnimal, btn) {
-    filtroAnimalActivo = idAnimal;
-    document.querySelectorAll('.filtro-animal .btn').forEach(b => b.classList.remove('active'));
+// Paso 1 de la cascada: filtrar por Grupo de animal (Mayor/Menor/Todos)
+function filtrarGrupo(grupo, btn) {
+    grupoAnimalActivo = grupo;
+    document.querySelectorAll('#contenedor-grupos .btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     obtenerProductos(obtenerFiltrosActuales(), 1);
 }
@@ -185,12 +187,13 @@ function aplicarFiltros() {
 // Limpiar filtros
 function limpiarFiltros() {
     document.getElementById('filtroCategoria').value = '';
+    cargarFiltroSubcategorias(''); // deja el select deshabilitado de nuevo
     document.getElementById('filtroPrecioMin').value = '';
     document.getElementById('filtroPrecioMax').value = '';
     if (inputBuscador) inputBuscador.value = '';
-    filtroAnimalActivo = 0;
-    document.querySelectorAll('.filtro-animal .btn').forEach(b => b.classList.remove('active'));
-    const primero = document.querySelector('.filtro-animal .btn');
+    grupoAnimalActivo = '';
+    document.querySelectorAll('#contenedor-grupos .btn').forEach(b => b.classList.remove('active'));
+    const primero = document.querySelector('#contenedor-grupos .btn');
     if (primero) primero.classList.add('active');
     obtenerProductos({}, 1);
 }
@@ -244,34 +247,83 @@ async function cargarFiltroCategorias() {
     } catch (err) { console.error('Error cargando categorías:', err); }
 }
 
-// Cargar botones de animales dinámicamente
-async function cargarFiltrosAnimales() {
+// Paso 3 de la cascada: subcategorías de la categoría elegida (paso 2).
+// Si la categoría no tiene subcategorías, el select queda deshabilitado
+// (la búsqueda sigue funcionando solo por categoría).
+async function cargarFiltroSubcategorias(idCategoria) {
+    const sel = document.getElementById('filtroSubcategoria');
+    if (!sel) return;
+    if (!idCategoria) {
+        sel.innerHTML = '<option value="">-- Elige primero una categoría --</option>';
+        sel.disabled = true;
+        return;
+    }
     try {
-        const res      = await fetch('/api/animales');
-        const animales = await res.json();
-        const emojis   = {
-            'Perro':'🐶','Gato':'🐱','Ave':'🐔','Conejo':'🐰',
-            'conejo':'🐰','Camello':'🐪','cerdo':'🐷','Cerdo':'🐷',
-            'Vaca':'🐄','Caballo':'🐴','Oveja':'🐑'
-        };
-        const contenedor = document.getElementById('contenedor-animales');
-        animales.filter(a => a.estado === 'ACTIVO').forEach(a => {
+        const res  = await fetch(`/api/categorias/${idCategoria}/subcategorias`);
+        const data = await res.json();
+        if (!data.length) {
+            sel.innerHTML = '<option value="">Sin subcategorías</option>';
+            sel.disabled = true;
+            return;
+        }
+        sel.innerHTML = '<option value="">Todas</option>' +
+            data.map(sc => `<option value="${sc.id_subcategoria}">${sc.nombre}</option>`).join('');
+        sel.disabled = false;
+    } catch (err) {
+        console.error('Error cargando subcategorías:', err);
+        sel.innerHTML = '<option value="">Sin subcategorías</option>';
+        sel.disabled = true;
+    }
+}
+
+// Paso 1 de la cascada: botones de Grupo de animal (Mayor / Menor).
+// Solo se muestran los grupos que tienen al menos un producto disponible
+// (requerimiento: "si un tipo de animal no tiene productos... no debe
+// mostrarse en pantalla ni aparecer como opción seleccionable").
+async function cargarFiltrosGrupos() {
+    try {
+        const [resAnimales, resDisponibles] = await Promise.all([
+            fetch('/api/animales'),
+            fetch('/api/productos/meta/animales-disponibles')
+        ]);
+        const animales = await resAnimales.json();
+        animalesConProductos = await resDisponibles.json();
+
+        const activos = animales.filter(a => a.estado === 'ACTIVO' && animalesConProductos.includes(a.id_tipo_animal));
+        const hayMayor = activos.some(a => a.grupo === 'MAYOR');
+        const hayMenor = activos.some(a => a.grupo === 'MENOR');
+
+        const contenedor = document.getElementById('contenedor-grupos');
+        if (hayMayor) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline-success btn-sm';
-            btn.dataset.accion = 'filtrar-animal';
-            btn.dataset.id     = a.id_tipo_animal;
-            btn.innerHTML = `${emojis[a.nombre] || '🐾'} ${a.nombre}`;
+            btn.dataset.accion = 'filtrar-grupo';
+            btn.dataset.grupo  = 'MAYOR';
+            btn.innerHTML = '🐄 Animales Mayores';
             contenedor.appendChild(btn);
-        });
-    } catch (err) { console.error('Error cargando animales:', err); }
+        }
+        if (hayMenor) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline-success btn-sm';
+            btn.dataset.accion = 'filtrar-grupo';
+            btn.dataset.grupo  = 'MENOR';
+            btn.innerHTML = '🐰 Animales Menores';
+            contenedor.appendChild(btn);
+        }
+    } catch (err) { console.error('Error cargando grupos de animal:', err); }
 }
 
 // Iniciar
 window.addEventListener('DOMContentLoaded', () => {
     cargarFiltroCategorias();
-    cargarFiltrosAnimales();
+    cargarFiltrosGrupos();
     obtenerProductos();
     actualizarContadorCarrito();
+
+    // Paso 2 → 3 de la cascada: al cambiar categoría, recargar subcategorías
+    document.getElementById('filtroCategoria')?.addEventListener('change', (e) => {
+        cargarFiltroSubcategorias(e.target.value);
+    });
 
     const nombre    = localStorage.getItem('nombre');
     const rol       = localStorage.getItem('rol');
@@ -295,7 +347,7 @@ document.addEventListener('click', function (e) {
     switch (el.dataset.accion) {
         case 'aplicar-filtros':   aplicarFiltros(); break;
         case 'limpiar-filtros':   limpiarFiltros(); break;
-        case 'filtrar-animal':    filtrarAnimal(Number(el.dataset.id), el); break;
+        case 'filtrar-grupo':     filtrarGrupo(el.dataset.grupo, el); break;
         case 'agregar-carrito':   agregarAlCarrito(e, Number(el.dataset.id)); break;
         case 'pagina-productos':  obtenerProductos(obtenerFiltrosActuales(), Number(el.dataset.pagina)); break;
     }

@@ -87,7 +87,7 @@ async function exportar(endpoint, filename, btn) {
         a.remove();
         URL.revokeObjectURL(url);
     } catch (err) {
-        alert('Error al exportar: ' + err.message);
+        mostrarAlerta('Error al exportar: ' + err.message, 'error');
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = original; }
     }

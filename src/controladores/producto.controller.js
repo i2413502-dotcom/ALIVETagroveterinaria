@@ -16,6 +16,18 @@ exports.listar = async (req, res) => {
     }
 };
 
+// IDs de tipo_animal con al menos un producto activo — para que el
+// catálogo público oculte del filtro (grupo y especie) lo que no tiene nada.
+exports.tiposAnimalConProductos = async (req, res) => {
+    try {
+        const ids = await Producto.obtenerTiposAnimalConProductos();
+        res.json(ids);
+    } catch (err) {
+        console.error('Error en tiposAnimalConProductos:', err);
+        res.status(500).json({ mensaje: 'Error al obtener disponibilidad de animales' });
+    }
+};
+
 // Devuelve el producto con sus imágenes y variantes ya anidadas
 // (ver Producto.obtenerProductoPorId en el modelo)
 exports.obtenerPorId = async (req, res) => {

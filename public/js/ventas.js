@@ -130,7 +130,7 @@ async function verDetalle(idPedido) {
 
         modalDetalle.show();
     } catch (err) {
-        alert('Error al cargar el detalle: ' + err.message);
+        mostrarAlerta('Error al cargar el detalle: ' + err.message, 'error');
     }
 }
 
@@ -150,7 +150,7 @@ async function exportarVentas(btn) {
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
     } catch (err) {
-        alert('Error al exportar: ' + err.message);
+        mostrarAlerta('Error al exportar: ' + err.message, 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = original;

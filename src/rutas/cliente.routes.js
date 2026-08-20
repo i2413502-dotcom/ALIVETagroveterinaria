@@ -6,4 +6,7 @@ const { verificarToken, verificarRol } = require('../middlewares/auth.middleware
 // Lista de clientes: dato sensible, solo panel admin
 router.get('/', verificarToken, verificarRol('COLABORADOR'), clienteController.obtenerClientes);
 
+// Activar/desactivar (nunca hard delete: ver cliente.model.js)
+router.put('/:idPersona/estado', verificarToken, verificarRol('COLABORADOR'), clienteController.cambiarEstado);
+
 module.exports = router;

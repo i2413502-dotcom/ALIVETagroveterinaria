@@ -157,7 +157,35 @@
 
 </div><!-- fin main-content -->
 
+<!-- MODAL DE CONFIRMACIÓN GENÉRICO (reemplaza confirm() nativo).
+     El estilo (icono/color) cambia según data-tipo, seteado en JS desde
+     confirmarAccion(): 'peligro' (eliminar), 'advertencia' (desactivar/otros). -->
+<div class="modal fade" id="modalConfirmacion" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="confirmacion-titulo">
+                    <i class="bi bi-exclamation-triangle-fill me-2" id="confirmacion-icono"></i>
+                    <span id="confirmacion-titulo-texto">Confirmar acción</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-1">
+                <p class="mb-0" id="confirmacion-mensaje"></p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" id="confirmacion-btn-cancelar">Cancelar</button>
+                <button type="button" class="btn" id="confirmacion-btn-confirmar">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenedor de toasts (reemplaza alert() nativo) -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080" id="toasts-alertas"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/ui-mensajes.js"></script>
 <script src="/js/reportes.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

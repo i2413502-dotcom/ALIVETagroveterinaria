@@ -52,6 +52,16 @@ exports.getSubcategorias = async (req, res) => {
     }
 };
 
+// GET /api/categorias/:id/subcategorias/admin — incluye inactivas
+exports.getSubcategoriasAdmin = async (req, res) => {
+    try {
+        const subcategorias = await model.getSubcategoriasAdmin(req.params.id);
+        res.json(subcategorias);
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
 // POST /api/categorias/subcategorias
 exports.createSubcategoria = async (req, res) => {
     try {

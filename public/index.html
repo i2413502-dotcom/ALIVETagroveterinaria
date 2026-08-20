@@ -45,11 +45,27 @@
 
     <!-- FILTROS -->
     <div class="filtros-toolbar mb-4">
+        <!-- Paso 1: Grupo de animal (Mayor / Menor) — primero en la cascada -->
+        <div class="filtro-animal-wrap mb-2">
+            <div class="filtro-animal d-flex gap-2 flex-wrap" id="contenedor-grupos">
+                <span class="align-self-center text-muted" style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Animal:</span>
+                <button class="btn btn-outline-success btn-sm active" data-accion="filtrar-grupo" data-grupo="">
+                    🐾 Todos
+                </button>
+            </div>
+        </div>
+
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Categoría</label>
                 <select id="filtroCategoria" class="form-select">
                     <option value="">Todas las categorías</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Subcategoría</label>
+                <select id="filtroSubcategoria" class="form-select" disabled>
+                    <option value="">-- Elige primero una categoría --</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -60,24 +76,14 @@
                 <label class="form-label">Precio máx.</label>
                 <input type="number" id="filtroPrecioMax" class="form-control" placeholder="S/. 999">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <button class="btn btn-filtrar btn-sm w-100" data-accion="aplicar-filtros">
                     <i class="bi bi-funnel me-1"></i>Filtrar
                 </button>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <button class="btn btn-limpiar btn-outline-secondary btn-sm w-100" data-accion="limpiar-filtros">
                     <i class="bi bi-x-circle me-1"></i>Limpiar
-                </button>
-            </div>
-        </div>
-
-        <!-- Filtro tipo animal -->
-        <div class="filtro-animal-wrap">
-            <div class="filtro-animal d-flex gap-2 flex-wrap" id="contenedor-animales">
-                <span class="align-self-center text-muted" style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Animal:</span>
-                <button class="btn btn-outline-success btn-sm active" data-accion="filtrar-animal" data-id="0">
-                    🐾 Todos
                 </button>
             </div>
         </div>

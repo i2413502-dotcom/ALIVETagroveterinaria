@@ -52,13 +52,13 @@ function construirFichaTecnica(p) {
             filaMarca, filaPeso,
             p.composicion   ? `<tr><td class="fw-bold bg-light">Composición</td><td>${p.composicion}</td></tr>` : '',
             p.modo_uso      ? `<tr><td class="fw-bold bg-light">Modo de uso</td><td>${p.modo_uso}</td></tr>`    : '',
+            filaVence, // Vencimiento SIEMPRE visible en medicamentos (dato crítico de seguridad para el cliente)
             p.ficha_tecnica ? `<tr><td class="fw-bold bg-light">Ficha Técnica</td><td>
     <a href="${convertirUrlDrive(p.ficha_tecnica)}" target="_blank"
        class="btn btn-sm btn-danger">
         <i class="bi bi-file-earmark-pdf-fill me-1"></i>Ver Ficha Técnica (PDF)
     </a>
 </td></tr>` : ''
-            // Vencimiento OCULTO para medicamentos (no se muestra al cliente)
         ].filter(Boolean).join('');
 
         if (!filas) return '';
@@ -77,6 +77,8 @@ function construirFichaTecnica(p) {
     } else if (tipo === 'alimento') {
         const filas = [
             filaMarca, filaPeso,
+            p.etapa_alimentacion ? `<tr><td class="fw-bold bg-light">Etapa</td><td>
+                <span class="badge bg-success">${p.etapa_alimentacion}</span></td></tr>` : '',
             p.composicion   ? `<tr><td class="fw-bold bg-light">Composición</td><td>${p.composicion}</td></tr>`        : '',
             p.ficha_tecnica ? `<tr><td class="fw-bold bg-light">Info. nutricional</td><td>${p.ficha_tecnica}</td></tr>` : '',
             filaVence
@@ -190,6 +192,16 @@ function construirSelectorAtributos(p) {
     return html;
 }
 
+// Cambia la imagen principal al hacer clic en una miniatura de la galería
+function verImagen(url, thumb) {
+    const principal = document.getElementById('imagen-principal');
+    if (principal) principal.src = url;
+    document.querySelectorAll('#galeria-miniaturas .galeria-thumb').forEach(t => {
+        t.style.border = '2px solid #ddd';
+    });
+    if (thumb) thumb.style.border = '2px solid #06A049';
+}
+
 function seleccionarOpcion(btn, grupoId) {
     document.querySelectorAll(`#${grupoId} button`).forEach(b => {
         b.className = 'btn btn-sm btn-outline-secondary';
@@ -218,13 +230,30 @@ async function cargarDetalleProducto() {
         const fichaTecnica     = construirFichaTecnica(p);
         const selectorAtributos = construirSelectorAtributos(p);
 
+        // Galería: imagen principal + hasta 2 secundarias (si el producto
+        // las tiene). Si no hay secundarias, se muestra solo la principal
+        // sin miniaturas (tal como pide el requerimiento).
+        const galeria = (p.imagenes && p.imagenes.length > 1)
+            ? `
+            <div class="d-flex justify-content-center gap-2 mt-2" id="galeria-miniaturas">
+                ${p.imagenes.map((im, i) => `
+                    <img src="${im.url_imagen}" alt="${p.nombre} ${i + 1}"
+                         class="galeria-thumb ${i === 0 ? 'active' : ''}"
+                         style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;
+                                border:2px solid ${i === 0 ? '#06A049' : '#ddd'};"
+                         data-accion="ver-imagen" data-url="${im.url_imagen}"
+                         onerror="this.style.display='none'">
+                `).join('')}
+            </div>` : '';
+
         // Stock solo para saber si hay o no — no se muestra al cliente
         const sinStock = p.stock_actual <= 0;
 
         document.getElementById('producto-detalle').innerHTML = `
             <div class="col-md-6 text-center">
-                <img src="${img}" alt="${p.nombre}" class="product-img shadow img-fluid"
+                <img id="imagen-principal" src="${img}" alt="${p.nombre}" class="product-img shadow img-fluid"
                      onerror="this.onerror=null;this.src='${IMG_ERROR}';">
+                ${galeria}
             </div>
             <div class="col-md-6">
                 <nav aria-label="breadcrumb">
@@ -397,6 +426,7 @@ document.addEventListener('click', function (e) {
 
     switch (el.dataset.accion) {
         case 'seleccionar-opcion': seleccionarOpcion(el, el.dataset.grupo); break;
+        case 'ver-imagen':         verImagen(el.dataset.url, el); break;
         case 'restar-cantidad':    restar(); break;
         case 'sumar-cantidad':     sumar(); break;
         case 'agregar-carrito':    agregarAlCarrito(); break;

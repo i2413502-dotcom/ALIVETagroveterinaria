@@ -10,10 +10,15 @@
 // ═══════════════════════════════════════════════════
 //  VARIABLES GLOBALES
 // ══════════════════════════════════════════════════
-let modalProducto, modalCategoria, modalAnimal, modalColaborador;
+let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalSubcategorias;
 let productosLista = [], categoriasLista = [], animalesLista = [], colaboradoresLista = [];
 let chartVentas = null, chartProductos = null, chartStock = null;
 let intervaloPedidos = null;
+
+// NOTA: confirmarAccion() y mostrarAlerta() (reemplazos de confirm()/alert()
+// nativos) viven en /js/ui-mensajes.js, compartido con ventas.html y
+// reportes.html — ver ese archivo para su implementación.
+
 let ultimosPedidosIds = new Set();
 let paginaProductos = 1;
 const LIMITE_PRODUCTOS = 20;
@@ -82,7 +87,7 @@ async function exportarTabla(entidad, formato) {
         a.remove();
         URL.revokeObjectURL(url);
     } catch (err) {
-        alert('Error al exportar: ' + err.message);
+        mostrarAlerta('Error al exportar: ' + err.message);
     }
 }
 
@@ -426,7 +431,7 @@ function limpiarFormularioProducto() {
         // accesorio
         'prod-marca-acc','prod-ficha-acc',
         // alimento
-        'prod-marca-ali','prod-peso-ali','prod-vencimiento-ali','prod-composicion-ali','prod-ficha-ali'
+        'prod-marca-ali','prod-peso-ali','prod-vencimiento-ali','prod-composicion-ali','prod-ficha-ali','prod-etapa-ali'
     ];
     ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
@@ -641,7 +646,7 @@ async function subirFichaTecnicaPdf(input) {
         });
         if (!upRes.ok) {
             console.error('Upload error', upRes.status);
-            alert('No se pudo subir el PDF. Intenta de nuevo.');
+            mostrarAlerta('No se pudo subir el PDF. Intenta de nuevo.');
             return;
         }
         const upData = await upRes.json();
@@ -650,7 +655,7 @@ async function subirFichaTecnicaPdf(input) {
         }
     } catch (err) {
         console.error('Error al subir ficha técnica a R2:', err);
-        alert('No se pudo subir el PDF. Intenta de nuevo.');
+        mostrarAlerta('No se pudo subir el PDF. Intenta de nuevo.');
     } finally {
         spinner.classList.add('d-none');
     }
@@ -748,6 +753,7 @@ async function editarProducto(id) {
     const elVencAli  = document.getElementById('prod-vencimiento-ali');
     const elCompAli  = document.getElementById('prod-composicion-ali');
     const elFichaAli = document.getElementById('prod-ficha-ali');
+    const elEtapaAli = document.getElementById('prod-etapa-ali');
     if (elMarcaAli) elMarcaAli.value = p.marca        || '';
     if (elPesoAli)  elPesoAli.value  = p.presentacion || '';
     if (elVencAli && p.fecha_vencimiento) {
@@ -755,6 +761,7 @@ async function editarProducto(id) {
     }
     if (elCompAli)  elCompAli.value  = p.composicion   || '';
     if (elFichaAli) elFichaAli.value = p.ficha_tecnica || '';
+    if (elEtapaAli) elEtapaAli.value = p.etapa_alimentacion || '';
 
     // ✅ Cargar tags de colores y tallas
     if (p.colores) cargarTags('color', p.colores);
@@ -788,11 +795,11 @@ async function guardarProducto() {
 
     // Validación de la cascada Grupo → Tipo de Animal (ambos obligatorios)
     if (!document.getElementById('prod-grupo-animal').value) {
-        alert('Selecciona el Grupo de Animal (Mayor / Menor).');
+        mostrarAlerta('Selecciona el Grupo de Animal (Mayor / Menor).');
         return;
     }
     if (!document.getElementById('prod-animal').value) {
-        alert('Selecciona el Tipo de Animal.');
+        mostrarAlerta('Selecciona el Tipo de Animal.');
         return;
     }
 
@@ -813,14 +820,14 @@ async function guardarProducto() {
         const upRes  = await fetch('/api/upload/imagen-producto', { method: 'POST', body: formData });
         if (!upRes.ok) {
             const upErr = await upRes.json().catch(() => ({}));
-            alert('Error al subir imagen: ' + (upErr.mensaje || upRes.status));
+            mostrarAlerta('Error al subir imagen: ' + (upErr.mensaje || upRes.status));
             return;
         }
         const upData = await upRes.json();
         if (upData.url) {
             imagenFinal = upData.url;
         } else {
-            alert('El servidor no devolvió URL de imagen. Revisa la configuración de R2.');
+            mostrarAlerta('El servidor no devolvió URL de imagen. Revisa la configuración de R2.');
             return;
         }
     }
@@ -844,7 +851,7 @@ async function guardarProducto() {
         });
         if (!fichaUpRes.ok) {
             const fichaUpErr = await fichaUpRes.json().catch(() => ({}));
-            alert('Error al subir la ficha técnica: ' + (fichaUpErr.mensaje || fichaUpRes.status));
+            mostrarAlerta('Error al subir la ficha técnica: ' + (fichaUpErr.mensaje || fichaUpRes.status));
             return;
         }
         const fichaUpData = await fichaUpRes.json();
@@ -886,6 +893,8 @@ async function guardarProducto() {
 
         modo_uso: esMed ? document.getElementById('prod-modo-uso')?.value || null : null,
 
+        etapa_alimentacion: esAli ? document.getElementById('prod-etapa-ali')?.value || null : null,
+
         ficha_tecnica: esMed ? (fichaFinal || null)
                      : esAcc ? document.getElementById('prod-ficha-acc')?.value         || null
                      : esAli ? document.getElementById('prod-ficha-ali')?.value         || null
@@ -905,7 +914,7 @@ if (fechaVenc) {
     hoy.setHours(0, 0, 0, 0);
     const fechaIngresada = new Date(fechaVenc);
     if (fechaIngresada < hoy) {
-        alert('⚠️ La fecha de vencimiento no puede ser una fecha pasada.');
+        mostrarAlerta('⚠️ La fecha de vencimiento no puede ser una fecha pasada.');
         return;
     }
 }
@@ -931,17 +940,17 @@ if (fechaVenc) {
             cargarGraficoStock();
         } else {
             const e = await res.json();
-            alert(e.mensaje || 'Error al guardar producto');
+            mostrarAlerta(e.mensaje || 'Error al guardar producto');
         }
     } catch (err) {
-        alert('Error al guardar producto: ' + err.message);
+        mostrarAlerta('Error al guardar producto: ' + err.message);
     }
 } 
  
 // Buscar ficha técnica en internet (Wikipedia)
 async function buscarFicha() {
     const nombre = document.getElementById('prod-buscar-ficha').value.trim();
-    if (!nombre) return alert('Escribe el nombre del medicamento');
+    if (!nombre) return mostrarAlerta('Escribe el nombre del medicamento');
 
     try {
         const res  = await fetch(`/api/productos/buscar-ficha?nombre=${encodeURIComponent(nombre)}`);
@@ -952,10 +961,10 @@ async function buscarFicha() {
             document.getElementById('ficha-fuente').innerHTML =
                 `Fuente: <a href="${data.url}" target="_blank">Wikipedia</a> — puedes editar el texto`;
         } else {
-            alert('No se encontró información automática. Puedes escribirla manualmente.');
+            mostrarAlerta('No se encontró información automática. Puedes escribirla manualmente.');
         }
     } catch (err) {
-        alert('Error al buscar. Escribe la ficha manualmente.');
+        mostrarAlerta('Error al buscar. Escribe la ficha manualmente.');
     }
 }
 
@@ -974,7 +983,15 @@ document.getElementById('prod-grupo-animal')?.addEventListener('change', (e) => 
 // Cambiar estado lógico del producto (activar/desactivar)
 async function cambiarEstadoProducto(id, nuevoEstado) {
     const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'desactivar';
-    if (!confirm(`¿Seguro que deseas ${accion} este producto?`)) return;
+    const prod = productosLista.find(x => x.id_producto === id);
+    const ok = await confirmarAccion({
+        tipo: 'advertencia',
+        titulo: accion === 'activar' ? 'Activar producto' : 'Desactivar producto',
+        mensaje: `¿Seguro que deseas ${accion} "${prod ? prod.nombre : 'este producto'}"?` +
+                 (accion === 'desactivar' ? ' Dejará de verse en el catálogo hasta que lo actives de nuevo.' : ''),
+        textoConfirmar: accion === 'activar' ? 'Sí, activar' : 'Sí, desactivar'
+    });
+    if (!ok) return;
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/productos/${id}/estado`, {
@@ -986,16 +1003,25 @@ async function cambiarEstadoProducto(id, nuevoEstado) {
             cargarProductos();
             cargarEstadisticas();
             cargarGraficoStock();
+            mostrarAlerta(`Producto ${accion === 'activar' ? 'activado' : 'desactivado'} correctamente`, 'exito');
         } else {
             const e = await res.json();
-            alert(e.mensaje || 'Error al cambiar el estado');
+            mostrarAlerta(e.mensaje || 'Error al cambiar el estado', 'error');
         }
-    } catch (err) { alert('Error al cambiar el estado'); }
+    } catch (err) { mostrarAlerta('Error al cambiar el estado', 'error'); }
 }
 
-// Borrado físico permanente (irreversible). El backend lo bloquea si tiene pedidos.
+// Borrado físico permanente (irreversible). El backend lo bloquea si el
+// producto tiene pedidos que aún no fueron entregados (ver módulo 1).
 async function eliminarProducto(id) {
-    if (!confirm('⚠️ ¿Eliminar PERMANENTEMENTE este producto?\nEsta acción no se puede deshacer y borra también su imagen.')) return;
+    const prod = productosLista.find(x => x.id_producto === id);
+    const ok = await confirmarAccion({
+        tipo: 'peligro',
+        titulo: 'Eliminar producto permanentemente',
+        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.`,
+        textoConfirmar: 'Sí, eliminar'
+    });
+    if (!ok) return;
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/productos/${id}`, { method:'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
@@ -1003,11 +1029,12 @@ async function eliminarProducto(id) {
             cargarProductos();
             cargarEstadisticas();
             cargarGraficoStock();
+            mostrarAlerta('Producto eliminado correctamente', 'exito');
         } else {
             const e = await res.json();
-            alert(e.mensaje || 'No se pudo eliminar el producto');
+            mostrarAlerta(e.mensaje || 'No se pudo eliminar el producto', 'error');
         }
-    } catch (err) { alert('Error al eliminar'); }
+    } catch (err) { mostrarAlerta('Error al eliminar', 'error'); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1020,7 +1047,7 @@ async function cargarClientes() {
         const clientes = await res.json();
         const tbody = document.getElementById('tabla-clientes');
         if (!clientes.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay clientes</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay clientes</td></tr>';
             return;
         }
         tbody.innerHTML = clientes.map((c, i) => `
@@ -1031,8 +1058,47 @@ async function cargarClientes() {
                 <td>${c.telefono || '-'}</td>
                 <td>${c.numero_documento || '-'}</td>
                 <td>${new Date(c.fecha_registro).toLocaleDateString('es-PE')}</td>
+                <td><span class="badge bg-${c.estado==='INACTIVO'?'secondary':'success'}">${c.estado || 'ACTIVO'}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-secondary" data-accion="toggle-cliente"
+                            data-id="${c.id_persona}" data-estado="${c.estado || 'ACTIVO'}" data-nombre="${c.nombres}">
+                        <i class="bi bi-${c.estado==='INACTIVO'?'eye':'eye-slash'} me-1"></i>${c.estado==='INACTIVO'?'Activar':'Desactivar'}
+                    </button>
+                </td>
             </tr>`).join('');
     } catch (err) { console.error('Error clientes:', err); }
+}
+
+// Activar/desactivar cliente. NUNCA se elimina físicamente: el cliente
+// puede tener pedidos/comprobantes emitidos que deben conservar su
+// referencia (ver decisión documentada en cliente.model.js). Desactivar
+// le impide iniciar sesión y hacer nuevos pedidos, sin perder su historial.
+async function toggleCliente(idPersona, estadoActual, nombre) {
+    const activando = estadoActual === 'INACTIVO';
+    const ok = await confirmarAccion({
+        tipo: 'advertencia',
+        titulo: activando ? 'Activar cliente' : 'Desactivar cliente',
+        mensaje: activando
+            ? `¿Reactivar a "${nombre}"? Podrá iniciar sesión y comprar de nuevo.`
+            : `¿Desactivar a "${nombre}"? No podrá iniciar sesión ni hacer nuevos pedidos, pero su historial de compras se conserva.`,
+        textoConfirmar: activando ? 'Sí, activar' : 'Sí, desactivar'
+    });
+    if (!ok) return;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/clientes/${idPersona}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ estado: activando ? 'ACTIVO' : 'INACTIVO' })
+        });
+        if (res.ok) {
+            cargarClientes();
+            mostrarAlerta(`Cliente ${activando ? 'activado' : 'desactivado'} correctamente`, 'exito');
+        } else {
+            const e = await res.json();
+            mostrarAlerta(e.mensaje || 'No se pudo cambiar el estado', 'error');
+        }
+    } catch (err) { mostrarAlerta('Error al cambiar el estado', 'error'); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1054,6 +1120,9 @@ async function cargarCategorias() {
                 <td>${c.descripcion || '-'}</td>
                 <td><span class="badge bg-${c.estado==='ACTIVO'?'success':'secondary'}">${c.estado}</span></td>
                 <td>
+                    <button class="btn btn-sm btn-outline-success me-1" data-accion="ver-subcategorias" data-id="${c.id_categoria}" data-nombre="${c.nombre}">
+                        <i class="bi bi-diagram-3"></i> Subcategorías
+                    </button>
                     <button class="btn btn-sm btn-outline-primary me-1" data-accion="editar-categoria" data-id="${c.id_categoria}">
                         <i class="bi bi-pencil"></i>
                     </button>
@@ -1102,18 +1171,163 @@ async function guardarCategoria() {
         const token = localStorage.getItem('token');
         const res = await fetch(url, { method, headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data) });
         if (res.ok) { modalCategoria.hide(); cargarCategorias(); }
-        else { const e = await res.json(); alert(e.mensaje || 'Error al guardar'); }
-    } catch (err) { alert('Error al guardar categoría'); }
+        else { const e = await res.json(); mostrarAlerta(e.mensaje || 'Error al guardar'); }
+    } catch (err) { mostrarAlerta('Error al guardar categoría'); }
 }
 
 async function eliminarCategoria(id) {
-    if (!confirm('¿Seguro que deseas eliminar esta categoría?')) return;
+    const cat = categoriasLista.find(x => x.id_categoria === id);
+    const ok = await confirmarAccion({
+        tipo: 'peligro',
+        titulo: 'Eliminar categoría',
+        mensaje: `¿Eliminar la categoría "${cat ? cat.nombre : ''}"? No se podrá deshacer.`,
+        textoConfirmar: 'Sí, eliminar'
+    });
+    if (!ok) return;
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/categorias/${id}`, { method:'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
-        if (res.ok) cargarCategorias();
-        else { const e = await res.json(); alert(e.mensaje || 'No se puede eliminar'); }
-    } catch (err) { alert('Error al eliminar'); }
+        if (res.ok) { cargarCategorias(); mostrarAlerta('Categoría eliminada correctamente', 'exito'); }
+        else { const e = await res.json(); mostrarAlerta(e.mensaje || 'No se puede eliminar', 'error'); }
+    } catch (err) { mostrarAlerta('Error al eliminar', 'error'); }
+}
+
+// ── Subcategorías (módulo de administración) ───────────────────
+let subcategoriasListaAdmin = [];
+
+async function abrirSubcategorias(idCategoria, nombreCategoria) {
+    document.getElementById('subcat-id-categoria').value    = idCategoria;
+    document.getElementById('subcat-nombre-categoria').innerText = nombreCategoria;
+    document.getElementById('subcat-id-edicion').value      = '';
+    document.getElementById('subcat-nombre').value           = '';
+    document.getElementById('subcat-descripcion').value      = '';
+    document.getElementById('subcat-btn-texto').innerText    = 'Agregar';
+    await cargarSubcategoriasAdmin(idCategoria);
+    modalSubcategorias.show();
+}
+
+async function cargarSubcategoriasAdmin(idCategoria) {
+    const tbody = document.getElementById('tabla-subcategorias');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Cargando...</td></tr>';
+    try {
+        const token = localStorage.getItem('token');
+        const res  = await fetch(`/api/categorias/${idCategoria}/subcategorias/admin`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        subcategoriasListaAdmin = await res.json();
+        if (!subcategoriasListaAdmin.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin subcategorías todavía</td></tr>';
+            return;
+        }
+        tbody.innerHTML = subcategoriasListaAdmin.map(sc => `
+            <tr>
+                <td><strong>${sc.nombre}</strong></td>
+                <td>${sc.descripcion || '-'}</td>
+                <td><span class="badge bg-${sc.estado==='ACTIVO'?'success':'secondary'}">${sc.estado}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary me-1" data-accion="editar-subcategoria" data-id="${sc.id_subcategoria}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary me-1" data-accion="toggle-subcategoria" data-id="${sc.id_subcategoria}" data-estado="${sc.estado}">
+                        <i class="bi bi-${sc.estado==='ACTIVO'?'eye-slash':'eye'}"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" data-accion="eliminar-subcategoria" data-id="${sc.id_subcategoria}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`).join('');
+    } catch (err) {
+        console.error('Error al cargar subcategorías:', err);
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error al cargar</td></tr>';
+    }
+}
+
+function editarSubcategoria(id) {
+    const sc = subcategoriasListaAdmin.find(x => x.id_subcategoria === id);
+    if (!sc) return;
+    document.getElementById('subcat-id-edicion').value    = sc.id_subcategoria;
+    document.getElementById('subcat-nombre').value         = sc.nombre;
+    document.getElementById('subcat-descripcion').value    = sc.descripcion || '';
+    document.getElementById('subcat-btn-texto').innerText  = 'Guardar cambios';
+}
+
+async function guardarSubcategoria() {
+    const idCategoria = document.getElementById('subcat-id-categoria').value;
+    const idEdicion    = document.getElementById('subcat-id-edicion').value;
+    const nombre       = document.getElementById('subcat-nombre').value.trim();
+    const descripcion  = document.getElementById('subcat-descripcion').value.trim();
+
+    if (!nombre) { mostrarAlerta('Escribe un nombre para la subcategoría.'); return; }
+
+    const url    = idEdicion ? `/api/categorias/subcategorias/${idEdicion}` : '/api/categorias/subcategorias';
+    const method = idEdicion ? 'PUT' : 'POST';
+    const body   = idEdicion
+        ? { nombre, descripcion, estado: 'ACTIVO' }
+        : { id_categoria: idCategoria, nombre, descripcion };
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) {
+            document.getElementById('subcat-id-edicion').value     = '';
+            document.getElementById('subcat-nombre').value          = '';
+            document.getElementById('subcat-descripcion').value     = '';
+            document.getElementById('subcat-btn-texto').innerText   = 'Agregar';
+            await cargarSubcategoriasAdmin(idCategoria);
+        } else {
+            const e = await res.json();
+            mostrarAlerta(e.mensaje || 'Error al guardar la subcategoría');
+        }
+    } catch (err) { mostrarAlerta('Error al guardar la subcategoría'); }
+}
+
+async function toggleSubcategoria(id, estadoActual) {
+    const nuevoEstado = estadoActual === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+    const sc = subcategoriasListaAdmin.find(x => x.id_subcategoria === id);
+    if (!sc) return;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/categorias/subcategorias/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ nombre: sc.nombre, descripcion: sc.descripcion, estado: nuevoEstado })
+        });
+        if (res.ok) {
+            await cargarSubcategoriasAdmin(document.getElementById('subcat-id-categoria').value);
+        } else {
+            const e = await res.json();
+            mostrarAlerta(e.mensaje || 'No se pudo cambiar el estado');
+        }
+    } catch (err) { mostrarAlerta('No se pudo cambiar el estado'); }
+}
+
+async function eliminarSubcategoria(id) {
+    const sc = subcategoriasListaAdmin.find(x => x.id_subcategoria === id);
+    const ok = await confirmarAccion({
+        tipo: 'peligro',
+        titulo: 'Eliminar subcategoría',
+        mensaje: `¿Eliminar la subcategoría "${sc ? sc.nombre : ''}"? No se podrá deshacer.`,
+        textoConfirmar: 'Sí, eliminar'
+    });
+    if (!ok) return;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/categorias/subcategorias/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+            await cargarSubcategoriasAdmin(document.getElementById('subcat-id-categoria').value);
+            mostrarAlerta('Subcategoría eliminada correctamente', 'exito');
+        } else {
+            const e = await res.json();
+            mostrarAlerta(e.mensaje || 'No se puede eliminar: tiene productos activos asociados', 'error');
+        }
+    } catch (err) { mostrarAlerta('Error al eliminar la subcategoría', 'error'); }
 }
 
 // ── Mostrar campos según categoría ─────────────────────────────
@@ -1191,7 +1405,7 @@ function verFichaTecnica() {
     const urlSubida = document.getElementById('prod-ficha-tecnica').value.trim();
     const urlManual = document.getElementById('prod-ficha-tecnica-url')?.value.trim() || '';
     const url = urlSubida || urlManual;
-    if (!url) return alert('Primero sube un PDF o pega el enlace de Google Drive');
+    if (!url) return mostrarAlerta('Primero sube un PDF o pega el enlace de Google Drive');
 
     // Convertir enlace de Drive a enlace de vista previa si es necesario
     const urlFinal = convertirUrlDrive(url);
@@ -1296,15 +1510,22 @@ async function guardarAnimal() {
             await cargarAnimales();
         } else {
             const e = await res.json();
-            alert(e.mensaje || 'Error al guardar');
+            mostrarAlerta(e.mensaje || 'Error al guardar');
         }
     } catch (err) {
-        alert('Error al guardar animal');
+        mostrarAlerta('Error al guardar animal');
     }
 }
 
 async function eliminarAnimal(id) {
-    if (!confirm('¿Seguro que deseas eliminar este animal?')) return;
+    const a = animalesLista.find(x => x.id_tipo_animal === id);
+    const ok = await confirmarAccion({
+        tipo: 'peligro',
+        titulo: 'Eliminar tipo de animal',
+        mensaje: `¿Eliminar "${a ? a.nombre : 'este animal'}"? No se podrá deshacer.`,
+        textoConfirmar: 'Sí, eliminar'
+    });
+    if (!ok) return;
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/animales/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
@@ -1312,12 +1533,13 @@ async function eliminarAnimal(id) {
             document.body.classList.remove('modal-open');
             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
             await cargarAnimales();
+            mostrarAlerta('Animal eliminado correctamente', 'exito');
         } else {
             const e = await res.json();
-            alert(e.mensaje || 'No se puede eliminar');
+            mostrarAlerta(e.mensaje || 'No se puede eliminar', 'error');
         }
     } catch (err) {
-        alert('Error al eliminar');
+        mostrarAlerta('Error al eliminar', 'error');
     }
 }
 // ═══════════════════════════════════════════════════
@@ -1413,8 +1635,8 @@ async function guardarColaborador() {
         // CREAR
         const pass  = document.getElementById('col-password').value;
         const pass2 = document.getElementById('col-password2').value;
-        if (!pass) { alert('Ingresa una contraseña'); return; }
-        if (pass !== pass2) { alert('Las contraseñas no coinciden'); return; }
+        if (!pass) { mostrarAlerta('Ingresa una contraseña'); return; }
+        if (pass !== pass2) { mostrarAlerta('Las contraseñas no coinciden'); return; }
 
         const data = {
             nombres:         document.getElementById('col-nombres').value,
@@ -1432,9 +1654,9 @@ async function guardarColaborador() {
             const res = await fetch('/api/colaboradores', {
                 method:'POST', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data)
             });
-            if (res.ok) { modalColaborador.hide(); cargarColaboradores(); alert('Colaborador creado correctamente'); }
-            else { const e = await res.json(); alert(e.mensaje || 'Error al crear'); }
-        } catch (err) { alert('Error al crear colaborador'); }
+            if (res.ok) { modalColaborador.hide(); cargarColaboradores(); mostrarAlerta('Colaborador creado correctamente'); }
+            else { const e = await res.json(); mostrarAlerta(e.mensaje || 'Error al crear'); }
+        } catch (err) { mostrarAlerta('Error al crear colaborador'); }
 
     } else {
         // EDITAR
@@ -1457,7 +1679,7 @@ async function guardarColaborador() {
                 const newPass  = document.getElementById('col-nueva-password').value;
                 const newPass2 = document.getElementById('col-nueva-password2').value;
                 if (newPass) {
-                    if (newPass !== newPass2) { alert('Las nuevas contraseñas no coinciden'); return; }
+                    if (newPass !== newPass2) { mostrarAlerta('Las nuevas contraseñas no coinciden'); return; }
                     await fetch(`/api/colaboradores/${id}/reset-password`, {
                         method:'PUT', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token},
                         body: JSON.stringify({ nuevaPassword: newPass })
@@ -1465,9 +1687,9 @@ async function guardarColaborador() {
                 }
                 modalColaborador.hide();
                 cargarColaboradores();
-                alert('Colaborador actualizado correctamente');
-            } else { const e = await res.json(); alert(e.mensaje || 'Error al actualizar'); }
-        } catch (err) { alert('Error al actualizar colaborador'); }
+                mostrarAlerta('Colaborador actualizado correctamente');
+            } else { const e = await res.json(); mostrarAlerta(e.mensaje || 'Error al actualizar'); }
+        } catch (err) { mostrarAlerta('Error al actualizar colaborador'); }
     }
 }
 
@@ -1495,6 +1717,8 @@ window.addEventListener('DOMContentLoaded', () => {
     modalCategoria   = new bootstrap.Modal(document.getElementById('modalCategoria'));
     modalAnimal      = new bootstrap.Modal(document.getElementById('modalAnimal'));
     modalColaborador = new bootstrap.Modal(document.getElementById('modalColaborador'));
+    modalSubcategorias = new bootstrap.Modal(document.getElementById('modalSubcategorias'));
+    // modalConfirmacion ya se instancia en ui-mensajes.js (compartido con ventas/reportes)
 
     cargarEstadisticas();
     cargarPedidosRecientes();
@@ -1557,6 +1781,12 @@ document.addEventListener('click', function (e) {
         case 'pagina-productos':        irPaginaProductos(Number(el.dataset.pagina)); break;
         case 'editar-categoria':        editarCategoria(Number(el.dataset.id)); break;
         case 'eliminar-categoria':      eliminarCategoria(Number(el.dataset.id)); break;
+        case 'ver-subcategorias':       abrirSubcategorias(Number(el.dataset.id), el.dataset.nombre); break;
+        case 'toggle-cliente':          toggleCliente(Number(el.dataset.id), el.dataset.estado, el.dataset.nombre); break;
+        case 'guardar-subcategoria':    guardarSubcategoria(); break;
+        case 'editar-subcategoria':     editarSubcategoria(Number(el.dataset.id)); break;
+        case 'toggle-subcategoria':     toggleSubcategoria(Number(el.dataset.id), el.dataset.estado); break;
+        case 'eliminar-subcategoria':   eliminarSubcategoria(Number(el.dataset.id)); break;
         case 'eliminar-tag':            eliminarTag(el, el.dataset.hiddenId); break;
         case 'editar-animal':           editarAnimal(Number(el.dataset.id)); break;
         case 'eliminar-animal':         eliminarAnimal(Number(el.dataset.id)); break;

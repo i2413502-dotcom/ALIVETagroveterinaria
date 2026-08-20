@@ -77,6 +77,14 @@ const login = async (req, res) => {
 
         if (!persona) return res.status(401).json({ mensaje: "Credenciales incorrectas" });
 
+        // Cuenta desactivada por un administrador (ver módulo Clientes del
+        // panel admin): no debe poder iniciar sesión, con mensaje claro
+        // (distinto de "credenciales incorrectas" para no confundir al
+        // cliente con una contraseña equivocada).
+        if (persona.estado === 'INACTIVO') {
+            return res.status(403).json({ mensaje: "Tu cuenta está desactivada. Contacta con la tienda si crees que es un error." });
+        }
+
         const valido = await bcrypt.compare(pass, persona.password);
         if (!valido) {
             if (colaborador) registrarIntentoFallido(ip);
