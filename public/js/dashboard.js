@@ -418,7 +418,8 @@ function limpiarFormularioProducto() {
     const ids = [
         'prod-id','prod-nombre','prod-descripcion','prod-precio','prod-stock',
         'prod-imagen-file','prod-imagen-url','prod-imagen-final',
-        'prod-categoria','prod-animal',
+        'prod-categoria','prod-subcategoria','prod-grupo-animal','prod-animal',
+        'prod-imagen-sec-1-file','prod-imagen-sec-1','prod-imagen-sec-2-file','prod-imagen-sec-2',
         // medicamento
         'prod-marca-med','prod-presentacion','prod-vencimiento','prod-composicion','prod-modo-uso','prod-ficha-tecnica',
         'prod-ficha-pdf-file','prod-ficha-tecnica-url',
@@ -430,10 +431,17 @@ function limpiarFormularioProducto() {
     ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
     document.getElementById('preview-container')?.classList.add('d-none');
+    document.getElementById('preview-sec-1-container')?.classList.add('d-none');
+    document.getElementById('preview-sec-2-container')?.classList.add('d-none');
     document.getElementById('ficha-preview')?.classList.add('d-none');
     const fuente = document.getElementById('ficha-fuente'); if (fuente) fuente.innerHTML = '';
 
     limpiarTags();
+
+    // Volver a dejar Subcategoría y Tipo de Animal deshabilitados hasta
+    // que se elija Categoría / Grupo (cascada)
+    filtrarAnimalesPorGrupo('');
+    cargarSubcategorias('');
 
     // Ocultar las secciones dinámicas por categoría
     ['campos-medicamento','campos-accesorio','campos-alimento'].forEach(id => {
@@ -462,13 +470,59 @@ async function cargarSelectCategorias() {
             .map(c => `<option value="${c.id_categoria}">${c.nombre}</option>`).join('');
 }
 
+// Trae TODOS los animales una sola vez y los guarda en memoria; el <select>
+// de tipo de animal se rellena filtrando este arreglo según el grupo elegido
+// (ver filtrarAnimalesPorGrupo). Así evitamos ida y vuelta al servidor cada
+// vez que el usuario cambia el grupo.
+let animalesCatalogo = [];
 async function cargarSelectAnimales() {
     const res  = await fetch('/api/animales');
-    const data = await res.json();
-    const sel  = document.getElementById('prod-animal');
+    animalesCatalogo = (await res.json()).filter(a => a.estado === 'ACTIVO');
+}
+
+// Filtra el <select> de Tipo de Animal según el Grupo (MAYOR/MENOR) elegido.
+// Si aún no se eligió un grupo, deja el select deshabilitado.
+function filtrarAnimalesPorGrupo(grupo, valorSeleccionado = '') {
+    const sel = document.getElementById('prod-animal');
+    if (!grupo) {
+        sel.innerHTML = '<option value="">-- Elige primero un grupo --</option>';
+        sel.disabled = true;
+        return;
+    }
+    const opciones = animalesCatalogo.filter(a => a.grupo === grupo);
     sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
-        data.filter(a => a.estado === 'ACTIVO')
-            .map(a => `<option value="${a.id_tipo_animal}">${a.nombre}</option>`).join('');
+        opciones.map(a => `<option value="${a.id_tipo_animal}">${a.nombre}</option>`).join('');
+    sel.disabled = false;
+    if (valorSeleccionado) sel.value = valorSeleccionado;
+}
+
+// Trae las subcategorías activas de la categoría elegida y rellena el
+// <select> de Subcategoría. Categorías sin subcategorías registradas
+// simplemente dejan el select vacío (la subcategoría es opcional).
+async function cargarSubcategorias(idCategoria, valorSeleccionado = '') {
+    const sel = document.getElementById('prod-subcategoria');
+    if (!idCategoria) {
+        sel.innerHTML = '<option value="">-- Elige primero una categoría --</option>';
+        sel.disabled = true;
+        return;
+    }
+    try {
+        const res  = await fetch(`/api/categorias/${idCategoria}/subcategorias`);
+        const data = await res.json();
+        if (!data.length) {
+            sel.innerHTML = '<option value="">-- Sin subcategorías --</option>';
+            sel.disabled = true;
+            return;
+        }
+        sel.innerHTML = '<option value="">-- Seleccionar --</option>' +
+            data.map(sc => `<option value="${sc.id_subcategoria}">${sc.nombre}</option>`).join('');
+        sel.disabled = false;
+        if (valorSeleccionado) sel.value = valorSeleccionado;
+    } catch (err) {
+        console.error('Error al cargar subcategorías:', err);
+        sel.innerHTML = '<option value="">-- Sin subcategorías --</option>';
+        sel.disabled = true;
+    }
 }
 
 function switchTab(tab, link) {
@@ -519,6 +573,50 @@ async function previsualizarImagen(input) {
     } catch (err) {
         console.error('Error al subir imagen a R2:', err);
     }
+}
+
+// Sube una imagen secundaria (slot 1 o 2) a R2, igual que la principal,
+// y la deja lista en el hidden correspondiente para guardarProducto().
+async function previsualizarImagenSecundaria(input, slot) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById(`preview-sec-${slot}-img`).src = e.target.result;
+        document.getElementById(`preview-sec-${slot}-container`).classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+
+    document.getElementById(`prod-imagen-sec-${slot}`).value = '';
+    try {
+        const token = localStorage.getItem('token');
+        const formData = new FormData();
+        formData.append('imagen', file);
+        const upRes = await fetch('/api/upload/imagen-producto', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+        });
+        if (!upRes.ok) { console.error('Upload error', upRes.status); return; }
+        const upData = await upRes.json();
+        if (upData.url) {
+            document.getElementById(`prod-imagen-sec-${slot}`).value = upData.url;
+            document.getElementById(`preview-sec-${slot}-img`).src = upData.url;
+        }
+    } catch (err) {
+        console.error('Error al subir imagen secundaria a R2:', err);
+    }
+}
+
+// Quita la imagen secundaria elegida (solo del formulario; si el producto
+// ya existía y esa imagen ya estaba guardada, sigue en la BD hasta que se
+// borre desde la ficha del producto — este botón solo limpia la selección
+// que se está por enviar).
+function quitarImagenSecundaria(slot) {
+    document.getElementById(`prod-imagen-sec-${slot}-file`).value = '';
+    document.getElementById(`prod-imagen-sec-${slot}`).value      = '';
+    document.getElementById(`preview-sec-${slot}-container`).classList.add('d-none');
 }
 
 // Sube el PDF de ficha técnica a R2 (mismo patrón que previsualizarImagen,
@@ -572,7 +670,18 @@ async function editarProducto(id) {
     document.getElementById('prod-precio').value            = p.precio_venta;
     document.getElementById('prod-stock').value             = p.stock_actual;
     document.getElementById('prod-categoria').value         = p.id_categoria;
-    document.getElementById('prod-animal').value            = p.id_tipo_animal;
+
+    // Cascada Grupo → Tipo de Animal: primero ubicamos a qué grupo
+    // pertenece el animal ya asignado y lo pre-seleccionamos.
+    const animalActual = animalesCatalogo.find(a => a.id_tipo_animal === p.id_tipo_animal);
+    if (animalActual) {
+        document.getElementById('prod-grupo-animal').value = animalActual.grupo;
+        filtrarAnimalesPorGrupo(animalActual.grupo, p.id_tipo_animal);
+    }
+
+    // Cascada Categoría → Subcategoría
+    await cargarSubcategorias(p.id_categoria, p.id_subcategoria || '');
+
     document.getElementById('prod-imagen-url').value        = p.imagen || '';
     document.getElementById('prod-imagen-final').value      = p.imagen || '';
     if (p.imagen) {
@@ -581,6 +690,29 @@ async function editarProducto(id) {
         document.getElementById('preview-container').classList.remove('d-none');
     } else {
         document.getElementById('preview-container').classList.add('d-none');
+    }
+
+    // Imágenes secundarias: la lista de productos (paginada) no las trae,
+    // así que se piden aparte al endpoint de detalle admin.
+    document.getElementById('preview-sec-1-container').classList.add('d-none');
+    document.getElementById('preview-sec-2-container').classList.add('d-none');
+    document.getElementById('prod-imagen-sec-1').value = '';
+    document.getElementById('prod-imagen-sec-2').value = '';
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/productos/${id}/admin`, { headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.ok) {
+            const detalle = await res.json();
+            const secundarias = (detalle.imagenes || []).filter(img => !img.es_principal).slice(0, 2);
+            secundarias.forEach((img, i) => {
+                const slot = i + 1;
+                document.getElementById(`prod-imagen-sec-${slot}`).value = img.url_imagen;
+                document.getElementById(`preview-sec-${slot}-img`).src   = img.url_imagen;
+                document.getElementById(`preview-sec-${slot}-container`).classList.remove('d-none');
+            });
+        }
+    } catch (err) {
+        console.error('No se pudieron cargar las imágenes secundarias:', err);
     }
 
     // Mostrar campos dinámicos según categoría
@@ -654,6 +786,16 @@ async function guardarProducto() {
     const sel = document.getElementById('prod-categoria');
     const txt = (sel.options[sel.selectedIndex]?.text || '').toLowerCase();
 
+    // Validación de la cascada Grupo → Tipo de Animal (ambos obligatorios)
+    if (!document.getElementById('prod-grupo-animal').value) {
+        alert('Selecciona el Grupo de Animal (Mayor / Menor).');
+        return;
+    }
+    if (!document.getElementById('prod-animal').value) {
+        alert('Selecciona el Tipo de Animal.');
+        return;
+    }
+
     const esMed = txt.includes('medic') || txt.includes('farmac');
     const esAcc = txt.includes('acces') || txt.includes('collar') || txt.includes('juguete');
     const esAli = txt.includes('aliment') || txt.includes('comida') || txt.includes('nutrici');
@@ -715,8 +857,13 @@ async function guardarProducto() {
         precio_venta:      document.getElementById('prod-precio').value,
         stock_actual:      document.getElementById('prod-stock').value,
         id_categoria:      document.getElementById('prod-categoria').value,
+        id_subcategoria:   document.getElementById('prod-subcategoria').value || null,
         id_tipo_animal:    document.getElementById('prod-animal').value,
         imagen:            imagenFinal,
+        imagenes_secundarias: [
+            document.getElementById('prod-imagen-sec-1').value,
+            document.getElementById('prod-imagen-sec-2').value
+        ].filter(Boolean),
         stock_minimo:      5,
 
         // ✅ FIX: cada categoría lee su propio campo de marca
@@ -813,8 +960,16 @@ async function buscarFicha() {
 }
 
 
-// Agregar listener al selector de categoría
-document.getElementById('prod-categoria')?.addEventListener('change', actualizarCamposCategoria);
+// Agregar listener al selector de categoría (campos dinámicos + subcategorías en cascada)
+document.getElementById('prod-categoria')?.addEventListener('change', (e) => {
+    actualizarCamposCategoria();
+    cargarSubcategorias(e.target.value);
+});
+
+// Agregar listener al selector de Grupo de Animal (filtra el select de especie)
+document.getElementById('prod-grupo-animal')?.addEventListener('change', (e) => {
+    filtrarAnimalesPorGrupo(e.target.value);
+});
 
 // Cambiar estado lógico del producto (activar/desactivar)
 async function cambiarEstadoProducto(id, nuevoEstado) {
@@ -1069,13 +1224,14 @@ async function cargarAnimales() {
         animalesLista = await res.json();
         const tbody = document.getElementById('tabla-animales');
         if (!animalesLista.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay animales</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay animales</td></tr>';
             return;
         }
         tbody.innerHTML = animalesLista.map(a => `
             <tr>
                 <td>${a.id_tipo_animal}</td>
                 <td><strong>${a.nombre}</strong></td>
+                <td><span class="badge bg-${a.grupo==='MAYOR'?'warning text-dark':'info text-dark'}">${a.grupo === 'MAYOR' ? 'Animal Mayor' : 'Animal Menor'}</span></td>
                 <td><span class="badge bg-${a.estado==='ACTIVO'?'success':'secondary'}">${a.estado}</span></td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary me-1" data-accion="editar-animal" data-id="${a.id_tipo_animal}">
@@ -1093,6 +1249,7 @@ function mostrarModalAnimal() {
     document.getElementById('modal-ani-titulo').innerText = 'Nuevo Tipo de Animal';
     document.getElementById('ani-id').value               = '';
     document.getElementById('ani-nombre').value           = '';
+    document.getElementById('ani-grupo').value            = 'MENOR';
     document.getElementById('ani-estado').value           = 'ACTIVO';
     // Ocultar campo estado en creación
     document.getElementById('campo-ani-estado').classList.add('d-none');
@@ -1105,6 +1262,7 @@ function editarAnimal(id) {
     document.getElementById('modal-ani-titulo').innerText = 'Editar Tipo de Animal';
     document.getElementById('ani-id').value               = a.id_tipo_animal;
     document.getElementById('ani-nombre').value           = a.nombre;
+    document.getElementById('ani-grupo').value            = a.grupo || 'MENOR';
     document.getElementById('ani-estado').value           = a.estado;
     // Mostrar campo estado al editar
     document.getElementById('campo-ani-estado').classList.remove('d-none');
@@ -1115,6 +1273,7 @@ async function guardarAnimal() {
     const id   = document.getElementById('ani-id').value;
     const data = {
         nombre: document.getElementById('ani-nombre').value,
+        grupo:  document.getElementById('ani-grupo').value,
         estado: id ? document.getElementById('ani-estado').value : 'ACTIVO'
     };
     const url    = id ? `/api/animales/${id}` : '/api/animales';

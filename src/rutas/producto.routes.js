@@ -9,6 +9,7 @@ router.get('/',             ctrl.listar);
 router.get('/:id',          ctrl.obtenerPorId);
 
 // Protegidas — solo colaboradores
+router.get('/:id/admin',    verificarToken, verificarRol('COLABORADOR'), ctrl.obtenerParaAdmin);
 router.post('/',            verificarToken, verificarRol('COLABORADOR'), verificarCargo('Administrador', 'Gerente'), ctrl.crear);
 router.put('/:id/estado',   verificarToken, verificarRol('COLABORADOR'), ctrl.cambiarEstado);
 router.put('/:id',          verificarToken, verificarRol('COLABORADOR'), ctrl.actualizar);

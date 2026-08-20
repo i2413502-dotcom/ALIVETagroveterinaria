@@ -7,19 +7,19 @@ exports.getAll = async () => {
 };
 
 // Crear nuevo tipo de animal
-exports.create = async ({ nombre, estado }) => {
+exports.create = async ({ nombre, grupo, estado }) => {
     const [result] = await db.query(
-        'INSERT INTO tipo_animal (nombre, estado) VALUES (?, ?)',
-        [nombre, estado || 'ACTIVO']
+        'INSERT INTO tipo_animal (nombre, grupo, estado) VALUES (?, ?, ?)',
+        [nombre, grupo || 'MENOR', estado || 'ACTIVO']
     );
     return result.insertId;
 };
 
 // Actualizar tipo de animal
-exports.update = async (id, { nombre, estado }) => {
+exports.update = async (id, { nombre, grupo, estado }) => {
     await db.query(
-        'UPDATE tipo_animal SET nombre=?, estado=? WHERE id_tipo_animal=?',
-        [nombre, estado, id]
+        'UPDATE tipo_animal SET nombre=?, grupo=?, estado=? WHERE id_tipo_animal=?',
+        [nombre, grupo || 'MENOR', estado, id]
     );
 };
 

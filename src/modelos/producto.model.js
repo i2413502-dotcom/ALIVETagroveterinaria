@@ -228,10 +228,48 @@ exports.actualizarProducto = async (id, data) => {
     return result;
 };
 
-// Borrado físico permanente (puede fallar por FK si el producto tiene pedidos)
+// Estados (sin repetir) de todos los pedidos que contienen este producto.
+// Se usa para decidir si el hard-delete puede proceder: solo se permite
+// si TODOS los pedidos asociados ya están en estado ENTREGADO (o si no
+// tiene ningún pedido asociado). Ver producto.controller.js → eliminar().
+exports.obtenerEstadosPedidosAsociados = async (id) => {
+    const [rows] = await db.query(
+        `SELECT DISTINCT pe.estado
+         FROM detalle_pedido dp
+         JOIN pedido pe ON pe.id_pedido = dp.id_pedido
+         WHERE dp.id_producto = ?`,
+        [id]
+    );
+    return rows.map(r => r.estado);
+};
+
+// Borrado físico permanente en cascada, dentro de una transacción:
+// 1) detalle_pedido del producto (solo se llega aquí si esos pedidos ya
+//    fueron ENTREGADOS; el total/subtotal del pedido ya quedó registrado
+//    en el pedido/comprobante, así que no se pierde el histórico de venta,
+//    solo el detalle línea por línea de ESE producto puntual),
+// 2) variante_producto del producto,
+// 3) imagen_producto del producto (los archivos en R2 se borran aparte,
+//    desde el controlador, antes de llamar a esta función),
+// 4) el producto.
+// El controlador es responsable de validar los estados de pedido ANTES
+// de llamar a esta función (obtenerEstadosPedidosAsociados).
 exports.eliminarProductoFisico = async (id) => {
-    const [result] = await db.query('DELETE FROM producto WHERE id_producto = ?', [id]);
-    return result;
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+        await conn.query('DELETE FROM detalle_pedido WHERE id_producto = ?', [id]);
+        await conn.query('DELETE FROM variante_producto WHERE id_producto = ?', [id]);
+        await conn.query('DELETE FROM imagen_producto WHERE id_producto = ?', [id]);
+        const [result] = await conn.query('DELETE FROM producto WHERE id_producto = ?', [id]);
+        await conn.commit();
+        return result;
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
+    }
 };
 
 // Cambio de estado lógico ACTIVO/INACTIVO (activar/desactivar)
