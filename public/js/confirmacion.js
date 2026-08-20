@@ -6,7 +6,26 @@ const EMISOR = {
     telefono:  '954 800 966'
 };
 
+// Aviso "MODO DEMO" — se muestra mientras NUBEFACT_ENVIRONMENT no sea
+// 'produccion' en el servidor, para que nadie confunda un comprobante de
+// prueba (no válido ante SUNAT) con uno real. No bloquea nada, solo informa.
+async function mostrarAvisoDemo() {
+    try {
+        const res  = await fetch('/api/pedidos/entorno-facturacion');
+        const data = await res.json();
+        if (data.produccion) return; // ya está en producción: sin aviso
+        const aviso = document.getElementById('aviso-demo-facturacion');
+        if (!aviso) return;
+        aviso.className = 'alert alert-warning small mb-3 no-print';
+        aviso.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>Modo DEMO:</strong> este comprobante se emite en el ambiente de
+            pruebas de NubeFacT y <strong>no es válido ante SUNAT</strong>.`;
+    } catch { /* si falla, simplemente no se muestra el aviso */ }
+}
+
 async function cargarConfirmacion() {
+    mostrarAvisoDemo();
+
     const params   = new URLSearchParams(window.location.search);
     const idPedido = params.get('id_pedido');
 

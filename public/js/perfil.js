@@ -245,11 +245,49 @@ async function toggleDetalle(idPedido, card) {
         <div class="d-flex justify-content-between pt-2 mt-1 border-top">
             <span class="text-muted small">Total del pedido</span>
             <span class="fw-bold text-success">S/. ${parseFloat(data.total).toFixed(2)}</span>
-        </div>`;
+        </div>` + construirBloqueComprobante(data.comprobante);
 
     } catch (err) {
         productosDiv.innerHTML = '<p class="text-danger small text-center mb-0">Error al cargar productos</p>';
     }
+}
+
+// ══════════════════════════════════════
+//  MI COMPROBANTE (Boleta/Factura de NubeFacT) — dentro del detalle
+//  colapsable de cada pedido. El PDF SIEMPRE es el que devuelve NubeFacT
+//  (comprobante.archivo_pdf); el sistema nunca genera su propio PDF.
+// ══════════════════════════════════════
+function construirBloqueComprobante(comprobante) {
+    if (!comprobante) return '';
+
+    const esFactura = comprobante.tipo === 'FACTURA';
+    const etiquetaTipo = esFactura ? 'Factura' : 'Boleta';
+
+    const ESTADOS = {
+        ACEPTADO:   { badge: 'bg-success',   texto: 'Aceptado por SUNAT', icono: 'bi-patch-check' },
+        OBSERVADO:  { badge: 'bg-warning text-dark', texto: 'Observado, en revisión', icono: 'bi-exclamation-triangle' },
+        RECHAZADO:  { badge: 'bg-danger',    texto: 'Rechazado por SUNAT', icono: 'bi-x-circle' },
+        ANULADO:    { badge: 'bg-secondary', texto: 'Anulado', icono: 'bi-slash-circle' },
+        PENDIENTE:  { badge: 'bg-secondary', texto: 'Comprobante pendiente de emisión', icono: 'bi-hourglass-split' }
+    };
+    const estado = ESTADOS[comprobante.estado_sunat] || ESTADOS.PENDIENTE;
+
+    const botonDescarga = comprobante.archivo_pdf
+        ? `<a href="${comprobante.archivo_pdf}" target="_blank" class="btn btn-sm btn-outline-success">
+               <i class="bi bi-file-earmark-pdf me-1"></i>Descargar ${etiquetaTipo}
+           </a>`
+        : `<span class="btn btn-sm btn-outline-secondary disabled">
+               <i class="bi bi-hourglass-split me-1"></i>Comprobante pendiente de emisión
+           </span>`;
+
+    return `
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 mt-2 border-top">
+            <div class="small">
+                <span class="fw-bold"><i class="bi bi-receipt me-1 text-success"></i>${etiquetaTipo} ${comprobante.serie}-${comprobante.numero}</span>
+                <span class="badge ${estado.badge} ms-2"><i class="bi ${estado.icono} me-1"></i>${estado.texto}</span>
+            </div>
+            ${botonDescarga}
+        </div>`;
 }
 
 // ══════════════════════════════════════

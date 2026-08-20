@@ -7,6 +7,14 @@ const jwt          = require('jsonwebtoken');
 const db           = require('../config/db');
 const responder    = require('../utils/responder');
 
+// GET /api/pedidos/entorno-facturacion — público, sin datos sensibles.
+// El frontend lo usa para mostrar un aviso "MODO DEMO" en la confirmación
+// de compra mientras NUBEFACT_ENVIRONMENT no sea 'produccion', para que
+// nadie confunda un comprobante de prueba con uno válido ante SUNAT.
+exports.entornoFacturacion = (req, res) => {
+    res.json({ produccion: nubefactService.esProduccion() });
+};
+
 // Emite el comprobante ante SUNAT vía NubeFacT. Se llama SOLO después de
 // que el pago ya fue confirmado (dentro del webhook de Mercado Pago). Si
 // NubeFacT falla, no se relanza el error: el pedido ya está pagado y

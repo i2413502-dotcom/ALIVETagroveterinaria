@@ -130,4 +130,12 @@ function construirPayload({ pedido, cliente, detalles, tipoComprobante, serie, n
     };
 }
 
-module.exports = { generarComprobante, construirPayload };
+module.exports = { generarComprobante, construirPayload, esProduccion };
+
+// true solo si explícitamente se configuró NUBEFACT_ENVIRONMENT=produccion.
+// Por defecto (var vacía o "demo") se asume DEMO — más seguro: si alguien
+// olvida configurar la variable, el sistema avisa "modo demo" en vez de
+// aparentar que un comprobante es válido ante SUNAT sin serlo.
+function esProduccion() {
+    return (process.env.NUBEFACT_ENVIRONMENT || 'demo').toLowerCase() === 'produccion';
+}

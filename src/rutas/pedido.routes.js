@@ -11,4 +11,7 @@ router.get('/mispedidos/:id',         verificarToken, ctrl.obtenerDetallePedido)
 // Webhook: lo llama Mercado Pago directamente, NO lleva JWT nuestro.
 router.post('/mercadopago/webhook', ctrl.webhookMercadoPago);
 
+// Público, sin datos sensibles — ver pedido.controller.js
+router.get('/entorno-facturacion', ctrl.entornoFacturacion);
+
 module.exports = router;
