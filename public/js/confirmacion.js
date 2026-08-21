@@ -76,6 +76,7 @@ async function cargarConfirmacion() {
         // comprobante — no es un error, solo hay que esperar un poco.
         document.getElementById('numero-pedido').innerHTML =
             `Pedido N° <strong>${id_pedido}</strong> — tu comprobante se está generando, actualiza esta página en unos segundos.`;
+        if (idPedido) esperarComprobante(idPedido);
         return;
     }
 
@@ -229,6 +230,27 @@ async function cargarConfirmacion() {
 }
 
 let consultaPdfActiva = false;
+async function esperarComprobante(idPedido) {
+    const token = localStorage.getItem('token');
+    for (let intento = 0; intento < 20; intento++) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            const res = await fetch(`/api/pedidos/mispedidos/${idPedido}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) continue;
+            const pedidoActualizado = await res.json();
+            if (pedidoActualizado.comprobante) {
+                window.location.reload();
+                return;
+            }
+        } catch { /* reintento automático */ }
+    }
+
+    document.getElementById('numero-pedido').innerHTML =
+        `Pedido N° <strong>${idPedido}</strong> — el comprobante está tardando más de lo esperado. Revísalo luego en “Mis pedidos”.`;
+}
+
 async function esperarPdf(idPedido) {
     if (consultaPdfActiva) return;
     consultaPdfActiva = true;
