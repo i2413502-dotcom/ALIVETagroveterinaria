@@ -135,7 +135,17 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="fw-bold mb-0 small">Cambiar estado:</label>
+                    <select id="det-estado-select" class="form-select form-select-sm" style="width:auto">
+                        <option value="PENDIENTE">PENDIENTE</option>
+                        <option value="PAGADO">PAGADO</option>
+                        <option value="ENVIADO">ENVIADO</option>
+                        <option value="ENTREGADO">ENTREGADO</option>
+                        <option value="CANCELADO">CANCELADO</option>
+                    </select>
+                </div>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>

@@ -7,6 +7,7 @@
 
 let paginaVentas = 1;
 let modalDetalle = null;
+let idPedidoDetalleActual = null;
 
 const soles = n => 'S/. ' + (Number(n) || 0).toFixed(2);
 
@@ -102,9 +103,11 @@ async function verDetalle(idPedido) {
         if (!res.ok) throw new Error('No se pudo cargar el detalle');
         const data = await res.json();
         const c = data.comprobante;
+        idPedidoDetalleActual = idPedido;
 
         document.getElementById('detalle-cabecera').innerHTML = `
             <div class="col-md-6">
+                <p class="mb-1"><strong>N° Pedido:</strong> #${idPedido}</p>
                 <p class="mb-1"><strong>Comprobante:</strong> ${c.tipo} ${c.numero}</p>
                 <p class="mb-1"><strong>Fecha:</strong> ${new Date(c.fecha).toLocaleString('es-PE')}</p>
             </div>
@@ -112,6 +115,8 @@ async function verDetalle(idPedido) {
                 <p class="mb-1"><strong>Cliente:</strong> ${c.cliente}</p>
                 ${c.documento ? `<p class="mb-1"><strong>${c.documento}</strong></p>` : ''}
             </div>`;
+
+        document.getElementById('det-estado-select').value = c.estado || 'PENDIENTE';
 
         document.getElementById('detalle-productos').innerHTML = data.productos.length
             ? data.productos.map(p => `
@@ -132,6 +137,24 @@ async function verDetalle(idPedido) {
         modalDetalle.show();
     } catch (err) {
         mostrarAlerta('Error al cargar el detalle: ' + err.message, 'error');
+    }
+}
+
+// ── Cambiar estado desde el modal de detalle ──
+async function cambiarEstadoDetalle(nuevoEstado) {
+    if (!idPedidoDetalleActual) return;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/pedidos/${idPedidoDetalleActual}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        if (!res.ok) throw new Error('No se pudo actualizar el estado');
+        mostrarAlerta(`Pedido #${idPedidoDetalleActual} → ${nuevoEstado}`, 'exito');
+        cargarVentas();
+    } catch (err) {
+        mostrarAlerta('Error al cambiar estado: ' + err.message, 'error');
     }
 }
 
@@ -162,6 +185,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const nombre = localStorage.getItem('nombre');
     if (nombre) document.getElementById('nombre-admin').innerText = nombre;
     modalDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
+    document.getElementById('det-estado-select')
+        .addEventListener('change', (e) => cambiarEstadoDetalle(e.target.value));
     cargarVentas();
 });
 
