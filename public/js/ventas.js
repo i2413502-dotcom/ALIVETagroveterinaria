@@ -46,20 +46,27 @@ async function cargarVentas() {
         const data = await res.json();
 
         if (!data.ventas || !data.ventas.length) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No hay ventas</td></tr>';
             document.getElementById('paginacion-ventas').innerHTML = '';
             return;
         }
 
         tbody.innerHTML = data.ventas.map(v => `
             <tr>
+                <td>#${v.id_pedido}</td>
                 <td><strong>${v.comprobante}</strong></td>
                 <td>${new Date(v.fecha).toLocaleDateString('es-PE')}</td>
                 <td>${v.cliente || '—'}</td>
                 <td><span class="badge bg-light text-dark border">${v.tipo}</span></td>
                 <td class="text-end fw-bold text-success">${soles(v.total)}</td>
                 <td>${v.metodo_pago}</td>
-                <td>${badgeEstado(v.estado)}</td>
+                <td>
+                    <select class="form-select form-select-sm select-estado-fila" data-id="${v.id_pedido}" style="min-width:130px">
+                        ${['PENDIENTE','PAGADO','ENVIADO','ENTREGADO','CANCELADO'].map(est =>
+                            `<option value="${est}" ${est === v.estado ? 'selected' : ''}>${est}</option>`
+                        ).join('')}
+                    </select>
+                </td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-success" title="Ver detalle" data-accion="ver-detalle" data-id="${v.id_pedido}">
                         <i class="bi bi-eye"></i>
@@ -70,7 +77,7 @@ async function cargarVentas() {
         renderPaginacion(data);
     } catch (err) {
         console.error('Error cargando ventas:', err);
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar ventas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error al cargar ventas</td></tr>';
     }
 }
 
@@ -158,6 +165,28 @@ async function cambiarEstadoDetalle(nuevoEstado) {
     }
 }
 
+// ── Cambiar estado directo desde el select de la fila (misma ruta que el modal) ──
+async function cambiarEstadoFila(idPedido, nuevoEstado, selectEl) {
+    const estadoAnterior = selectEl.dataset.estadoAnterior || nuevoEstado;
+    selectEl.disabled = true;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/pedidos/${idPedido}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        if (!res.ok) throw new Error('No se pudo actualizar el estado');
+        selectEl.dataset.estadoAnterior = nuevoEstado;
+        mostrarAlerta(`Venta #${idPedido} → ${nuevoEstado}`, 'exito');
+    } catch (err) {
+        selectEl.value = estadoAnterior; // revertimos el select si falló
+        mostrarAlerta('Error al cambiar estado: ' + err.message, 'error');
+    } finally {
+        selectEl.disabled = false;
+    }
+}
+
 // ── Exportar a Excel ──
 async function exportarVentas(btn) {
     const original = btn.innerHTML;
@@ -188,6 +217,14 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('det-estado-select')
         .addEventListener('change', (e) => cambiarEstadoDetalle(e.target.value));
     cargarVentas();
+});
+
+// Delegación: escucha cambios en los selects de estado de cada fila
+// (se crean dinámicamente al pintar la tabla, por eso va en el body)
+document.addEventListener('change', function (e) {
+    const sel = e.target.closest('.select-estado-fila');
+    if (!sel) return;
+    cambiarEstadoFila(Number(sel.dataset.id), sel.value, sel);
 });
 
 
