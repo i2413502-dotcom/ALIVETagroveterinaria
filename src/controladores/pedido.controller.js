@@ -3,6 +3,7 @@ const { enviarNotificacion } = require('../servicios/notificacion.service');
 const pedidoModel      = require('../modelos/pedido.model');
 const nubefactService  = require('../servicios/nubefact.service');
 const mpService         = require('../servicios/mercadopago.service');
+const emailService      = require('../servicios/email.service');
 const jwt          = require('jsonwebtoken');
 const db           = require('../config/db');
 const responder    = require('../utils/responder');
@@ -59,6 +60,17 @@ async function emitirComprobante(id_pedido, comprobante, datosComprobante, datos
             hash_cpe:            resultado.codigo_hash,
             sunat_description:  resultado.sunat_description
         });
+
+        // El envío de correo es secundario: si falla, el comprobante emitido
+        // permanece guardado y disponible para descargar desde la cuenta.
+        if (resultado.enlace_del_pdf && pedidoCompleto.cliente_correo) {
+            await emailService.sendComprobantePdf(
+                pedidoCompleto.cliente_correo,
+                pedidoCompleto.cliente_nombre,
+                { ...comprobante, tipo: datosComprobante.tipo === 'factura' ? 'FACTURA' : 'BOLETA' },
+                resultado.enlace_del_pdf
+            );
+        }
 
         return resultado;
     } catch (errNubefact) {

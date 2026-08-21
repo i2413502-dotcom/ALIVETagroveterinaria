@@ -273,8 +273,8 @@ function construirBloqueComprobante(comprobante) {
     const estado = ESTADOS[comprobante.estado_sunat] || ESTADOS.PENDIENTE;
 
     const botonDescarga = comprobante.archivo_pdf
-        ? `<a href="${comprobante.archivo_pdf}" target="_blank" class="btn btn-sm btn-outline-success">
-               <i class="bi bi-file-earmark-pdf me-1"></i>Descargar ${etiquetaTipo}
+        ? `<a href="${comprobante.archivo_pdf}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
+               <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar PDF de ${etiquetaTipo.toLowerCase()}
            </a>`
         : `<span class="btn btn-sm btn-outline-secondary disabled">
                <i class="bi bi-hourglass-split me-1"></i>Comprobante pendiente de emisión

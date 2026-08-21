@@ -198,12 +198,16 @@ async function cargarConfirmacion() {
 
         ${comprobante.archivo_pdf ? `
         <div class="mt-2 no-print">
-            <a href="${comprobante.archivo_pdf}" target="_blank" class="btn btn-outline-success btn-sm">
-                <i class="bi bi-file-earmark-pdf me-1"></i>Descargar ${tituloDoc.toLowerCase()} oficial (SUNAT)
+            <a href="${comprobante.archivo_pdf}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar PDF de ${esFactura ? 'factura' : 'boleta'}
             </a>
+            <span class="small text-success ms-2"><i class="bi bi-envelope-check me-1"></i>También se envía al correo de tu cuenta</span>
         </div>` : `
-        <div class="mt-2 small text-muted no-print">
-            <i class="bi bi-hourglass-split me-1"></i>El comprobante oficial ante SUNAT se está generando/procesando. La representación de arriba es solo una vista previa.
+        <div class="mt-2 no-print" id="comprobante-pendiente">
+            <button class="btn btn-outline-secondary btn-sm" disabled>
+                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Preparando PDF...
+            </button>
+            <div class="small text-muted mt-2">Cuando esté listo aparecerá la descarga y se enviará al correo de tu cuenta.</div>
         </div>`}
     </div>`;
 
@@ -220,6 +224,36 @@ async function cargarConfirmacion() {
                 <p class="mb-1"><strong>Fecha:</strong> ${fecha}</p>
             </div>
         </div>`;
+
+    if (!comprobante.archivo_pdf && idPedido) esperarPdf(idPedido);
+}
+
+let consultaPdfActiva = false;
+async function esperarPdf(idPedido) {
+    if (consultaPdfActiva) return;
+    consultaPdfActiva = true;
+    const token = localStorage.getItem('token');
+
+    for (let intento = 0; intento < 20; intento++) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        try {
+            const res = await fetch(`/api/pedidos/mispedidos/${idPedido}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) continue;
+            const pedidoActualizado = await res.json();
+            if (pedidoActualizado.comprobante?.archivo_pdf) {
+                window.location.reload();
+                return;
+            }
+        } catch { /* reintento automático */ }
+    }
+
+    const pendiente = document.getElementById('comprobante-pendiente');
+    if (pendiente) {
+        pendiente.innerHTML = '<div class="alert alert-warning small mb-0">El PDF está tardando más de lo esperado. Actualiza la página o revísalo luego en “Mis pedidos”.</div>';
+    }
+    consultaPdfActiva = false;
 }
 
 function verMisPedidos() {

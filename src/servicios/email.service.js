@@ -245,6 +245,52 @@ class EmailService {
       console.error(`[EMAIL] Error al enviar re-engagement:`, error.message);
     }
   }
+
+  // Envía el PDF oficial devuelto por NubeFacT al correo de la cuenta.
+  async sendComprobantePdf(to, nombre, comprobante, pdfUrl) {
+    if (!this.client || !to || !pdfUrl) return false;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const respuestaPdf = await fetch(pdfUrl, { signal: controller.signal });
+      if (!respuestaPdf.ok) throw new Error(`No se pudo descargar el PDF (${respuestaPdf.status})`);
+
+      const contentType = respuestaPdf.headers.get('content-type') || '';
+      if (!contentType.toLowerCase().includes('pdf')) {
+        throw new Error('NubeFacT no devolvió un archivo PDF válido');
+      }
+
+      const pdfBuffer = Buffer.from(await respuestaPdf.arrayBuffer());
+      if (pdfBuffer.length > 10 * 1024 * 1024) {
+        throw new Error('El PDF supera el límite de 10 MB para correo');
+      }
+
+      const tipo = comprobante.tipo === 'FACTURA' ? 'factura' : 'boleta';
+      const numero = `${comprobante.serie}-${comprobante.numero}`;
+      const contenido = `
+        <h2 style="color:${COLOR_AZUL_OSCURO};margin:0 0 8px;font-size:22px;">Tu ${tipo} electrónica está lista</h2>
+        <p style="color:${COLOR_TEXT};font-size:15px;line-height:1.6;margin:0 0 16px;">Hola${nombre ? `, ${nombre}` : ''}. Adjuntamos el comprobante <strong>${numero}</strong> correspondiente a tu compra en ALIVET.</p>
+        <p style="color:${COLOR_TEXT_MUTED};font-size:13px;line-height:1.5;margin:0;">También puedes consultarlo desde la sección “Mis pedidos” de tu cuenta.</p>
+      `;
+
+      await this.client.transactionalEmails.sendTransacEmail({
+        sender: { email: this.senderEmail, name: this.senderName },
+        to: [{ email: to, name: nombre || undefined }],
+        subject: `${tipo === 'factura' ? 'Factura' : 'Boleta'} electrónica ${numero} - ALIVET`,
+        htmlContent: renderEmailBase(contenido, `Tu comprobante ${numero} está listo`),
+        attachment: [{ name: `${tipo}-${numero}.pdf`, content: pdfBuffer.toString('base64') }]
+      });
+
+      console.log(`[EMAIL] Comprobante ${numero} enviado a ${to}`);
+      return true;
+    } catch (error) {
+      console.error(`[EMAIL] Error al enviar comprobante a ${to}:`, error.message);
+      return false;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 }
 
 module.exports = new EmailService();
