@@ -272,13 +272,11 @@ function construirBloqueComprobante(comprobante) {
     };
     const estado = ESTADOS[comprobante.estado_sunat] || ESTADOS.PENDIENTE;
 
-    const botonDescarga = comprobante.archivo_pdf
-        ? `<a href="${comprobante.archivo_pdf}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
+    const pdfUrl = comprobante.archivo_pdf || `/api/pedidos/mispedidos/${comprobante.id_pedido}/comprobante-pdf?token=${encodeURIComponent(localStorage.getItem('token') || '')}`;
+    const botonDescarga =
+        `<a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
                <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar PDF de ${etiquetaTipo.toLowerCase()}
-           </a>`
-        : `<span class="btn btn-sm btn-outline-secondary disabled">
-               <i class="bi bi-hourglass-split me-1"></i>Comprobante pendiente de emisión
-           </span>`;
+           </a>`;
 
     return `
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 mt-2 border-top">

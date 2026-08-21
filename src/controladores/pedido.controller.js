@@ -4,6 +4,7 @@ const pedidoModel      = require('../modelos/pedido.model');
 const nubefactService  = require('../servicios/nubefact.service');
 const mpService         = require('../servicios/mercadopago.service');
 const emailService      = require('../servicios/email.service');
+const comprobantePdf    = require('../servicios/comprobante-pdf.service');
 const jwt          = require('jsonwebtoken');
 const db           = require('../config/db');
 const responder    = require('../utils/responder');
@@ -213,7 +214,20 @@ exports.webhookMercadoPago = async (req, res) => {
 
                 const comprobante = { id: comprobanteRow.id_comprobante, serie: comprobanteRow.serie, numero: comprobanteRow.numero };
 
-                await emitirComprobante(id_pedido, comprobante, datosComprobante, { costo_envio: pedido.costo_envio });
+                const resultadoEmision = await emitirComprobante(id_pedido, comprobante, datosComprobante, { costo_envio: pedido.costo_envio });
+
+                // Respaldo independiente de NubeFacT: si no devolvió el PDF,
+                // ALIVET genera la representación y la envía igualmente.
+                if (!resultadoEmision?.enlace_del_pdf) {
+                    const pedidoParaPdf = await pedidoModel.obtenerPedidoCompleto(id_pedido);
+                    const pdf = await comprobantePdf.generarBuffer(pedidoParaPdf, comprobanteRow);
+                    await emailService.sendComprobantePdf(
+                        pedidoParaPdf.cliente_correo,
+                        pedidoParaPdf.cliente_nombre,
+                        comprobanteRow,
+                        pdf
+                    );
+                }
             }
 
             const pedidoCompleto = await pedidoModel.obtenerPedidoCompleto(id_pedido);
@@ -307,7 +321,7 @@ exports.obtenerDetallePedido = async (req, res) => {
         }));
 
         const [compRows] = await db.query(`
-            SELECT id_comprobante, serie, numero, tipo, fecha_emision,
+            SELECT id_comprobante, id_pedido, serie, numero, tipo, fecha_emision,
                    ruc_cliente, razon_social, direccion_fiscal, dni_cliente, nombre_cliente,
                    subtotal, igv, total, estado_sunat, archivo_pdf
             FROM comprobante WHERE id_pedido = ?
@@ -317,5 +331,27 @@ exports.obtenerDetallePedido = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ mensaje: 'Error al obtener detalle del pedido' });
+    }
+};
+
+exports.descargarComprobantePdf = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT co.*
+            FROM comprobante co
+            JOIN pedido pe ON co.id_pedido = pe.id_pedido
+            JOIN cliente cl ON pe.id_cliente = cl.id_cliente
+            WHERE pe.id_pedido = ? AND cl.id_persona = ?
+        `, [req.params.id, req.usuario.id]);
+        if (!rows.length) return res.status(404).json({ mensaje: 'Comprobante no encontrado' });
+
+        const pedido = await pedidoModel.obtenerPedidoCompleto(req.params.id);
+        const pdf = await comprobantePdf.generarBuffer(pedido, rows[0]);
+        const tipo = rows[0].tipo === 'FACTURA' ? 'factura' : 'boleta';
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${tipo}-${rows[0].serie}-${rows[0].numero}.pdf"`);
+        res.send(pdf);
+    } catch (err) {
+        responder.error(res, 500, 'Error al generar el PDF', err, 'Error generando comprobante PDF:');
     }
 };

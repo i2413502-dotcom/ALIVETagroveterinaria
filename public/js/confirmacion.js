@@ -197,19 +197,12 @@ async function cargarConfirmacion() {
             ${estadoSunatBadge}
         </div>
 
-        ${comprobante.archivo_pdf ? `
         <div class="mt-2 no-print">
-            <a href="${comprobante.archivo_pdf}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm">
+            <a href="${comprobante.archivo_pdf || `/api/pedidos/mispedidos/${id_pedido}/comprobante-pdf?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm">
                 <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar PDF de ${esFactura ? 'factura' : 'boleta'}
             </a>
             <span class="small text-success ms-2"><i class="bi bi-envelope-check me-1"></i>También se envía al correo de tu cuenta</span>
-        </div>` : `
-        <div class="mt-2 no-print" id="comprobante-pendiente">
-            <button class="btn btn-outline-secondary btn-sm" disabled>
-                <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Preparando PDF...
-            </button>
-            <div class="small text-muted mt-2">Cuando esté listo aparecerá la descarga y se enviará al correo de tu cuenta.</div>
-        </div>`}
+        </div>
     </div>`;
 
     document.getElementById('detalle-envio').innerHTML = `

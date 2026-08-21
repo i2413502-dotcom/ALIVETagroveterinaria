@@ -7,6 +7,7 @@ const { verificarToken } = require('../middlewares/auth.middleware');
 router.post('/crear-con-mercadopago', verificarToken, ctrl.crearPedidoConMercadoPago);
 router.get('/mispedidos',             verificarToken, ctrl.obtenerPedidos);
 router.get('/mispedidos/:id',         verificarToken, ctrl.obtenerDetallePedido);
+router.get('/mispedidos/:id/comprobante-pdf', verificarToken, ctrl.descargarComprobantePdf);
 
 // Webhook: lo llama Mercado Pago directamente, NO lleva JWT nuestro.
 router.post('/mercadopago/webhook', ctrl.webhookMercadoPago);

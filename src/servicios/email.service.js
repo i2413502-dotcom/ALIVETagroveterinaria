@@ -247,21 +247,20 @@ class EmailService {
   }
 
   // Envía el PDF oficial devuelto por NubeFacT al correo de la cuenta.
-  async sendComprobantePdf(to, nombre, comprobante, pdfUrl) {
-    if (!this.client || !to || !pdfUrl) return false;
+  async sendComprobantePdf(to, nombre, comprobante, pdfSource) {
+    if (!this.client || !to || !pdfSource) return false;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const respuestaPdf = await fetch(pdfUrl, { signal: controller.signal });
-      if (!respuestaPdf.ok) throw new Error(`No se pudo descargar el PDF (${respuestaPdf.status})`);
-
-      const contentType = respuestaPdf.headers.get('content-type') || '';
-      if (!contentType.toLowerCase().includes('pdf')) {
-        throw new Error('NubeFacT no devolvió un archivo PDF válido');
+      let pdfBuffer;
+      if (Buffer.isBuffer(pdfSource)) {
+        pdfBuffer = pdfSource;
+      } else {
+        const respuestaPdf = await fetch(pdfSource, { signal: controller.signal });
+        if (!respuestaPdf.ok) throw new Error(`No se pudo descargar el PDF (${respuestaPdf.status})`);
+        pdfBuffer = Buffer.from(await respuestaPdf.arrayBuffer());
       }
-
-      const pdfBuffer = Buffer.from(await respuestaPdf.arrayBuffer());
       if (pdfBuffer.length > 10 * 1024 * 1024) {
         throw new Error('El PDF supera el límite de 10 MB para correo');
       }
