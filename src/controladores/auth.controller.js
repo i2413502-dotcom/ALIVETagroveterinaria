@@ -10,25 +10,27 @@ const responder = require('../utils/responder');
 // (en producción conviene usar Redis con expiración nativa en vez de memoria)
 const pendingRegistrations = new Map();
 
-// Se utiliza para el móvil
-const intentosColaboradorPorIp = new Map();
+// Límite de intentos de login fallidos por IP — aplica tanto a
+// colaboradores como a clientes (antes solo protegía al panel
+// admin; ahora protege el login de cualquier rol por igual).
+const intentosLoginPorIp = new Map();
 const VENTANA_BLOQUEO_MS = 15 * 60 * 1000; // 15 minutos
 const MAX_INTENTOS = 5;
 
 function estaBloqueadoPorIntentos(ip) {
-    const registro = intentosColaboradorPorIp.get(ip);
+    const registro = intentosLoginPorIp.get(ip);
     if (!registro) return false;
     if (Date.now() > registro.expiresAt) {
-        intentosColaboradorPorIp.delete(ip);
+        intentosLoginPorIp.delete(ip);
         return false;
     }
     return registro.count >= MAX_INTENTOS;
 }
 
 function registrarIntentoFallido(ip) {
-    const registro = intentosColaboradorPorIp.get(ip);
+    const registro = intentosLoginPorIp.get(ip);
     if (!registro || Date.now() > registro.expiresAt) {
-        intentosColaboradorPorIp.set(ip, { count: 1, expiresAt: Date.now() + VENTANA_BLOQUEO_MS });
+        intentosLoginPorIp.set(ip, { count: 1, expiresAt: Date.now() + VENTANA_BLOQUEO_MS });
     } else {
         registro.count += 1;
     }
@@ -69,7 +71,7 @@ const login = async (req, res) => {
         // Se utiliza para el móvil
         const colaborador = persona ? await authModel.findColaborador(persona.id_persona) : null;
 
-        if (colaborador && estaBloqueadoPorIntentos(ip)) {
+        if (estaBloqueadoPorIntentos(ip)) {
             return res.status(429).json({
                 mensaje: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en unos minutos.'
             });
@@ -87,7 +89,7 @@ const login = async (req, res) => {
 
         const valido = await bcrypt.compare(pass, persona.password);
         if (!valido) {
-            if (colaborador) registrarIntentoFallido(ip);
+            registrarIntentoFallido(ip);
             return res.status(401).json({ mensaje: "Credenciales incorrectas" });
         }
 
