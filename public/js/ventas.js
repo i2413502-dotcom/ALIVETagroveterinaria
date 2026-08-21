@@ -16,7 +16,8 @@ function cerrarSesion() {
 }
 
 function badgeEstado(estado) {
-    const c = { PAGADO: 'info text-dark', ENTREGADO: 'success' };
+    const c = { PENDIENTE: 'warning text-dark', PAGADO: 'info text-dark',
+                ENVIADO: 'primary', ENTREGADO: 'success', CANCELADO: 'danger' };
     return `<span class="badge bg-${c[estado] || 'secondary'}">${estado}</span>`;
 }
 

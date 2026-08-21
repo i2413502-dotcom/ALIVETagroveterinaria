@@ -1,11 +1,13 @@
 const db = require('../config/db');
 
-// Solo se consideran ventas los pedidos PAGADO y ENTREGADO
-const ESTADOS_VENTA = ['PAGADO', 'ENTREGADO'];
+// Se muestran TODOS los estados de pedido en Ventas (antes solo
+// PAGADO/ENTREGADO). Se mantiene la lista para validar el filtro
+// que llega por query string, ahora con los 5 estados reales.
+const ESTADOS_VENTA = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
 
 // Construye el WHERE + params según filtros (estado / rango de fechas)
 function construirFiltros(filtros = {}) {
-    let where = "WHERE pe.estado IN ('PAGADO','ENTREGADO')";
+    let where = 'WHERE 1=1';
     const params = [];
 
     if (filtros.estado && ESTADOS_VENTA.includes(filtros.estado)) {
