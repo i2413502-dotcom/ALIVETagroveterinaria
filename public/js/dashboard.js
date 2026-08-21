@@ -13,13 +13,11 @@
 let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalSubcategorias;
 let productosLista = [], categoriasLista = [], animalesLista = [], colaboradoresLista = [];
 let chartVentas = null, chartProductos = null, chartStock = null;
-let intervaloPedidos = null;
 
 // NOTA: confirmarAccion() y mostrarAlerta() (reemplazos de confirm()/alert()
 // nativos) viven en /js/ui-mensajes.js, compartido con ventas.html y
 // reportes.html — ver ese archivo para su implementación.
 
-let ultimosPedidosIds = new Set();
 let paginaProductos = 1;
 const LIMITE_PRODUCTOS = 20;
 
@@ -38,12 +36,12 @@ function verificarAcceso() {
 //  NAVEGACIÓN
 // ═══════════════════════════════════════════════════
 function mostrarSeccion(seccion, link) {
-    const secciones = ['inicio','pedidos','productos','clientes','categorias','animales','colaboradores'];
+    const secciones = ['inicio','productos','clientes','categorias','animales','colaboradores'];
     secciones.forEach(s => document.getElementById('seccion-'+s).classList.add('d-none'));
     document.getElementById('seccion-'+seccion).classList.remove('d-none');
 
     const titulos = {
-        inicio:'Dashboard', pedidos:'Gestión de Pedidos',
+        inicio:'Dashboard',
         productos:'Inventario de Productos', clientes:'Clientes Registrados',
         categorias:'Categorías de Producto', animales:'Tipos de Animal',
         colaboradores:'Colaboradores'
@@ -52,7 +50,6 @@ function mostrarSeccion(seccion, link) {
     document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
     if (link) link.classList.add('active');
 
-    if (seccion === 'pedidos')       { cargarPedidos(); document.getElementById('badge-nuevos').classList.add('d-none'); }
     if (seccion === 'productos')     cargarProductos();
     if (seccion === 'clientes')      cargarClientes();
     if (seccion === 'categorias')    cargarCategorias();
@@ -61,7 +58,6 @@ function mostrarSeccion(seccion, link) {
 }
 
 function cerrarSesion() {
-    if (intervaloPedidos) clearInterval(intervaloPedidos);
     ['token','rol','nombre'].forEach(k => localStorage.removeItem(k));
     window.location.href = '/login.html';
 }
@@ -100,7 +96,6 @@ async function cargarEstadisticas() {
         const res  = await fetch('/api/dashboard', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         document.getElementById('stat-clientes').innerText   = data.clientes;
-        document.getElementById('stat-pendientes').innerText = data.pedidosPendientes;
         document.getElementById('stat-productos').innerText  = data.productos;
         document.getElementById('stat-ventas').innerText     = 'S/. ' + parseFloat(data.ventasTotal || 0).toFixed(2);
     } catch (err) { console.error('Error estadísticas:', err); }
@@ -209,120 +204,6 @@ async function cargarGraficoStock() {
         });
     } catch (err) { console.error('Error gráfico stock:', err); }
 }
-
-// ═══════════════════════════════════════════════════
-//  HELPER — badge estado pedido
-// ═══════════════════════════════════════════════════
-function getBadgeEstado(estado) {
-    const c = { PENDIENTE:'warning text-dark', PAGADO:'info text-dark',
-                ENVIADO:'primary', ENTREGADO:'success', CANCELADO:'danger' };
-    return c[estado] || 'secondary';
-}
-
-// ═══════════════════════════════════════════════════
-//  PEDIDOS RECIENTES (inicio)
-// ═══════════════════════════════════════════════════
-async function cargarPedidosRecientes() {
-    try {
-        const token   = localStorage.getItem('token');
-        const res     = await fetch('/api/pedidos', { headers: { 'Authorization':'Bearer '+token } });
-        const pedidos = await res.json();
-        const recientes = pedidos.slice(0, 5);
-        const tbody   = document.getElementById('tabla-pedidos-recientes');
-        if (!recientes.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay pedidos</td></tr>';
-            return;
-        }
-        tbody.innerHTML = recientes.map(p => `
-            <tr>
-                <td><strong>#${p.id_pedido}</strong></td>
-                <td>${p.cliente_nombre}</td>
-                <td class="text-success fw-bold">S/. ${parseFloat(p.total).toFixed(2)}</td>
-                <td><span class="badge bg-${getBadgeEstado(p.estado)}">${p.estado}</span></td>
-                <td>
-                    <select class="form-select form-select-sm" style="width:120px"
-                            onchange="actualizarEstado(${p.id_pedido}, this.value)">
-                        <option ${p.estado==='PENDIENTE'?'selected':''}>PENDIENTE</option>
-                        <option ${p.estado==='PAGADO'   ?'selected':''}>PAGADO</option>
-                        <option ${p.estado==='ENVIADO'  ?'selected':''}>ENVIADO</option>
-                        <option ${p.estado==='ENTREGADO'?'selected':''}>ENTREGADO</option>
-                        <option ${p.estado==='CANCELADO'?'selected':''}>CANCELADO</option>
-                    </select>
-                </td>
-            </tr>`).join('');
-    } catch (err) { console.error('Error pedidos recientes:', err); }
-}
-
-// ═══════════════════════════════════════════════════
-//  PEDIDOS — sección completa + polling automático
-// ═══════════════════════════════════════════════════
-async function cargarPedidos() {
-    try {
-        const token   = localStorage.getItem('token');
-        const res     = await fetch('/api/pedidos', { headers: { 'Authorization':'Bearer '+token } });
-        const pedidos = await res.json();
-        const tbody   = document.getElementById('tabla-pedidos');
-        if (!pedidos.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay pedidos</td></tr>';
-            return;
-        }
-        tbody.innerHTML = pedidos.map(p => `
-            <tr id="fila-pedido-${p.id_pedido}" class="${!ultimosPedidosIds.has(p.id_pedido) && ultimosPedidosIds.size > 0 ? 'table-warning' : ''}">
-                <td><strong>#${p.id_pedido}</strong></td>
-                <td>${p.cliente_nombre}</td>
-                <td>${p.direccion_entrega}</td>
-                <td class="text-success fw-bold">S/. ${parseFloat(p.total).toFixed(2)}</td>
-                <td><span class="badge bg-${getBadgeEstado(p.estado)}">${p.estado}</span></td>
-                <td>${new Date(p.fecha_pedido).toLocaleDateString('es-PE')}</td>
-                <td>
-                    <select class="form-select form-select-sm" style="width:120px"
-                            onchange="actualizarEstado(${p.id_pedido}, this.value)">
-                        <option ${p.estado==='PENDIENTE'?'selected':''}>PENDIENTE</option>
-                        <option ${p.estado==='PAGADO'   ?'selected':''}>PAGADO</option>
-                        <option ${p.estado==='ENVIADO'  ?'selected':''}>ENVIADO</option>
-                        <option ${p.estado==='ENTREGADO'?'selected':''}>ENTREGADO</option>
-                        <option ${p.estado==='CANCELADO'?'selected':''}>CANCELADO</option>
-                    </select>
-                </td>
-            </tr>`).join('');
-        ultimosPedidosIds = new Set(pedidos.map(p => p.id_pedido));
-    } catch (err) { console.error('Error cargando pedidos:', err); }
-}
-
-// Polling — revisa nuevos pedidos cada 30 segundos
-async function verificarNuevosPedidos() {
-    try {
-        const token   = localStorage.getItem('token');
-        if (!token) return;
-        const res     = await fetch('/api/pedidos', { headers: { 'Authorization':'Bearer '+token } });
-        const pedidos = await res.json();
-        const nuevos  = pedidos.filter(p => !ultimosPedidosIds.has(p.id_pedido));
-        if (nuevos.length > 0 && ultimosPedidosIds.size > 0) {
-            const badge = document.getElementById('badge-nuevos');
-            badge.innerText = nuevos.length;
-            badge.classList.remove('d-none');
-            // Actualizar pedidos recientes en inicio si está visible
-            const secInicio = document.getElementById('seccion-inicio');
-            if (!secInicio.classList.contains('d-none')) cargarPedidosRecientes();
-        }
-        if (ultimosPedidosIds.size === 0) {
-            ultimosPedidosIds = new Set(pedidos.map(p => p.id_pedido));
-        }
-    } catch (e) {}
-}
-
-async function actualizarEstado(id, estado) {
-    try {
-        const token = localStorage.getItem('token');
-        await fetch(`/api/pedidos/${id}/estado`, {
-            method: 'PUT',
-            headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
-            body: JSON.stringify({ estado })
-        });
-        cargarEstadisticas();
-    } catch (err) { console.error('Error actualizando estado:', err); }
-}
-
 // ═══════════════════════════════════════════════════
 //  PRODUCTOS
 // ═══════════════════════════════════════════════════
@@ -1721,13 +1602,9 @@ window.addEventListener('DOMContentLoaded', () => {
     // modalConfirmacion ya se instancia en ui-mensajes.js (compartido con ventas/reportes)
 
     cargarEstadisticas();
-    cargarPedidosRecientes();
     cargarGraficoVentas();
     cargarGraficoProductos();
     cargarGraficoStock();
-
-    // Polling de nuevos pedidos cada 30 segundos
-    intervaloPedidos = setInterval(verificarNuevosPedidos, 30000);
 
     // Si llega ?seccion=, abrir esa sección del panel (navegación desde Reportes/Ventas)
     const seccionURL = new URLSearchParams(location.search).get('seccion');
@@ -1758,7 +1635,6 @@ document.addEventListener('click', function (e) {
     switch (el.dataset.accion) {
         case 'seccion':             mostrarSeccion(el.dataset.valor, el); break;
         case 'cerrar-sesion':       cerrarSesion(); break;
-        case 'cargar-pedidos':      cargarPedidos(); break;
         case 'exportar':            exportarTabla(el.dataset.entidad, el.dataset.formato); break;
         case 'modal-producto':      mostrarModalProducto(); break;
         case 'modal-categoria':     mostrarModalCategoria(); break;
