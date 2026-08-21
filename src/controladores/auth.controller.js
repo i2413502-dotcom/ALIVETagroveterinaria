@@ -13,7 +13,7 @@ const pendingRegistrations = new Map();
 // Se utiliza para el móvil
 const intentosColaboradorPorIp = new Map();
 const VENTANA_BLOQUEO_MS = 15 * 60 * 1000; // 15 minutos
-const MAX_INTENTOS = 10;
+const MAX_INTENTOS = 5;
 
 function estaBloqueadoPorIntentos(ip) {
     const registro = intentosColaboradorPorIp.get(ip);
