@@ -26,6 +26,27 @@ function selectEstado(idPedido, estadoActual) {
             </select>`;
 }
 
+// Se llena una sola vez al cargar la pantalla (no cambia mientras
+// el usuario está viendo "Por Entregar Hoy").
+let colaboradoresCache = [];
+
+function selectRepartidor(idPedido, idRepartidorActual) {
+    const opciones = colaboradoresCache
+        .map(c => `<option value="${c.id_colaborador}" ${
+            Number(idRepartidorActual) === c.id_colaborador ? 'selected' : ''
+        }>${c.nombre}</option>`)
+        .join('');
+    return `
+        <div class="d-flex align-items-center gap-2 mt-2">
+            <i class="bi bi-person-badge text-muted"></i>
+            <select class="form-select form-select-sm repartidor-select"
+                    data-id="${idPedido}" data-anterior="${idRepartidorActual || ''}">
+                <option value="">Sin asignar</option>
+                ${opciones}
+            </select>
+        </div>`;
+}
+
 function tarjetaPedido(p) {
     const esRecojo   = p.tipo_entrega === 'RECOJO_TIENDA';
     const claseCard  = p.estado === 'ENVIADO' ? 'es-enviado' : 'es-pagado';
@@ -33,18 +54,11 @@ function tarjetaPedido(p) {
         ? '<span class="tipo-pill recojo"><i class="bi bi-shop me-1"></i>Recojo en Tienda</span>'
         : '<span class="tipo-pill delivery"><i class="bi bi-truck me-1"></i>Delivery</span>';
 
-    // El campo de repartidor solo tiene sentido para Delivery
-    const bloqueRepartidor = esRecojo ? '' : `
-        <div class="d-flex align-items-center gap-2 mt-2">
-            <i class="bi bi-person-badge text-muted"></i>
-            <input type="text" class="form-control form-control-sm repartidor-input"
-                   data-id="${p.id_pedido}" data-anterior="${p.repartidor || ''}"
-                   value="${p.repartidor || ''}" placeholder="Nombre del repartidor">
-            <button class="btn btn-sm btn-outline-success" title="Guardar repartidor"
-                    data-accion="guardar-repartidor" data-id="${p.id_pedido}">
-                <i class="bi bi-check2"></i>
-            </button>
-        </div>`;
+    // El repartidor solo tiene sentido para Delivery — para Recojo en
+    // tienda es el cliente quien pasa a buscarlo, nadie lo reparte.
+    const bloqueRepartidor = esRecojo
+        ? ''
+        : selectRepartidor(p.id_pedido, p.id_repartidor);
 
     const detalle = esRecojo
         ? (p.direccion_entrega || 'Recojo en tienda')
@@ -70,10 +84,28 @@ function tarjetaPedido(p) {
         </div>`;
 }
 
+// ── Cargar colaboradores activos (una sola vez) ──
+async function cargarColaboradores() {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/despachos/colaboradores', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        colaboradoresCache = await res.json();
+    } catch (err) {
+        console.error('Error cargando colaboradores:', err);
+        colaboradoresCache = [];
+    }
+}
+
 // ── Cargar lista, sin filtros ──
 async function cargarEntregas() {
     const cont = document.getElementById('lista-entregas');
     try {
+        // Los colaboradores se necesitan ANTES de armar las tarjetas,
+        // porque cada select de repartidor se llena con esta lista.
+        if (!colaboradoresCache.length) await cargarColaboradores();
+
         const token = localStorage.getItem('token');
         const res  = await fetch('/api/despachos', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
@@ -110,26 +142,25 @@ async function cambiarEstadoFila(idPedido, nuevoEstado, selectEl) {
     }
 }
 
-// ── Guardar repartidor asignado ──
-async function guardarRepartidor(idPedido, btn) {
-    const input = document.querySelector(`.repartidor-input[data-id="${idPedido}"]`);
-    const valor = input.value.trim();
-    btn.disabled = true;
+// ── Cambiar repartidor asignado (select onchange, igual que Estado) ──
+async function cambiarRepartidor(idPedido, idRepartidor, selectEl) {
+    const anterior = selectEl.dataset.anterior;
+    selectEl.disabled = true;
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/despachos/${idPedido}/repartidor`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ repartidor: valor })
+            body: JSON.stringify({ id_repartidor: idRepartidor || null })
         });
-        if (!res.ok) throw new Error('No se pudo guardar');
-        input.dataset.anterior = valor;
-        mostrarAlerta(`Repartidor asignado al pedido #${idPedido}`, 'exito');
+        if (!res.ok) throw new Error('No se pudo asignar el repartidor');
+        selectEl.dataset.anterior = idRepartidor;
+        mostrarAlerta(`Repartidor actualizado en el pedido #${idPedido}`, 'exito');
     } catch (err) {
-        input.value = input.dataset.anterior;
+        selectEl.value = anterior;
         mostrarAlerta('Error al asignar repartidor: ' + err.message, 'error');
     } finally {
-        btn.disabled = false;
+        selectEl.disabled = false;
     }
 }
 
@@ -140,9 +171,15 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('change', function (e) {
-    const el = e.target.closest('.estado-select');
-    if (!el) return;
-    cambiarEstadoFila(Number(el.dataset.id), el.value, el);
+    const estadoEl = e.target.closest('.estado-select');
+    if (estadoEl) {
+        cambiarEstadoFila(Number(estadoEl.dataset.id), estadoEl.value, estadoEl);
+        return;
+    }
+    const repartidorEl = e.target.closest('.repartidor-select');
+    if (repartidorEl) {
+        cambiarRepartidor(Number(repartidorEl.dataset.id), repartidorEl.value, repartidorEl);
+    }
 });
 
 document.addEventListener('click', function (e) {
@@ -151,7 +188,6 @@ document.addEventListener('click', function (e) {
     if (el.tagName === 'A') e.preventDefault();
 
     switch (el.dataset.accion) {
-        case 'cerrar-sesion':        cerrarSesion(); break;
-        case 'guardar-repartidor':   guardarRepartidor(Number(el.dataset.id), el); break;
+        case 'cerrar-sesion': cerrarSesion(); break;
     }
 });

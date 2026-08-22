@@ -7,6 +7,7 @@ const { verificarToken, verificarRol } = require('../middlewares/auth.middleware
 router.use(verificarToken, verificarRol('COLABORADOR'));
 
 router.get('/',                       ctrl.listar);
+router.get('/colaboradores',          ctrl.listarColaboradores);
 router.put('/:idPedido/repartidor',   ctrl.asignarRepartidor);
 
 module.exports = router;
