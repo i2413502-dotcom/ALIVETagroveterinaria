@@ -31,6 +31,7 @@ app.use('/api/ubigeo',         require('./rutas/ubigeo.routes.js'));
 app.use('/api/colaboradores',  require('./rutas/colaborador.routes.js'));
 app.use('/api/reportes',       require('./rutas/reporte.routes.js'));
 app.use('/api/ventas',         require('./rutas/venta.routes.js'));
+app.use('/api/despachos',      require('./rutas/despacho.routes.js'));
 app.use('/',                   require('./rutas/dashboard.routes.js'));
 app.use('/api/inventario',     require('./rutas/inventario.routes.js'));
 app.use('/api/ia',             require('./rutas/ia.routes.js'));
