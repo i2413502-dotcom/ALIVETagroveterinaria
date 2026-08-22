@@ -221,9 +221,100 @@ exports.getProductosExtremos = async (orden, categoria = null) => {
     return rows;
 };
 
-// Productos más recientes ("qué llegó nuevo")
-exports.getProductosNuevos = async (categoria = null) => {
+// Producto(s) más vendido(s) — pregunta pública tipo "qué se vende más".
+// Solo cuenta ventas de pedidos ya pagados/entregados (no pendientes ni
+// cancelados) y solo productos que siguen ACTIVOS con stock, para no
+// recomendarle al cliente algo que ya no puede comprar.
+exports.getProductosMasVendidos = async (categoria = null) => {
+    const filtroCategoria = categoria ? 'AND c.nombre = ?' : '';
+    const params = categoria ? [categoria] : [];
+    const [rows] = await db.query(
+        `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                p.descripcion, p.stock_actual,
+                IFNULL(p.imagen, '') AS imagen,
+                c.nombre AS categoria,
+                SUM(dp.cantidad) AS total_vendido
+         FROM detalle_pedido dp
+         JOIN producto p  ON dp.id_producto = p.id_producto
+         JOIN pedido   pe ON dp.id_pedido   = pe.id_pedido
+         LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+         WHERE pe.estado IN ('PAGADO','ENVIADO','ENTREGADO')
+           AND p.estado = 'ACTIVO'
+           ${filtroCategoria}
+         GROUP BY p.id_producto
+         ORDER BY total_vendido DESC
+         LIMIT 3`,
+        params
+    );
+    return rows;
+};
+
+// Producto(s) con más stock ("qué producto tiene más existencias")
+exports.getProductosMasStock = async (categoria = null) => {
     if (categoria) {
+        const [rows] = await db.query(
+            `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                    p.descripcion, p.stock_actual,
+                    IFNULL(p.imagen, '') AS imagen,
+                    c.nombre AS categoria
+             FROM producto p
+             LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+             WHERE c.nombre = ? AND p.estado = 'ACTIVO'
+             ORDER BY p.stock_actual DESC
+             LIMIT 3`,
+            [categoria]
+        );
+        return rows;
+    }
+    const [rows] = await db.query(
+        `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
+                p.descripcion, p.stock_actual,
+                IFNULL(p.imagen, '') AS imagen,
+                c.nombre AS categoria
+         FROM producto p
+         LEFT JOIN categoria_producto c ON p.id_categoria = c.id_categoria
+         WHERE p.estado = 'ACTIVO'
+         ORDER BY p.stock_actual DESC
+         LIMIT 3`
+    );
+    return rows;
+};
+
+// Resumen de COMPRAS PROPIAS del cliente logueado ("mis compras",
+// "cuánto compré este mes", "cuál fue mi última compra"). Se calcula
+// aparte con SQL directo (no se le pide a la IA que sume/cuente texto,
+// para no arriesgar un número inventado).
+exports.getResumenComprasCliente = async (idPersona) => {
+    const [[mes]] = await db.query(
+        `SELECT COUNT(*) AS total_pedidos, COALESCE(SUM(pe.total),0) AS monto_total
+         FROM pedido pe
+         JOIN cliente c ON pe.id_cliente = c.id_cliente
+         WHERE c.id_persona = ?
+           AND pe.estado IN ('PAGADO','ENVIADO','ENTREGADO')
+           AND MONTH(pe.fecha_pedido) = MONTH(NOW())
+           AND YEAR(pe.fecha_pedido)  = YEAR(NOW())`,
+        [idPersona]
+    );
+
+    const [[ultimo]] = await db.query(
+        `SELECT pe.id_pedido, pe.fecha_pedido, pe.total, pe.estado
+         FROM pedido pe
+         JOIN cliente c ON pe.id_cliente = c.id_cliente
+         WHERE c.id_persona = ?
+         ORDER BY pe.fecha_pedido DESC
+         LIMIT 1`,
+        [idPersona]
+    );
+
+    return {
+        pedidosEsteMes: mes.total_pedidos,
+        montoEsteMes:   mes.monto_total,
+        ultimoPedido:   ultimo || null
+    };
+};
+
+// Productos más recientes ("qué llegó nuevo")
+exports.getProductosNuevos = async (categoria = null) => {    if (categoria) {
         const [rows] = await db.query(
             `SELECT p.id_producto AS id, p.nombre, p.precio_venta AS precio,
                     p.descripcion, p.stock_actual,

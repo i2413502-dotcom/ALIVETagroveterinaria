@@ -87,9 +87,13 @@ const detectarCategoria = (mensaje) => {
 const RX_BARATO = /\b(mas |más )?(barato|economico|económico|econ[oó]mico|menor precio|precio mas bajo|precio m[aá]s bajo|menos precio|el mas barato|el m[aá]s barato)\b/;
 const RX_CARO   = /\b(mas |más )?(caro|costoso|mayor precio|precio mas alto|precio m[aá]s alto|el mas caro|el m[aá]s caro)\b/;
 const RX_NUEVO  = /\b(nuevo|nuevos|reci[eé]n llegado|recien llegado|ultimos productos|últimos productos|lo nuevo|novedades)\b/;
+const RX_VENDIDO = /\b(mas |más )?(vendido|vendidos|popular|populares|se vende mas|se vende más|top ventas|el mas vendido|el m[aá]s vendido|que se vende mas|qu[eé] se vende m[aá]s)\b/;
+const RX_STOCK   = /\b(mayor stock|mas stock|más stock|mayor existencia|mayores existencias|mas existencias|más existencias|mas disponibilidad|más disponibilidad|que tiene mas stock|qu[eé] tiene m[aá]s stock|m[aá]s unidades)\b/;
 
 const detectarIntencionExtremo = (mensaje) => {
     const txt = normalizar(mensaje);
+    if (RX_VENDIDO.test(txt)) return 'VENDIDO';
+    if (RX_STOCK.test(txt))   return 'STOCK';
     if (RX_BARATO.test(txt)) return 'BARATO';
     if (RX_CARO.test(txt))   return 'CARO';
     if (RX_NUEVO.test(txt))  return 'NUEVO';
@@ -110,9 +114,12 @@ exports.buscarProductos = async (mensaje) => {
     const intencion = detectarIntencionExtremo(mensaje);
     if (intencion) {
         try {
-            const productos = intencion === 'NUEVO'
-                ? await iaModel.getProductosNuevos(categoria)
-                : await iaModel.getProductosExtremos(intencion, categoria);
+            let productos;
+            if (intencion === 'NUEVO')        productos = await iaModel.getProductosNuevos(categoria);
+            else if (intencion === 'VENDIDO') productos = await iaModel.getProductosMasVendidos(categoria);
+            else if (intencion === 'STOCK')   productos = await iaModel.getProductosMasStock(categoria);
+            else                              productos = await iaModel.getProductosExtremos(intencion, categoria);
+
             const validos = productos.filter(esProductoValido);
             if (validos.length > 0) return validos;
             // Si no hay nada en esa categoría, seguir con la búsqueda normal

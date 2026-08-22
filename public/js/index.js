@@ -21,9 +21,8 @@ function mostrarToast(nombre) {
     const toast = document.getElementById('toastCarrito');
     const msg   = document.getElementById('toast-mensaje');
     msg.innerText = `"${nombre}" agregado al carrito`;
-    toast.style.display = 'flex';
-    clearTimeout(toast._timeoutId);
-    toast._timeoutId = setTimeout(() => { toast.style.display = 'none'; }, 2800);
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2500);
 }
 
 // Obtener productos con paginación

@@ -201,29 +201,6 @@ body {
 }
 .auth-divider span { background: white; padding: 0 12px; position: relative; z-index: 1; }
 
-/* ── TOGGLE MOSTRAR/OCULTAR CONTRASEÑA ──────────────────────── */
-.auth-card .input-group .form-control { border-right: none !important; }
-.toggle-password {
-  border: 1.5px solid #e2e8f0 !important;
-  border-left: none !important;
-  background-color: #fafafa !important;
-  color: var(--agro-text-muted) !important;
-  cursor: pointer;
-}
-.toggle-password:hover  { color: var(--agro-green) !important; background-color: #f0f0f0 !important; }
-.toggle-password:focus  { box-shadow: none !important; z-index: 3; }
-.input-group:focus-within .toggle-password { border-color: var(--agro-green) !important; }
-
-/* ── BOTÓN "CONTINUAR CON GOOGLE" ────────────────────────────── */
-.btn-google {
-  border: 1.5px solid #e2e8f0; background: white; color: #3c4043;
-  font-weight: 600; border-radius: 10px; padding: 10px 0;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  transition: background-color 0.2s, box-shadow 0.2s;
-}
-.btn-google:hover { background-color: #f8f9fa; box-shadow: 0 1px 6px rgba(0,0,0,0.15); color: #3c4043; }
-.btn-google img { width: 18px; height: 18px; }
-
 /* ── STEPPER DE CHECKOUT ─────────────────────────────────────── */
 .checkout-steps { display: flex; align-items: center; justify-content: center; gap: 0; }
 .checkout-step  { display: flex; flex-direction: column; align-items: center; flex: 1; }
@@ -267,24 +244,16 @@ body {
 .btn-action:hover { transform: scale(1.1); }
 
 /* ── TOAST COMPARTIDO ───────────────────────────────────────── */
-/* Anclado arriba a la derecha (no abajo) para que nunca choque con
-   el botón flotante de AgroBot, que vive fijo en bottom-right. */
 .toast-carrito {
-  position: fixed; top: 96px; right: 24px; z-index: 10050; display: none;
-  align-items: center; gap: 10px;
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: none;
   background: linear-gradient(135deg, var(--agro-green), var(--agro-green-dark));
-  color: white; padding: 15px 22px; border-radius: var(--agro-radius-md);
-  font-weight: 600; font-size: 0.95rem; max-width: 320px;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.28);
-  animation: agro-slide-in 0.35s ease;
+  color: white; padding: 13px 22px; border-radius: var(--agro-radius-md); font-weight: 500;
+  box-shadow: var(--agro-shadow-green);
+  animation: agro-slide-in 0.3s ease;
 }
-.toast-carrito i { font-size: 1.3rem; flex-shrink: 0; }
 @keyframes agro-slide-in {
-  from { transform: translateX(140px); opacity: 0; }
+  from { transform: translateX(120px); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
-}
-@media (max-width: 480px) {
-  .toast-carrito { left: 16px; right: 16px; max-width: none; top: auto; bottom: 96px; }
 }
 
 /* ── RESPONSIVE ─────────────────────────────────────────────── */

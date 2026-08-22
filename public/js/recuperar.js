@@ -1,39 +1,40 @@
 // ============================================================
-//  Recuperar contraseña — solo flujo de código OTP
+//  FLUJO 1: Enlace de recuperación por correo
+// ============================================================
+document.getElementById('formEnlace').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const correo = document.getElementById('correoEnlace').value.trim();
+    const alerta = document.getElementById('mensajeEnlace');
+    const btn = e.target.querySelector('button[type="submit"]');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+
+    try {
+        const res = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ correo })
+        });
+        const data = await res.json();
+
+        mostrarAlerta(alerta, 'success',
+            '<i class="bi bi-envelope-check me-1"></i>' + data.mensaje);
+        e.target.reset();
+    } catch {
+        mostrarAlerta(alerta, 'danger', 'Error de conexión. Intenta de nuevo.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-envelope-arrow-up me-1"></i>Obtener enlace de recuperación';
+    }
+});
+
+
+// ============================================================
+//  FLUJO 2: Código OTP
 // ============================================================
 let pendingId = null;
 let correoGuardado = null;
-
-// ── Validación en vivo: ¿ese correo está registrado? ──
-const correoOtpEl = document.getElementById('correoOtp');
-let debounceCorreoOtp;
-if (correoOtpEl) {
-    correoOtpEl.addEventListener('input', () => {
-        clearTimeout(debounceCorreoOtp);
-        const estado = document.getElementById('correoOtp-estado');
-        if (!estado) return;
-        estado.textContent = '';
-        debounceCorreoOtp = setTimeout(async () => {
-            const correo = correoOtpEl.value.trim();
-            if (!correo.includes('@')) return;
-            estado.textContent = 'Verificando...';
-            estado.style.color = '';
-            try {
-                const res = await fetch(`/api/auth/existe-correo?correo=${encodeURIComponent(correo)}`);
-                const data = await res.json();
-                if (data.existe) {
-                    estado.innerHTML = '<i class="bi bi-check-circle me-1"></i>Correo registrado';
-                    estado.style.color = 'green';
-                } else {
-                    estado.innerHTML = '<i class="bi bi-x-circle me-1"></i>No encontramos una cuenta con este correo';
-                    estado.style.color = 'crimson';
-                }
-            } catch {
-                estado.textContent = '';
-            }
-        }, 600);
-    });
-}
 
 // Paso 1 — solicitar código
 document.getElementById('formSolicitarCodigo').addEventListener('submit', async (e) => {
