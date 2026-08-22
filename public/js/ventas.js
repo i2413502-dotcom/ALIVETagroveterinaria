@@ -180,6 +180,13 @@ async function verDetalle(idPedido) {
                 <p class="mb-1"><strong>N° Pedido:</strong> #${idPedido}</p>
                 <p class="mb-1"><strong>Comprobante:</strong> ${c.tipo} ${c.numero}</p>
                 <p class="mb-1"><strong>Fecha:</strong> ${new Date(c.fecha).toLocaleString('es-PE')}</p>
+                <p class="mb-1">
+                    <strong>Entrega:</strong>
+                    <span class="badge ${c.tipo_entrega === 'RECOJO_TIENDA' ? 'bg-secondary' : 'bg-primary'}">
+                        ${c.tipo_entrega === 'RECOJO_TIENDA' ? 'Recojo en tienda' : 'Delivery'}
+                    </span>
+                </p>
+                ${c.direccion_entrega ? `<p class="mb-1 text-muted small">${c.direccion_entrega}</p>` : ''}
             </div>
             <div class="col-md-6 text-md-end">
                 <p class="mb-1"><strong>Cliente:</strong> ${c.cliente}</p>
