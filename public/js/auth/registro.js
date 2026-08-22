@@ -101,6 +101,7 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
     const telefono = document.getElementById('telefono').value.trim();
     const password = document.getElementById('password').value.trim();
     const confirmarPassword = document.getElementById('confirmarPassword').value.trim();
+    const aceptaTerminos = document.getElementById('aceptaTerminos').checked;
     const mensaje = document.getElementById('mensaje');
 
     mensaje.classList.add('d-none');
@@ -111,6 +112,7 @@ document.getElementById('registroForm').addEventListener('submit', async (e) => 
         mensaje.classList.remove('d-none');
     };
 
+    if (!aceptaTerminos) return mostrarError('Debes aceptar los Términos y Condiciones para continuar');
     if (password !== confirmarPassword) return mostrarError('Las contraseñas no coinciden');
     if (!tipoDocumento) return mostrarError('Selecciona un tipo de documento');
 

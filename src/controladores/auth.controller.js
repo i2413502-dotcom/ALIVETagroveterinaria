@@ -1,3 +1,4 @@
+const crypto     = require('crypto');
 const bcrypt     = require('bcrypt');
 const jwt        = require('jsonwebtoken');
 const authModel  = require('../modelos/auth.model');
@@ -5,6 +6,7 @@ const emailService = require('../servicios/email.service');
 const { validarPassword } = require('../utils/passwordPolicy');
 const { validarCorreoExiste } = require('../utils/emailValidator');
 const responder = require('../utils/responder');
+const firebaseAdmin = require('../config/firebase');
 
 // Almacén temporal de registros pendientes de verificación por OTP
 // (en producción conviene usar Redis con expiración nativa en vez de memoria)
@@ -299,4 +301,111 @@ const validarCorreo = async (req, res) => {
     res.json(resultado);
 };
 
-module.exports = { login, loginVerificarOtp, register, verifyOtp, validarCorreo };
+// Comprueba si un correo YA está registrado en el sistema.
+// Se usa en "Recuperar contraseña" para avisar en vivo si esa cuenta
+// existe o no.
+//
+// ⚠️ Nota de seguridad: a diferencia de forgotPasswordOtp (que
+// deliberadamente responde siempre el mismo mensaje genérico para no
+// filtrar qué correos están registrados), este endpoint SÍ revela esa
+// información porque así se pidió explícitamente para la UX de
+// recuperación. Para mitigar el riesgo de que alguien lo use para
+// enumerar cuentas, se limita por IP igual que el login.
+// GET /api/auth/existe-correo?correo=...
+const intentosExisteCorreoPorIp = new Map();
+const existeCorreo = async (req, res) => {
+    const { correo } = req.query;
+    if (!correo) return res.status(400).json({ mensaje: 'Falta el correo' });
+
+    const ip = req.ip;
+    const registro = intentosExisteCorreoPorIp.get(ip);
+    const ahora = Date.now();
+    if (registro && ahora < registro.expiresAt && registro.count >= 20) {
+        return res.status(429).json({ mensaje: 'Demasiadas consultas, intenta más tarde' });
+    }
+    if (!registro || ahora > registro.expiresAt) {
+        intentosExisteCorreoPorIp.set(ip, { count: 1, expiresAt: ahora + 10 * 60 * 1000 });
+    } else {
+        registro.count += 1;
+    }
+
+    const persona = await authModel.findByEmail(correo);
+    res.json({ existe: !!persona });
+};
+
+// Login / registro con Google (Firebase Auth).
+// El cliente firma con Google en el navegador vía Firebase y nos manda
+// el idToken; aquí lo verificamos con Firebase Admin (ya inicializado
+// en src/config/firebase.js con las mismas credenciales que usa FCM).
+const googleAuth = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) return res.status(400).json({ mensaje: 'Token de Google requerido' });
+
+        if (!firebaseAdmin.auth) {
+            return res.status(503).json({ mensaje: 'Inicio de sesión con Google no disponible en este momento' });
+        }
+
+        let decoded;
+        try {
+            decoded = await firebaseAdmin.auth().verifyIdToken(idToken);
+        } catch (e) {
+            return res.status(401).json({ mensaje: 'Token de Google inválido o expirado' });
+        }
+
+        const correo = decoded.email;
+        if (!correo) {
+            return res.status(400).json({ mensaje: 'La cuenta de Google no tiene un correo asociado' });
+        }
+
+        let persona = await authModel.findByEmail(correo);
+
+        // Primera vez con Google: crea la cuenta como CLIENTE automáticamente.
+        // El documento (DNI/RUC) queda pendiente; se completa luego en "Mi perfil".
+        if (!persona) {
+            const nombreCompleto = (decoded.name || correo.split('@')[0]).trim();
+            const passwordAleatoria = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+
+            const idPersona = await authModel.createPersona({
+                nombres: nombreCompleto,
+                apellidoPaterno: '',
+                apellidoMaterno: '',
+                telefono: null,
+                correo,
+                password: passwordAleatoria
+            });
+            await authModel.createCliente(idPersona, null, null);
+
+            try {
+                await emailService.sendWelcomeEmail(correo, nombreCompleto);
+            } catch (e) {
+                console.error('Error al enviar bienvenida (Google):', e.message);
+            }
+
+            persona = await authModel.findByEmail(correo);
+        }
+
+        if (persona.estado === 'INACTIVO') {
+            return res.status(403).json({ mensaje: 'Tu cuenta está desactivada. Contacta con la tienda si crees que es un error.' });
+        }
+
+        const colaborador = await authModel.findColaborador(persona.id_persona);
+        if (colaborador) {
+            // Los colaboradores mantienen su flujo propio (usuario/contraseña + OTP corporativo).
+            return res.status(403).json({ mensaje: 'Los colaboradores deben iniciar sesión con su usuario y contraseña.' });
+        }
+
+        const cliente = await authModel.findCliente(persona.id_persona);
+        if (!cliente) {
+            return res.status(403).json({ mensaje: 'Cuenta sin rol asignado, contacta con soporte.' });
+        }
+
+        res.json(generarTokenParaPersona(persona, null, 'CLIENTE'));
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ mensaje: 'Error al iniciar sesión con Google' });
+    }
+};
+
+module.exports = { login, loginVerificarOtp, register, verifyOtp, validarCorreo, existeCorreo, googleAuth };
