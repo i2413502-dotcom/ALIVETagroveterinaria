@@ -4,16 +4,44 @@ const db = require('../config/db');
 // PAGADO/ENTREGADO). Se mantiene la lista para validar el filtro
 // que llega por query string, ahora con los 5 estados reales.
 const ESTADOS_VENTA = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
+const TIPOS_ENTREGA = ['DELIVERY', 'RECOJO_TIENDA'];
 
-// Construye el WHERE + params según filtros (estado / rango de fechas)
+// Estados que corresponden a cada pestaña de la pantalla de Ventas.
+// "activos"   -> aún requieren gestión (se muestran por defecto)
+// "historial" -> ya se cerraron (entregado o cancelado), no se borran,
+//                solo se dejan de mostrar en la vista principal.
+const ESTADOS_POR_VISTA = {
+    activos:   ['PENDIENTE', 'PAGADO', 'ENVIADO'],
+    historial: ['ENTREGADO', 'CANCELADO']
+};
+
+// Construye el WHERE + params según filtros (estado / rango de fechas / vista / tipo de entrega)
 function construirFiltros(filtros = {}) {
     let where = 'WHERE 1=1';
     const params = [];
 
-    if (filtros.estado && ESTADOS_VENTA.includes(filtros.estado)) {
+    // Pestaña Activos / Historial. Si además viene un "estado" puntual
+    // (del <select> de Estado), este debe pertenecer a la vista actual;
+    // si no pertenece, se ignora el estado puntual y manda la vista.
+    if (filtros.vista && ESTADOS_POR_VISTA[filtros.vista]) {
+        const estadosVista = ESTADOS_POR_VISTA[filtros.vista];
+        if (filtros.estado && estadosVista.includes(filtros.estado)) {
+            where += ' AND pe.estado = ?';
+            params.push(filtros.estado);
+        } else {
+            where += ` AND pe.estado IN (${estadosVista.map(() => '?').join(',')})`;
+            params.push(...estadosVista);
+        }
+    } else if (filtros.estado && ESTADOS_VENTA.includes(filtros.estado)) {
         where += ' AND pe.estado = ?';
         params.push(filtros.estado);
     }
+
+    if (filtros.tipoEntrega && TIPOS_ENTREGA.includes(filtros.tipoEntrega)) {
+        where += ' AND pe.tipo_entrega = ?';
+        params.push(filtros.tipoEntrega);
+    }
+
     if (filtros.desde) {
         where += ' AND DATE(pe.fecha_pedido) >= ?';
         params.push(filtros.desde);
@@ -46,7 +74,8 @@ const SELECT_LISTA = `
            UPPER(COALESCE(co.tipo,'BOLETA'))                        AS tipo,
            pe.total,
            COALESCE(tp.nombre,'-')                                  AS metodo_pago,
-           pe.estado
+           pe.estado,
+           pe.tipo_entrega
     FROM pedido pe
     LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
     LEFT JOIN cliente    cl  ON pe.id_cliente = cl.id_cliente

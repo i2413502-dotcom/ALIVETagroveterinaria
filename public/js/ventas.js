@@ -8,6 +8,38 @@
 let paginaVentas = 1;
 let modalDetalle = null;
 let idPedidoDetalleActual = null;
+let vistaActual = 'activos';       // 'activos' | 'historial'
+let tipoEntregaActual = '';        // '' | 'DELIVERY' | 'RECOJO_TIENDA'
+
+// Opciones del <select> Estado, según la pestaña activa. En "activos" solo
+// tiene sentido filtrar por los estados que aún requieren gestión; en
+// "historial" solo por los que ya se cerraron.
+const ESTADOS_POR_VISTA = {
+    activos:   [['PENDIENTE', 'Pendiente'], ['PAGADO', 'Pagado'], ['ENVIADO', 'Enviado']],
+    historial: [['ENTREGADO', 'Entregado'], ['CANCELADO', 'Cancelado']]
+};
+
+function pintarOpcionesEstado() {
+    const sel = document.getElementById('filtro-estado');
+    const opciones = ESTADOS_POR_VISTA[vistaActual];
+    sel.innerHTML = '<option value="">Todos</option>' +
+        opciones.map(([v, txt]) => `<option value="${v}">${txt}</option>`).join('');
+}
+
+function cambiarVista(vista) {
+    vistaActual = vista;
+    document.querySelectorAll('#tabs-vista [data-vista]').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.vista === vista));
+    pintarOpcionesEstado();
+    aplicarFiltros();
+}
+
+function cambiarTipoEntrega(tipo) {
+    tipoEntregaActual = tipo;
+    document.querySelectorAll('#grupo-tipo-entrega [data-tipo]').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.tipo === tipo));
+    aplicarFiltros();
+}
 
 const soles = n => 'S/. ' + (Number(n) || 0).toFixed(2);
 
@@ -51,11 +83,19 @@ function selectEstado(idPedido, estadoActual) {
 
 function filtrosActuales() {
     return {
-        estado: document.getElementById('filtro-estado').value,
-        codigo: document.getElementById('filtro-codigo').value.trim(),
-        desde:  document.getElementById('filtro-desde').value,
-        hasta:  document.getElementById('filtro-hasta').value
+        vista:       vistaActual,
+        tipoEntrega: tipoEntregaActual,
+        estado:      document.getElementById('filtro-estado').value,
+        codigo:      document.getElementById('filtro-codigo').value.trim(),
+        desde:       document.getElementById('filtro-desde').value,
+        hasta:       document.getElementById('filtro-hasta').value
     };
+}
+
+function badgeEntrega(tipo) {
+    return tipo === 'RECOJO_TIENDA'
+        ? '<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>Recojo</span>'
+        : '<span class="badge bg-success"><i class="bi bi-truck me-1"></i>Delivery</span>';
 }
 
 function queryString(extra = {}) {
@@ -74,7 +114,8 @@ async function cargarVentas() {
         const data = await res.json();
 
         if (!data.ventas || !data.ventas.length) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas</td></tr>';
+            const msg = vistaActual === 'historial' ? 'No hay ventas en el historial' : 'No hay ventas activas';
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">${msg}</td></tr>`;
             document.getElementById('paginacion-ventas').innerHTML = '';
             return;
         }
@@ -87,6 +128,7 @@ async function cargarVentas() {
                 <td><span class="badge bg-light text-dark border">${v.tipo}</span></td>
                 <td class="text-end fw-bold text-success">${soles(v.total)}</td>
                 <td>${v.metodo_pago}</td>
+                <td>${badgeEntrega(v.tipo_entrega)}</td>
                 <td>${selectEstado(v.id_pedido, v.estado)}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-success" title="Ver detalle" data-accion="ver-detalle" data-id="${v.id_pedido}">
@@ -98,7 +140,7 @@ async function cargarVentas() {
         renderPaginacion(data);
     } catch (err) {
         console.error('Error cargando ventas:', err);
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar ventas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error al cargar ventas</td></tr>';
     }
 }
 
@@ -246,6 +288,7 @@ window.addEventListener('DOMContentLoaded', () => {
         .addEventListener('change', (e) => cambiarEstadoDetalle(e.target.value));
     document.getElementById('filtro-codigo')
         .addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarFiltros(); });
+    pintarOpcionesEstado();
     cargarVentas();
 });
 
@@ -275,5 +318,7 @@ document.addEventListener('click', function (e) {
         case 'exportar-ventas':  exportarVentas(el); break;
         case 'ver-detalle':      verDetalle(Number(el.dataset.id)); break;
         case 'ir-pagina':        irPagina(Number(el.dataset.pagina)); break;
+        case 'cambiar-vista':          cambiarVista(el.dataset.vista); break;
+        case 'cambiar-tipo-entrega':    cambiarTipoEntrega(el.dataset.tipo); break;
     }
 });
