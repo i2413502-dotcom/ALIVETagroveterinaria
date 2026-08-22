@@ -22,6 +22,33 @@ function badgeEstado(estado) {
     return `<span class="badge bg-${c[estado] || 'secondary'}">${estado}</span>`;
 }
 
+// Colores de fondo por estado, para que el <select> se note a simple
+// vista igual que antes el badge (mismo criterio de colores).
+const ESTADOS_COLOR_FONDO = {
+    PENDIENTE: '#fff3cd',
+    PAGADO:    '#cff4fc',
+    ENVIADO:   '#cfe2ff',
+    ENTREGADO: '#d1e7dd',
+    CANCELADO: '#f8d7da'
+};
+const ESTADOS_VENTA = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
+
+// Reemplaza el badge de solo lectura por un <select> editable directo
+// en la tabla (antes solo se podía cambiar el estado abriendo el modal
+// de detalle). data-anterior guarda el valor previo por si el PUT falla
+// y hay que revertir la selección visualmente.
+function selectEstado(idPedido, estadoActual) {
+    const opciones = ESTADOS_VENTA.map(e =>
+        `<option value="${e}" ${e === estadoActual ? 'selected' : ''}>${e}</option>`
+    ).join('');
+    const color = ESTADOS_COLOR_FONDO[estadoActual] || '#e9ecef';
+    return `<select class="form-select form-select-sm estado-select"
+                     data-id="${idPedido}" data-anterior="${estadoActual}"
+                     style="background:${color}; font-weight:600; min-width:130px;">
+                ${opciones}
+            </select>`;
+}
+
 function filtrosActuales() {
     return {
         estado: document.getElementById('filtro-estado').value,
@@ -60,7 +87,7 @@ async function cargarVentas() {
                 <td><span class="badge bg-light text-dark border">${v.tipo}</span></td>
                 <td class="text-end fw-bold text-success">${soles(v.total)}</td>
                 <td>${v.metodo_pago}</td>
-                <td>${badgeEstado(v.estado)}</td>
+                <td>${selectEstado(v.id_pedido, v.estado)}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-success" title="Ver detalle" data-accion="ver-detalle" data-id="${v.id_pedido}">
                         <i class="bi bi-eye"></i>
@@ -159,6 +186,35 @@ async function cambiarEstadoDetalle(nuevoEstado) {
     }
 }
 
+// ── Cambiar estado directo desde el <select> de la tabla (sin abrir el modal) ──
+// Mismo endpoint PUT /api/pedidos/:id/estado que ya usa el modal de detalle.
+async function cambiarEstadoFila(idPedido, nuevoEstado, selectEl) {
+    const anterior = selectEl.dataset.anterior;
+    selectEl.disabled = true;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/pedidos/${idPedido}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        if (!res.ok) throw new Error('No se pudo actualizar el estado');
+
+        // Éxito: se actualiza el color y se guarda el nuevo valor como
+        // "anterior" para la próxima vez.
+        selectEl.style.background = ESTADOS_COLOR_FONDO[nuevoEstado] || '#e9ecef';
+        selectEl.dataset.anterior = nuevoEstado;
+        mostrarAlerta(`Pedido #${idPedido} → ${nuevoEstado}`, 'exito');
+    } catch (err) {
+        // Falla: se revierte la selección al valor que tenía antes,
+        // para que la tabla no muestre un estado que no se guardó.
+        selectEl.value = anterior;
+        mostrarAlerta('Error al cambiar estado: ' + err.message, 'error');
+    } finally {
+        selectEl.disabled = false;
+    }
+}
+
 // ── Exportar a Excel ──
 async function exportarVentas(btn) {
     const original = btn.innerHTML;
@@ -193,6 +249,17 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarVentas();
 });
 
+
+// ═══════════════════════════════════════════════════
+//  Cambio de estado desde la tabla — los <select> se generan
+//  dinámicamente en cada render de cargarVentas(), así que se
+//  escucha por delegación en vez de enlazar uno por fila.
+// ═══════════════════════════════════════════════════
+document.addEventListener('change', function (e) {
+    const el = e.target.closest('.estado-select');
+    if (!el) return;
+    cambiarEstadoFila(Number(el.dataset.id), el.value, el);
+});
 
 // ═══════════════════════════════════════════════════
 //  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
