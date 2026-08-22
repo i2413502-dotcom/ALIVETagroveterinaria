@@ -58,7 +58,17 @@ exports.detalle = async (req, res) => {
                 documento,
                 esFactura,
                 estado:      cab.estado,
-                costo_envio: Number(cab.costo_envio) || 0
+                costo_envio: Number(cab.costo_envio) || 0,
+                // Tal cual vienen de la tabla pedido — 'DELIVERY' o
+                // 'RECOJO_TIENDA'. direccion_entrega ya trae, cuando es
+                // recojo en tienda, el texto fijo "Recojo en tienda —
+                // ALIVET (...)" que arma el checkout.
+                tipo_entrega:       cab.tipo_entrega || 'DELIVERY',
+                direccion_entrega:  cab.direccion_entrega || '',
+                // Persona real de contacto (no la razón social de la
+                // factura) — quien recibe/recoge el pedido físicamente.
+                contacto_nombre:    cab.cliente_persona || '',
+                contacto_telefono:  cab.cliente_telefono || ''
             },
             productos: productos.map(p => ({
                 producto:        p.producto,

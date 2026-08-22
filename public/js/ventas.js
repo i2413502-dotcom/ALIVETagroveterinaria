@@ -180,18 +180,28 @@ async function verDetalle(idPedido) {
                 <p class="mb-1"><strong>N° Pedido:</strong> #${idPedido}</p>
                 <p class="mb-1"><strong>Comprobante:</strong> ${c.tipo} ${c.numero}</p>
                 <p class="mb-1"><strong>Fecha:</strong> ${new Date(c.fecha).toLocaleString('es-PE')}</p>
-                <p class="mb-1">
-                    <strong>Entrega:</strong>
-                    <span class="badge ${c.tipo_entrega === 'RECOJO_TIENDA' ? 'bg-secondary' : 'bg-primary'}">
-                        ${c.tipo_entrega === 'RECOJO_TIENDA' ? 'Recojo en tienda' : 'Delivery'}
-                    </span>
-                </p>
-                ${c.direccion_entrega ? `<p class="mb-1 text-muted small">${c.direccion_entrega}</p>` : ''}
             </div>
             <div class="col-md-6 text-md-end">
                 <p class="mb-1"><strong>Cliente:</strong> ${c.cliente}</p>
                 ${c.documento ? `<p class="mb-1"><strong>${c.documento}</strong></p>` : ''}
             </div>`;
+
+        // ── Detalle de entrega: tipo, dirección y contacto real ──
+        // El "Cliente" de arriba puede ser la razón social (en factura),
+        // así que aquí se muestra siempre la PERSONA real de contacto
+        // (contacto_nombre/contacto_telefono), sin importar boleta/factura.
+        const esRecojo = c.tipo_entrega === 'RECOJO_TIENDA';
+        document.getElementById('detalle-entrega').innerHTML = `
+            <p class="mb-2 fw-bold text-success"><i class="bi bi-${esRecojo ? 'shop' : 'truck'} me-1"></i>Detalle de entrega</p>
+            <p class="mb-1">
+                <strong>Tipo:</strong>
+                <span class="badge ${esRecojo ? 'bg-secondary' : 'bg-primary'}">
+                    ${esRecojo ? 'Recojo en tienda' : 'Delivery'}
+                </span>
+            </p>
+            ${c.direccion_entrega ? `<p class="mb-1"><strong>Dirección:</strong> ${c.direccion_entrega}</p>` : ''}
+            <p class="mb-1"><strong>${esRecojo ? 'Quién recoge' : 'Quién recibe'}:</strong> ${c.contacto_nombre || '—'}</p>
+            <p class="mb-0"><strong>Teléfono:</strong> ${c.contacto_telefono || 'No registrado'}</p>`;
 
         document.getElementById('det-estado-select').value = c.estado || 'PENDIENTE';
 

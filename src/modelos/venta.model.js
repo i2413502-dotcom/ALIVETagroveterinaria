@@ -132,12 +132,17 @@ exports.obtenerComprobante = async (idPedido) => {
     const [rows] = await db.query(`
         SELECT pe.id_pedido, pe.fecha_pedido, pe.total AS total_pedido,
                pe.costo_envio, pe.estado,
+               pe.tipo_entrega, pe.direccion_entrega,
                co.serie, co.numero, co.tipo, co.fecha_emision,
                co.nombre_cliente, co.razon_social, co.dni_cliente, co.ruc_cliente,
                co.subtotal, co.igv, co.total AS total_comprobante,
                TRIM(CONCAT(COALESCE(per.nombres,''),' ',
                            COALESCE(per.apellido_paterno,''),' ',
-                           COALESCE(per.apellido_materno,''))) AS cliente_persona
+                           COALESCE(per.apellido_materno,''))) AS cliente_persona,
+               -- Teléfono de la PERSONA real (no de la empresa en la
+               -- factura) — sirve para saber a quién contactar al
+               -- entregar o recoger, sin importar si es boleta o factura.
+               per.telefono AS cliente_telefono
         FROM pedido pe
         LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
         LEFT JOIN cliente    cl  ON pe.id_cliente = cl.id_cliente
