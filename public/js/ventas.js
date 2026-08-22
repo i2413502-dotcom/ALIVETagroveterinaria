@@ -25,6 +25,7 @@ function badgeEstado(estado) {
 function filtrosActuales() {
     return {
         estado: document.getElementById('filtro-estado').value,
+        codigo: document.getElementById('filtro-codigo').value.trim(),
         desde:  document.getElementById('filtro-desde').value,
         hasta:  document.getElementById('filtro-hasta').value
     };
@@ -187,6 +188,8 @@ window.addEventListener('DOMContentLoaded', () => {
     modalDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
     document.getElementById('det-estado-select')
         .addEventListener('change', (e) => cambiarEstadoDetalle(e.target.value));
+    document.getElementById('filtro-codigo')
+        .addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarFiltros(); });
     cargarVentas();
 });
 

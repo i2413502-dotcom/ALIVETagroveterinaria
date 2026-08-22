@@ -22,6 +22,17 @@ function construirFiltros(filtros = {}) {
         where += ' AND DATE(pe.fecha_pedido) <= ?';
         params.push(filtros.hasta);
     }
+    // Búsqueda por código de comprobante: acepta "B001-000069",
+    // solo la serie ("B001") o solo el número ("000069" o "69").
+    if (filtros.codigo && filtros.codigo.trim()) {
+        const like = `%${filtros.codigo.trim()}%`;
+        where += ` AND (
+            co.numero LIKE ? OR
+            co.serie LIKE ? OR
+            CONCAT(COALESCE(co.serie,''),'-',COALESCE(co.numero,'')) LIKE ?
+        )`;
+        params.push(like, like, like);
+    }
     return { where, params };
 }
 
@@ -57,9 +68,15 @@ exports.listarVentas = async (filtros = {}) => {
                  LIMIT ? OFFSET ?`;
     const [rows] = await db.query(sql, [...params, limite, offset]);
 
-    // El conteo solo depende de filtros sobre 'pedido'
+    // El conteo ahora también puede depender del filtro por código de
+    // comprobante, así que necesita el mismo JOIN que la lista principal.
+    // COUNT(DISTINCT ...) evita duplicar si un pedido tuviera más de un
+    // registro de pago (mismo caso que el GROUP BY de arriba).
     const [[count]] = await db.query(
-        `SELECT COUNT(*) AS total FROM pedido pe ${where}`, params
+        `SELECT COUNT(DISTINCT pe.id_pedido) AS total
+         FROM pedido pe
+         LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
+         ${where}`, params
     );
 
     return {

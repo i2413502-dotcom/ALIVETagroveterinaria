@@ -50,7 +50,7 @@
     <!-- FILTROS -->
     <div class="filtros-bar mb-4">
         <div class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Estado</label>
                 <select id="filtro-estado" class="form-select">
                     <option value="">Todos</option>
@@ -62,10 +62,14 @@
                 </select>
             </div>
             <div class="col-md-3">
+                <label class="form-label">N° Boleta/Factura</label>
+                <input type="text" id="filtro-codigo" class="form-control" placeholder="Ej. B001-000069">
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">Desde</label>
                 <input type="date" id="filtro-desde" class="form-control">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Hasta</label>
                 <input type="date" id="filtro-hasta" class="form-control">
             </div>
