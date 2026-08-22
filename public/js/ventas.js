@@ -200,6 +200,7 @@ async function verDetalle(idPedido) {
                 </span>
             </p>
             ${c.direccion_entrega ? `<p class="mb-1"><strong>Dirección:</strong> ${c.direccion_entrega}</p>` : ''}
+            ${!esRecojo ? `<p class="mb-1"><strong>Costo de envío:</strong> ${soles(c.costo_envio)}</p>` : ''}
             <p class="mb-1"><strong>${esRecojo ? 'Quién recoge' : 'Quién recibe'}:</strong> ${c.contacto_nombre || '—'}</p>
             <p class="mb-0"><strong>Teléfono:</strong> ${c.contacto_telefono || 'No registrado'}</p>`;
 

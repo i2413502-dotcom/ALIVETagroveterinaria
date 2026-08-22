@@ -207,16 +207,29 @@ async function cargarGraficoStock() {
 // ═══════════════════════════════════════════════════
 //  PRODUCTOS
 // ═══════════════════════════════════════════════════
+// 'activos' (todo menos lo archivado) o 'archivados' — mismo patrón
+// que vistaActual en Ventas.
+let vistaProductosActual = 'activos';
+
+function cambiarVistaProductos(vista) {
+    vistaProductosActual = vista;
+    document.querySelectorAll('#tabs-vista-productos [data-vista-producto]').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.vistaProducto === vista));
+    paginaProductos = 1;
+    cargarProductos();
+}
+
 async function cargarProductos() {
     try {
         // incluirInactivos=1 → el panel admin ve también los desactivados (el catálogo público no)
         // Paginación del lado del servidor (igual que el catálogo público)
-        const res  = await fetch(`/api/productos?incluirInactivos=1&pagina=${paginaProductos}&limite=${LIMITE_PRODUCTOS}`);
+        const res  = await fetch(`/api/productos?incluirInactivos=1&vista=${vistaProductosActual}&pagina=${paginaProductos}&limite=${LIMITE_PRODUCTOS}`);
         const data = await res.json();
         productosLista = data.productos || [];
         const tbody = document.getElementById('tabla-productos');
         if (!productosLista.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No hay productos</td></tr>';
+            const msg = vistaProductosActual === 'archivados' ? 'No hay productos archivados' : 'No hay productos';
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">${msg}</td></tr>`;
             renderPaginacionProductos({ pagina: 1, totalPaginas: 1, total: 0 });
             return;
         }
@@ -229,6 +242,7 @@ async function cargarProductos() {
                 : '/img/logo.jpeg';
 
             const inactivo = p.estado === 'INACTIVO';
+            const archivado = p.estado === 'ARCHIVADO';
 
             // Enlace a ficha técnica (fuera del botón de editar)
             const fichaBtn = p.ficha_tecnica ? `
@@ -237,8 +251,15 @@ async function cargarProductos() {
                         <i class="bi bi-file-earmark-pdf"></i>
                     </a>` : '';
 
-            // Botón cambiar estado: si está activo → desactivar; si está inactivo → activar
-            const toggleBtn = inactivo
+            // Un producto archivado solo se puede "Restaurar" (vuelve a
+            // ACTIVO) — no tiene sentido ofrecer Desactivar/Eliminar de
+            // nuevo sobre algo que ya está fuera de circulación.
+            const toggleBtn = archivado
+                ? `<button class="btn btn-sm btn-outline-success me-1" title="Restaurar producto"
+                           data-accion="cambiar-estado-producto" data-id="${p.id_producto}" data-estado="ACTIVO">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                   </button>`
+                : inactivo
                 ? `<button class="btn btn-sm btn-outline-success me-1" title="Activar producto"
                            data-accion="cambiar-estado-producto" data-id="${p.id_producto}" data-estado="ACTIVO">
                         <i class="bi bi-toggle-off"></i>
@@ -249,11 +270,11 @@ async function cargarProductos() {
                    </button>`;
 
             return `
-            <tr class="${inactivo ? 'opacity-50' : ''}">
+            <tr class="${inactivo || archivado ? 'opacity-50' : ''}">
                 <td>${p.id_producto}</td>
                 <td><img src="${imgSrc}" alt="img" style="width:45px;height:45px;object-fit:cover;border-radius:8px;"
                          onerror="this.onerror=null;this.src='/img/logo.jpeg';"></td>
-                <td><strong>${p.nombre}</strong>${inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
+                <td><strong>${p.nombre}</strong>${archivado ? ' <span class="badge bg-dark ms-1">Archivado</span>' : inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
                 <td>${p.categoria || '-'}</td>
                 <td>${p.tipo_animal || '-'}</td>
                 <td class="text-success fw-bold">S/. ${parseFloat(p.precio_venta).toFixed(2)}</td>
@@ -265,9 +286,10 @@ async function cargarProductos() {
                         <i class="bi bi-pencil"></i>
                     </button>
                     ${toggleBtn}
+                    ${archivado ? '' : `
                     <button class="btn btn-sm btn-outline-danger" title="Eliminar permanentemente" data-accion="eliminar-producto" data-id="${p.id_producto}">
                         <i class="bi bi-trash"></i>
-                    </button>
+                    </button>`}
                 </td>
             </tr>`;
         }).join('');
@@ -906,14 +928,18 @@ async function eliminarProducto(id) {
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/productos/${id}`, { method:'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
         if (res.ok) {
             cargarProductos();
             cargarEstadisticas();
             cargarGraficoStock();
-            mostrarAlerta('Producto eliminado correctamente', 'exito');
+            // Si el backend no pudo borrar de verdad (tenía pedidos
+            // asociados), lo archivó en su lugar — mensaje distinto,
+            // no es un error, pero tampoco un borrado literal.
+            mostrarAlerta(data.mensaje || (data.archivado ? 'Producto archivado' : 'Producto eliminado correctamente'),
+                          data.archivado ? 'info' : 'exito');
         } else {
-            const e = await res.json();
-            mostrarAlerta(e.mensaje || 'No se pudo eliminar el producto', 'error');
+            mostrarAlerta(data.mensaje || 'No se pudo eliminar el producto', 'error');
         }
     } catch (err) { mostrarAlerta('Error al eliminar', 'error'); }
 }
@@ -1649,6 +1675,7 @@ document.addEventListener('click', function (e) {
         case 'guardar-animal':      guardarAnimal(); break;
         case 'reset-password':      mostrarResetPassword(); break;
         case 'guardar-colaborador': guardarColaborador(); break;
+        case 'cambiar-vista-productos': cambiarVistaProductos(el.dataset.vistaProducto); break;
 
         // Generadas dinámicamente en las filas de tablas (antes onclick embebido en el template string)
         case 'cambiar-estado-producto': cambiarEstadoProducto(Number(el.dataset.id), el.dataset.estado); break;
