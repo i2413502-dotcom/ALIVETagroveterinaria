@@ -99,6 +99,12 @@
     text-transform: uppercase; letter-spacing: 0.5px;
     box-shadow: 0 2px 8px rgba(192,17,27,0.45);
 }
+/* Agotado (stock = 0) — gris oscuro, distinto del rojo de "Poco stock"
+   (stock bajo pero todavía comprable), para no confundir ambos casos. */
+.stock-badge-agotado {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    box-shadow: 0 2px 8px rgba(73,80,87,0.45);
+}
 
 /* Tipografía de tarjeta */
 .producto-categoria {
@@ -131,6 +137,18 @@
     box-shadow: 0 7px 20px rgba(6,160,73,0.42);
 }
 .btn-add:active { transform: translateY(0); box-shadow: none; }
+/* Agotado: gris, sin el efecto hover de "levantarse" — visualmente
+   deshabilitado aunque el click siga llegando a agregarAlCarrito()
+   (que ya lo bloquea igual; esto es solo para que se VEA bloqueado
+   antes de tocarlo, no recién después). */
+.btn-add.btn-add-agotado {
+    background: #adb5bd;
+    cursor: not-allowed;
+}
+.btn-add.btn-add-agotado:hover {
+    transform: none;
+    box-shadow: none;
+}
 
 /* ── HEADING PRODUCTOS ── */
 .seccion-titulo {

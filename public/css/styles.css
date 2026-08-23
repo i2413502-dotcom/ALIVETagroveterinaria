@@ -279,6 +279,13 @@ body {
   to   { transform: translateX(0);     opacity: 1; }
 }
 
+/* Variante roja del mismo toast, para avisos de bloqueo (ej. producto
+   agotado) en vez del verde de "agregado al carrito". */
+.toast-carrito.toast-carrito-error {
+  background: linear-gradient(135deg, #dc3545, #b02a37);
+  box-shadow: 0 12px 32px rgba(220,53,69,0.28);
+}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .main-header .d-flex.w-50 { width: 100% !important; margin: 8px 0; }
