@@ -12,13 +12,14 @@ exports.bajoPorStock = async (req, res) => {
             LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
             LEFT JOIN imagen_producto img ON img.id_producto = p.id_producto AND img.es_principal = 1
             WHERE p.stock_actual <= p.stock_minimo
+              AND p.estado != 'ARCHIVADO'
         `;
         const params = [];
         if (id_tipo_animal) {
             sql += ' AND p.id_tipo_animal = ?';
             params.push(id_tipo_animal);
         }
-        sql += " ORDER BY (p.estado = 'ACTIVO') DESC, p.stock_actual ASC";
+        sql += ' ORDER BY p.stock_actual ASC';
         const [rows] = await db.query(sql, params);
         res.json(rows);
     } catch (error) {
@@ -42,7 +43,7 @@ exports.porVencer = async (req, res) => {
             WHERE p.fecha_vencimiento IS NOT NULL
               AND p.fecha_vencimiento >= NOW()
               AND p.fecha_vencimiento <= DATE_ADD(NOW(), INTERVAL ? DAY)
-              AND p.estado = 'ACTIVO'
+              AND p.estado != 'ARCHIVADO'
         `;
         const params = [dias];
         if (id_tipo_animal) {

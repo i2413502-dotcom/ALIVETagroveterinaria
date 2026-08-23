@@ -46,13 +46,19 @@ async function cargarVentas() {
         const data = await res.json();
 
         if (!data.ventas || !data.ventas.length) {
+<<<<<<< HEAD
             tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas</td></tr>';
+=======
+            const msg = vistaActual === 'historial' ? 'No hay ventas en el historial' : 'No hay ventas activas';
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">${msg}</td></tr>`;
+>>>>>>> d2f7cc5ecb8a03c73c73a590bc00bbc834f921ee
             document.getElementById('paginacion-ventas').innerHTML = '';
             return;
         }
 
         tbody.innerHTML = data.ventas.map(v => `
             <tr>
+                <td class="text-muted">#${v.id_pedido}</td>
                 <td><strong>${v.comprobante}</strong></td>
                 <td>${new Date(v.fecha).toLocaleDateString('es-PE')}</td>
                 <td>${v.cliente || '—'}</td>
@@ -70,7 +76,11 @@ async function cargarVentas() {
         renderPaginacion(data);
     } catch (err) {
         console.error('Error cargando ventas:', err);
+<<<<<<< HEAD
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar ventas</td></tr>';
+=======
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Error al cargar ventas</td></tr>';
+>>>>>>> d2f7cc5ecb8a03c73c73a590bc00bbc834f921ee
     }
 }
 
@@ -115,6 +125,33 @@ async function verDetalle(idPedido) {
                 <p class="mb-1"><strong>Cliente:</strong> ${c.cliente}</p>
                 ${c.documento ? `<p class="mb-1"><strong>${c.documento}</strong></p>` : ''}
             </div>`;
+
+        // ── Detalle de entrega: tipo, dirección y contacto real ──
+        // El "Cliente" de arriba puede ser la razón social (en factura),
+        // así que aquí se muestra siempre la PERSONA real de contacto
+        // (contacto_nombre/contacto_telefono), sin importar boleta/factura.
+        const esRecojo = c.tipo_entrega === 'RECOJO_TIENDA';
+        document.getElementById('detalle-entrega').innerHTML = `
+            <p class="mb-2 fw-bold text-success"><i class="bi bi-${esRecojo ? 'shop' : 'truck'} me-1"></i>Detalle de entrega</p>
+            <p class="mb-1">
+                <strong>Tipo:</strong>
+                <span class="badge ${esRecojo ? 'bg-secondary' : 'bg-primary'}">
+                    ${esRecojo ? 'Recojo en tienda' : 'Delivery'}
+                </span>
+            </p>
+            ${c.direccion_entrega ? `<p class="mb-1"><strong>Dirección:</strong> ${c.direccion_entrega}</p>` : ''}
+            ${!esRecojo && c.referencia ? `<p class="mb-1"><strong>Referencia:</strong> ${c.referencia}</p>` : ''}
+            ${!esRecojo ? `<p class="mb-1"><strong>Costo de envío:</strong> ${soles(c.costo_envio)}</p>` : ''}
+            <p class="mb-1"><strong>${esRecojo ? 'Quién recoge' : 'Quién recibe'}:</strong> ${c.contacto_nombre || '—'}</p>
+            <p class="mb-0"><strong>Teléfono:</strong> ${c.contacto_telefono || 'No registrado'}</p>
+            ${c.evidencia_url ? `
+                <hr class="my-2">
+                <p class="mb-1 fw-bold text-danger"><i class="bi bi-camera me-1"></i>Evidencia de cancelación</p>
+                <a href="${c.evidencia_url}" target="_blank" rel="noopener">
+                    <img src="${c.evidencia_url}" alt="Evidencia de cancelación"
+                         style="max-width:100%; max-height:180px; border-radius:8px; cursor:zoom-in;">
+                </a>
+            ` : ''}`;
 
         document.getElementById('det-estado-select').value = c.estado || 'PENDIENTE';
 

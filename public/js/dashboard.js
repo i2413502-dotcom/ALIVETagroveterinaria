@@ -10,9 +10,9 @@
 // ═══════════════════════════════════════════════════
 //  VARIABLES GLOBALES
 // ══════════════════════════════════════════════════
-let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalSubcategorias;
+let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalOtpColaborador, modalSubcategorias;
 let productosLista = [], categoriasLista = [], animalesLista = [], colaboradoresLista = [];
-let chartVentas = null, chartProductos = null, chartStock = null;
+let chartProductos = null, chartStock = null, chartTopClientes = null;
 
 // NOTA: confirmarAccion() y mostrarAlerta() (reemplazos de confirm()/alert()
 // nativos) viven en /js/ui-mensajes.js, compartido con ventas.html y
@@ -102,43 +102,6 @@ async function cargarEstadisticas() {
 }
 
 // ═══════════════════════════════════════════════════
-//  GRÁFICO — VENTAS POR MES
-// ═══════════════════════════════════════════════════
-async function cargarGraficoVentas() {
-    try {
-        const token = localStorage.getItem('token');
-        const res  = await fetch('/api/dashboard/ventas-mes', { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        const ctx  = document.getElementById('chartVentas').getContext('2d');
-        if (chartVentas) chartVentas.destroy();
-        chartVentas = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels:   data.map(d => d.mes_label),
-                datasets: [{
-                    label:           'Ventas (S/.)',
-                    data:            data.map(d => parseFloat(d.total_ventas)),
-                    borderColor:     '#06A049',
-                    backgroundColor: 'rgba(6,160,73,0.1)',
-                    borderWidth:     3,
-                    fill:            true,
-                    tension:         0.4,
-                    pointBackgroundColor: '#06A049',
-                    pointRadius:     5
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { callback: v => 'S/. '+v } }
-                }
-            }
-        });
-    } catch (err) { console.error('Error gráfico ventas:', err); }
-}
-
-// ═══════════════════════════════════════════════════
 //  GRÁFICO — PRODUCTOS MÁS VENDIDOS
 // ═══════════════════════════════════════════════════
 async function cargarGraficoProductos() {
@@ -204,19 +167,92 @@ async function cargarGraficoStock() {
         });
     } catch (err) { console.error('Error gráfico stock:', err); }
 }
+
+// ═══════════════════════════════════════════════════
+//  GRÁFICO — TOP 10 CLIENTES QUE MÁS COMPRAN
+//  Mismo endpoint que usa Promociones para las mismas listas
+//  (GET /api/dashboard/top-clientes), solo que aquí se grafica
+//  en vez de mostrarse como checkboxes.
+// ═══════════════════════════════════════════════════
+async function cargarGraficoTopClientes() {
+    try {
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/dashboard/top-clientes?limite=10', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        const ctx  = document.getElementById('chartTopClientes').getContext('2d');
+        if (chartTopClientes) chartTopClientes.destroy();
+
+        if (!data.length) {
+            // Sin clientes con compras confirmadas todavía — se deja el
+            // canvas vacío en vez de un gráfico sin datos que confunda.
+            return;
+        }
+
+        // Colores — mismo criterio que "Productos Más Vendidos", con
+        // más tonos para llegar a 10 clientes sin repetir color.
+        const colores = [
+            '#06A049', '#28a745', '#17a2b8', '#ffc107', '#fd7e14',
+            '#20c997', '#6f42c1', '#0dcaf0', '#e83e8c', '#adb5bd'
+        ];
+
+        chartTopClientes = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(d => d.nombres || d.correo || 'Cliente'),
+                datasets: [{
+                    // Tamaño de cada porción = CANTIDAD de pedidos, no
+                    // dinero — así un pedido de prueba con un monto
+                    // absurdo (ej. S/. 1,069,160 cancelado) no revienta
+                    // el gráfico: cuenta como 1 pedido, igual que
+                    // cualquier otro.
+                    data:            data.map(d => d.total_pedidos),
+                    backgroundColor: colores,
+                    borderWidth:     2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label:      (ctx) => `${ctx.label}: ${ctx.raw} pedido(s)`,
+                            // El monto gastado se muestra aparte, como
+                            // dato extra, no como tamaño de la porción.
+                            afterLabel: (ctx) => `S/. ${Number(data[ctx.dataIndex].total_gastado).toFixed(2)}`
+                        }
+                    }
+                }
+            }
+        });
+    } catch (err) { console.error('Error gráfico top clientes:', err); }
+}
 // ═══════════════════════════════════════════════════
 //  PRODUCTOS
 // ═══════════════════════════════════════════════════
+// 'activos' (todo menos lo archivado) o 'archivados' — mismo patrón
+// que vistaActual en Ventas.
+let vistaProductosActual = 'activos';
+
+function cambiarVistaProductos(vista) {
+    vistaProductosActual = vista;
+    document.querySelectorAll('#tabs-vista-productos [data-vista-producto]').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.vistaProducto === vista));
+    paginaProductos = 1;
+    cargarProductos();
+}
+
 async function cargarProductos() {
     try {
         // incluirInactivos=1 → el panel admin ve también los desactivados (el catálogo público no)
         // Paginación del lado del servidor (igual que el catálogo público)
-        const res  = await fetch(`/api/productos?incluirInactivos=1&pagina=${paginaProductos}&limite=${LIMITE_PRODUCTOS}`);
+        const res  = await fetch(`/api/productos?incluirInactivos=1&vista=${vistaProductosActual}&pagina=${paginaProductos}&limite=${LIMITE_PRODUCTOS}`);
         const data = await res.json();
         productosLista = data.productos || [];
         const tbody = document.getElementById('tabla-productos');
         if (!productosLista.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No hay productos</td></tr>';
+            const msg = vistaProductosActual === 'archivados' ? 'No hay productos archivados' : 'No hay productos';
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">${msg}</td></tr>`;
             renderPaginacionProductos({ pagina: 1, totalPaginas: 1, total: 0 });
             return;
         }
@@ -229,6 +265,7 @@ async function cargarProductos() {
                 : '/img/logo.jpeg';
 
             const inactivo = p.estado === 'INACTIVO';
+            const archivado = p.estado === 'ARCHIVADO';
 
             // Enlace a ficha técnica (fuera del botón de editar)
             const fichaBtn = p.ficha_tecnica ? `
@@ -237,8 +274,15 @@ async function cargarProductos() {
                         <i class="bi bi-file-earmark-pdf"></i>
                     </a>` : '';
 
-            // Botón cambiar estado: si está activo → desactivar; si está inactivo → activar
-            const toggleBtn = inactivo
+            // Un producto archivado solo se puede "Restaurar" (vuelve a
+            // ACTIVO) — no tiene sentido ofrecer Desactivar/Eliminar de
+            // nuevo sobre algo que ya está fuera de circulación.
+            const toggleBtn = archivado
+                ? `<button class="btn btn-sm btn-outline-success me-1" title="Restaurar producto"
+                           data-accion="cambiar-estado-producto" data-id="${p.id_producto}" data-estado="ACTIVO">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                   </button>`
+                : inactivo
                 ? `<button class="btn btn-sm btn-outline-success me-1" title="Activar producto"
                            data-accion="cambiar-estado-producto" data-id="${p.id_producto}" data-estado="ACTIVO">
                         <i class="bi bi-toggle-off"></i>
@@ -249,11 +293,11 @@ async function cargarProductos() {
                    </button>`;
 
             return `
-            <tr class="${inactivo ? 'opacity-50' : ''}">
+            <tr class="${inactivo || archivado ? 'opacity-50' : ''}">
                 <td>${p.id_producto}</td>
                 <td><img src="${imgSrc}" alt="img" style="width:45px;height:45px;object-fit:cover;border-radius:8px;"
                          onerror="this.onerror=null;this.src='/img/logo.jpeg';"></td>
-                <td><strong>${p.nombre}</strong>${inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
+                <td><strong>${p.nombre}</strong>${archivado ? ' <span class="badge bg-dark ms-1">Archivado</span>' : inactivo ? ' <span class="badge bg-secondary ms-1">Inactivo</span>' : ''}</td>
                 <td>${p.categoria || '-'}</td>
                 <td>${p.tipo_animal || '-'}</td>
                 <td class="text-success fw-bold">S/. ${parseFloat(p.precio_venta).toFixed(2)}</td>
@@ -265,9 +309,10 @@ async function cargarProductos() {
                         <i class="bi bi-pencil"></i>
                     </button>
                     ${toggleBtn}
+                    ${archivado ? '' : `
                     <button class="btn btn-sm btn-outline-danger" title="Eliminar permanentemente" data-accion="eliminar-producto" data-id="${p.id_producto}">
                         <i class="bi bi-trash"></i>
-                    </button>
+                    </button>`}
                 </td>
             </tr>`;
         }).join('');
@@ -305,6 +350,7 @@ function limpiarFormularioProducto() {
         'prod-id','prod-nombre','prod-descripcion','prod-precio','prod-stock',
         'prod-imagen-file','prod-imagen-url','prod-imagen-final',
         'prod-categoria','prod-subcategoria','prod-grupo-animal','prod-animal',
+        'prod-codigo-barra',
         'prod-imagen-sec-1-file','prod-imagen-sec-1','prod-imagen-sec-2-file','prod-imagen-sec-2',
         // medicamento
         'prod-marca-med','prod-presentacion','prod-vencimiento','prod-composicion','prod-modo-uso','prod-ficha-tecnica',
@@ -556,6 +602,7 @@ async function editarProducto(id) {
     document.getElementById('prod-precio').value            = p.precio_venta;
     document.getElementById('prod-stock').value             = p.stock_actual;
     document.getElementById('prod-categoria').value         = p.id_categoria;
+    document.getElementById('prod-codigo-barra').value      = p.codigo_barra || '';
 
     // Cascada Grupo → Tipo de Animal: primero ubicamos a qué grupo
     // pertenece el animal ya asignado y lo pre-seleccionamos.
@@ -683,6 +730,12 @@ async function guardarProducto() {
         mostrarAlerta('Selecciona el Tipo de Animal.');
         return;
     }
+    // Código de barra ahora es obligatorio (antes era opcional) — se
+    // usa para el escaneo desde la app móvil.
+    if (!document.getElementById('prod-codigo-barra').value.trim()) {
+        mostrarAlerta('Ingresa el código de barra del producto.');
+        return;
+    }
 
     const esMed = txt.includes('medic') || txt.includes('farmac');
     const esAcc = txt.includes('acces') || txt.includes('collar') || txt.includes('juguete');
@@ -748,6 +801,7 @@ async function guardarProducto() {
         id_subcategoria:   document.getElementById('prod-subcategoria').value || null,
         id_tipo_animal:    document.getElementById('prod-animal').value,
         imagen:            imagenFinal,
+        codigo_barra:      document.getElementById('prod-codigo-barra')?.value.trim() || null,
         imagenes_secundarias: [
             document.getElementById('prod-imagen-sec-1').value,
             document.getElementById('prod-imagen-sec-2').value
@@ -899,21 +953,26 @@ async function eliminarProducto(id) {
     const ok = await confirmarAccion({
         tipo: 'peligro',
         titulo: 'Eliminar producto permanentemente',
-        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.`,
-        textoConfirmar: 'Sí, eliminar'
+        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.\n\n` +
+                 `Si solo quieres ocultarlo del catálogo (por ejemplo, dejó de venderse) pero conservar su historial, usa mejor el botón "Desactivar" (🔘) en vez de eliminar.`,
+        textoConfirmar: 'Sí, eliminar de todas formas'
     });
     if (!ok) return;
     try {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/productos/${id}`, { method:'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
         if (res.ok) {
             cargarProductos();
             cargarEstadisticas();
             cargarGraficoStock();
-            mostrarAlerta('Producto eliminado correctamente', 'exito');
+            // Si el backend no pudo borrar de verdad (tenía pedidos
+            // asociados), lo archivó en su lugar — mensaje distinto,
+            // no es un error, pero tampoco un borrado literal.
+            mostrarAlerta(data.mensaje || (data.archivado ? 'Producto archivado' : 'Producto eliminado correctamente'),
+                          data.archivado ? 'info' : 'exito');
         } else {
-            const e = await res.json();
-            mostrarAlerta(e.mensaje || 'No se pudo eliminar el producto', 'error');
+            mostrarAlerta(data.mensaje || 'No se pudo eliminar el producto', 'error');
         }
     } catch (err) { mostrarAlerta('Error al eliminar', 'error'); }
 }
@@ -1469,6 +1528,9 @@ async function mostrarModalColaborador() {
     document.getElementById('campo-col-password').classList.remove('d-none');
     document.getElementById('campo-col-reset').classList.add('d-none');
     document.getElementById('campo-col-estado-wrap').style.display = 'none';
+    // Al crear, el botón pasa a pedir el código de verificación en vez
+    // de guardar directo — mismo texto que ya usa el móvil.
+    document.getElementById('btn-guardar-colaborador-texto').innerText = 'Enviar código de verificación';
     await cargarSelectCargos();
     modalColaborador.show();
 }
@@ -1490,6 +1552,9 @@ function editarColaborador(id) {
     document.getElementById('reset-pass-form').classList.add('d-none');
     document.getElementById('campo-col-estado-wrap').style.display = 'block';
     document.getElementById('col-estado').value    = c.estado;
+    // Al editar sigue siendo un guardado directo (sin OTP) — el
+    // correo no se puede cambiar desde este modal.
+    document.getElementById('btn-guardar-colaborador-texto').innerText = 'Guardar';
     cargarSelectCargos().then(() => {
         document.getElementById('col-cargo').value = c.id_cargo;
     });
@@ -1513,11 +1578,17 @@ async function guardarColaborador() {
     const id = document.getElementById('col-id').value;
 
     if (!id) {
-        // CREAR
+        // CREAR — ya no se crea directo: primero se pide el código de
+        // verificación al correo (mismo flujo de 2 pasos que el móvil:
+        // solicitar-creacion -> modal OTP -> confirmar-creacion). Así
+        // no se puede cargar un correo inventado que nunca recibe nada.
         const pass  = document.getElementById('col-password').value;
         const pass2 = document.getElementById('col-password2').value;
         if (!pass) { mostrarAlerta('Ingresa una contraseña'); return; }
         if (pass !== pass2) { mostrarAlerta('Las contraseñas no coinciden'); return; }
+
+        const correo = document.getElementById('col-correo').value;
+        if (!correo) { mostrarAlerta('Ingresa el correo del colaborador'); return; }
 
         const data = {
             nombres:         document.getElementById('col-nombres').value,
@@ -1525,19 +1596,38 @@ async function guardarColaborador() {
             apellido_materno:document.getElementById('col-apellido-m').value,
             dni:             document.getElementById('col-dni').value,
             telefono:        document.getElementById('col-telefono').value,
-            correo:          document.getElementById('col-correo').value,
+            correo:          correo,
             usuario:         document.getElementById('col-usuario').value,
             id_cargo:        document.getElementById('col-cargo').value,
             password:        pass
         };
+        const btn = document.getElementById('btn-guardar-colaborador');
+        const textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/colaboradores', {
+            const res = await fetch('/api/colaboradores/solicitar-creacion', {
                 method:'POST', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data)
             });
-            if (res.ok) { modalColaborador.hide(); cargarColaboradores(); mostrarAlerta('Colaborador creado correctamente'); }
-            else { const e = await res.json(); mostrarAlerta(e.mensaje || 'Error al crear'); }
-        } catch (err) { mostrarAlerta('Error al crear colaborador'); }
+            const resultado = await res.json();
+            if (res.ok) {
+                document.getElementById('otp-colab-pending-id').value = resultado.pendingId;
+                document.getElementById('otp-colab-codigo').value = '';
+                document.getElementById('otp-colab-error').classList.add('d-none');
+                document.getElementById('otp-colab-texto').innerText =
+                    `Mandamos un código de 5 dígitos a ${correo}. Pídeselo al nuevo colaborador y escríbelo acá para confirmar que el correo es real y crear su cuenta.`;
+                modalColaborador.hide();
+                modalOtpColaborador.show();
+            } else {
+                mostrarAlerta(resultado.mensaje || 'No se pudo enviar el código');
+            }
+        } catch (err) {
+            mostrarAlerta('Error al solicitar la creación del colaborador');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+        }
 
     } else {
         // EDITAR
@@ -1574,6 +1664,50 @@ async function guardarColaborador() {
     }
 }
 
+// Paso 2 del flujo de creación: valida el código contra
+// /api/colaboradores/confirmar-creacion — recién ahí se crea el
+// colaborador de verdad (mismo endpoint que ya usa el móvil).
+async function confirmarOtpColaborador() {
+    const pendingId = document.getElementById('otp-colab-pending-id').value;
+    const otp = document.getElementById('otp-colab-codigo').value.trim();
+    const errorEl = document.getElementById('otp-colab-error');
+    errorEl.classList.add('d-none');
+
+    if (otp.length !== 5) {
+        errorEl.innerText = 'Ingresa el código de 5 dígitos';
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    const btn = document.getElementById('btn-confirmar-otp-colaborador');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Confirmando...';
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/colaboradores/confirmar-creacion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ pendingId, otp })
+        });
+        const resultado = await res.json();
+        if (res.ok) {
+            modalOtpColaborador.hide();
+            cargarColaboradores();
+            mostrarAlerta('Colaborador creado correctamente', 'exito');
+        } else {
+            errorEl.innerText = resultado.mensaje || 'No se pudo confirmar el código';
+            errorEl.classList.remove('d-none');
+        }
+    } catch (err) {
+        errorEl.innerText = 'Error al confirmar el código';
+        errorEl.classList.remove('d-none');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    }
+}
+
 // ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
@@ -1598,13 +1732,18 @@ window.addEventListener('DOMContentLoaded', () => {
     modalCategoria   = new bootstrap.Modal(document.getElementById('modalCategoria'));
     modalAnimal      = new bootstrap.Modal(document.getElementById('modalAnimal'));
     modalColaborador = new bootstrap.Modal(document.getElementById('modalColaborador'));
+    modalOtpColaborador = new bootstrap.Modal(document.getElementById('modalOtpColaborador'));
     modalSubcategorias = new bootstrap.Modal(document.getElementById('modalSubcategorias'));
     // modalConfirmacion ya se instancia en ui-mensajes.js (compartido con ventas/reportes)
 
+    document.getElementById('otp-colab-codigo')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); confirmarOtpColaborador(); }
+    });
+
     cargarEstadisticas();
-    cargarGraficoVentas();
     cargarGraficoProductos();
     cargarGraficoStock();
+    cargarGraficoTopClientes();
 
     // Si llega ?seccion=, abrir esa sección del panel (navegación desde Reportes/Ventas)
     const seccionURL = new URLSearchParams(location.search).get('seccion');
@@ -1649,6 +1788,8 @@ document.addEventListener('click', function (e) {
         case 'guardar-animal':      guardarAnimal(); break;
         case 'reset-password':      mostrarResetPassword(); break;
         case 'guardar-colaborador': guardarColaborador(); break;
+        case 'confirmar-otp-colaborador': confirmarOtpColaborador(); break;
+        case 'cambiar-vista-productos': cambiarVistaProductos(el.dataset.vistaProducto); break;
 
         // Generadas dinámicamente en las filas de tablas (antes onclick embebido en el template string)
         case 'cambiar-estado-producto': cambiarEstadoProducto(Number(el.dataset.id), el.dataset.estado); break;

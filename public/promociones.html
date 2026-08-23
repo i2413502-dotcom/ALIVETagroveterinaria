@@ -30,6 +30,26 @@
                     <div class="card-body p-4">
                         <div id="mensaje" class="alert d-none"></div>
 
+                        <!-- Top clientes (opcional) — igual que el móvil -->
+                        <div id="bloque-top-clientes" class="mb-3 d-none">
+                            <label class="form-label fw-bold">Top clientes (opcional)</label>
+                            <p class="text-muted small mb-2">
+                                Marca a quién de tus mejores clientes le querés mandar esta promo.
+                                Si marcas alguno, tiene prioridad sobre "Correo destinatario".
+                            </p>
+                            <div id="lista-top-clientes" class="border rounded-3 p-1"></div>
+                        </div>
+
+                        <!-- Todos los clientes — igual que el móvil -->
+                        <div id="bloque-todos-clientes" class="mb-3 d-none">
+                            <label class="form-label fw-bold">Todos los clientes</label>
+                            <p class="text-muted small mb-2" id="texto-total-clientes">
+                                Lista completa de clientes registrados. Marcar aquí también tiene prioridad sobre "Correo destinatario".
+                            </p>
+                            <div id="lista-todos-clientes" class="border rounded-3 p-1"
+                                 style="max-height: 260px; overflow-y: auto;"></div>
+                        </div>
+
                         <form id="formPromocion">
                             <div class="mb-3">
                                 <label for="correo" class="form-label">Correo destinatario (opcional)</label>
@@ -59,7 +79,7 @@
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn w-100 text-white"
+                            <button type="submit" id="btnEnviarPromo" class="btn w-100 text-white"
                                 style="background-color: var(--agro-green);">
                                 <i class="bi bi-send"></i> Enviar promoción
                             </button>

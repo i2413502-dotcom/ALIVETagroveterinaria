@@ -58,7 +58,30 @@ exports.detalle = async (req, res) => {
                 documento,
                 esFactura,
                 estado:      cab.estado,
-                costo_envio: Number(cab.costo_envio) || 0
+                costo_envio: Number(cab.costo_envio) || 0,
+                // Tal cual vienen de la tabla pedido — 'DELIVERY' o
+                // 'RECOJO_TIENDA'. direccion_entrega ya trae, cuando es
+                // recojo en tienda, el texto fijo "Recojo en tienda —
+                // ALIVET (...)" que arma el checkout.
+                tipo_entrega:       cab.tipo_entrega || 'DELIVERY',
+                direccion_entrega:  cab.direccion_entrega || '',
+                // Foto de evidencia de cancelación (repartidor no pudo
+                // entregar, cliente rechazó el producto, etc.) — null
+                // si el pedido nunca se canceló con evidencia.
+                evidencia_url:      cab.evidencia_url || null,
+                // Persona real de contacto (no la razón social de la
+                // factura) — quien recibe/recoge el pedido físicamente.
+                // Persona real de contacto. Si el pedido es de un
+                // cliente registrado, se usa su nombre real
+                // (cliente_persona). Si fue una compra como invitado
+                // (sin cuenta), no hay persona que unir — se usa
+                // entonces el nombre que se escribió en el comprobante,
+                // en vez de dejarlo vacío.
+                contacto_nombre:    cab.cliente_persona || cab.nombre_cliente || cab.razon_social || '',
+                contacto_telefono:  cab.cliente_telefono || '',
+                // Nota de dirección guardada por el cliente (ej. "casa
+                // azul, al lado del grifo") — solo aplica a Delivery.
+                referencia:         cab.referencia_habitual || ''
             },
             productos: productos.map(p => ({
                 producto:        p.producto,

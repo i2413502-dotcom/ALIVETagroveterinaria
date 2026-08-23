@@ -63,6 +63,13 @@ exports.obtenerParaAdmin = async (req, res) => {
 
 exports.crear = async (req, res) => {
     try {
+        // Código de barra ahora es obligatorio (antes era opcional) —
+        // se usa para el escaneo desde la app móvil, así que un
+        // producto sin código no se puede buscar así.
+        if (!req.body.codigo_barra || !req.body.codigo_barra.toString().trim()) {
+            return res.status(400).json({ mensaje: 'El código de barra es obligatorio' });
+        }
+
         const idProducto = await Producto.crearProducto(req.body);
 
         // Compatibilidad con el formulario actual de dashboard.html: ya
@@ -92,6 +99,10 @@ exports.crear = async (req, res) => {
 
 exports.actualizar = async (req, res) => {
     try {
+        if (!req.body.codigo_barra || !req.body.codigo_barra.toString().trim()) {
+            return res.status(400).json({ mensaje: 'El código de barra es obligatorio' });
+        }
+
         const producto = await Producto.obtenerProductoPorId(req.params.id);
         if (!producto) return res.status(404).json({ mensaje: 'Producto no encontrado' });
 
@@ -138,8 +149,13 @@ exports.eliminar = async (req, res) => {
         const estados = await Producto.obtenerEstadosPedidosAsociados(id);
         const noEntregados = estados.filter(e => e !== 'ENTREGADO');
         if (noEntregados.length > 0) {
-            return res.status(409).json({
-                mensaje: `No se puede eliminar: el producto está asociado a pedido(s) en estado ${noEntregados.join(', ')}. Usa "Desactivar" para ocultarlo del catálogo, o espera a que esos pedidos sean entregados.`
+            // No se puede borrar de verdad sin romper el historial de esos
+            // pedidos — se archiva automáticamente en un solo paso, en vez
+            // de solo mostrar el error y obligar a ir a "Desactivar" a mano.
+            await Producto.archivarProducto(id);
+            return res.json({
+                mensaje: `Producto archivado (tenía pedido(s) en estado ${noEntregados.join(', ')} — no se puede eliminar sin perder ese historial).`,
+                archivado: true
             });
         }
 
@@ -161,8 +177,11 @@ exports.eliminar = async (req, res) => {
     } catch (err) {
         // Por si queda alguna FK no contemplada arriba
         if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
-            return res.status(409).json({
-                mensaje: 'No se puede eliminar: el producto está asociado a otros registros. Usa "Desactivar" para ocultarlo del catálogo.'
+            const { id } = req.params;
+            await Producto.archivarProducto(id);
+            return res.json({
+                mensaje: 'Producto archivado (estaba asociado a otros registros que impiden borrarlo del todo).',
+                archivado: true
             });
         }
         console.error('Error en eliminar producto:', err);

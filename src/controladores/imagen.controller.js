@@ -67,4 +67,37 @@ async function eliminar(req, res) {
     }
 }
 
-module.exports = { subir, listar, marcarPrincipal, eliminar };
+// GET /api/imagenes/proxy/imagen?url=<url-codificada> — puente para
+// esquivar el bloqueo de CORS de R2 en Flutter Web (ver comentario en
+// imagen.routes.js). Solo reenvía URLs que empiecen con el bucket
+// público configurado (MINIO_PUBLIC_URL) — nunca un proxy abierto.
+async function proxyImagen(req, res) {
+    try {
+        const { url } = req.query;
+        if (!url) return res.status(400).json({ mensaje: 'Falta el parámetro url' });
+
+        const base = (process.env.MINIO_PUBLIC_URL || '').replace(/\/$/, '');
+        if (!base || !url.startsWith(base)) {
+            return res.status(400).json({ mensaje: 'URL de imagen no permitida' });
+        }
+
+        const respuesta = await fetch(url);
+        if (!respuesta.ok) {
+            return res.status(respuesta.status).json({ mensaje: 'No se pudo obtener la imagen' });
+        }
+
+        res.set('Content-Type', respuesta.headers.get('content-type') || 'image/jpeg');
+        // Cachea en el navegador/CDN un día — son imágenes de productos,
+        // no cambian a cada rato, y así no volvemos a pedirle a R2 en
+        // cada scroll de la lista.
+        res.set('Cache-Control', 'public, max-age=86400');
+
+        const buffer = Buffer.from(await respuesta.arrayBuffer());
+        res.send(buffer);
+    } catch (err) {
+        console.error('Error en proxy de imagen:', err);
+        res.status(500).json({ mensaje: 'Error al obtener la imagen' });
+    }
+}
+
+module.exports = { subir, listar, marcarPrincipal, eliminar, proxyImagen };

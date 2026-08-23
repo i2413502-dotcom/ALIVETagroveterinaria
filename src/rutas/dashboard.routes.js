@@ -2,6 +2,7 @@
 const express = require('express');
 const router  = express.Router();
 const ctrl    = require('../controladores/dashboard.controller');
+const upload  = require('../config/upload');
 const { verificarToken, verificarRol, verificarCargo } = require('../middlewares/auth.middleware');
 
 const esColab = [verificarToken, verificarRol('COLABORADOR')];
@@ -16,5 +17,12 @@ router.get('/api/dashboard/stock',              ...graficos, ctrl.getStockProduc
 router.get('/api/pedidos',                      ...esColab, ctrl.getPedidos);
 router.put('/api/pedidos/:id/estado',           ...esColab, ctrl.actualizarEstadoPedido);
 router.get('/api/pedidos/:id',                  ...esColab, ctrl.getDetallePedido);
+
+// "Evidencia" — acceso rápido del móvil (cualquier colaborador, no solo
+// Administrador/Gerente: lo usa el repartidor en la calle). Antes de
+// /:id para que "buscar-codigo" no se confunda con un id numérico.
+router.get('/api/pedidos/buscar-codigo/:codigo', ...esColab, ctrl.buscarPedidoPorCodigo);
+router.put('/api/pedidos/:id/evidencia-cancelacion',
+    ...esColab, upload.single('imagen'), ctrl.subirEvidenciaCancelacion);
 
 module.exports = router;

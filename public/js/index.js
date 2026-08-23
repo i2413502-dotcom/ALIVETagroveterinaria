@@ -16,13 +16,29 @@ function actualizarContadorCarrito() {
     if (badge) badge.innerText = total;
 }
 
-// Mostrar toast
+// Mostrar toast de "agregado al carrito" (verde, éxito)
 function mostrarToast(nombre) {
     const toast = document.getElementById('toastCarrito');
     const msg   = document.getElementById('toast-mensaje');
+    toast.classList.remove('toast-carrito-error');
     msg.innerText = `"${nombre}" agregado al carrito`;
     toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
+// Mostrar toast de bloqueo (rojo, aviso) — mensaje propio, NO reutiliza
+// mostrarToast() para no armar frases sin sentido tipo
+// '"Producto agotado" agregado al carrito' cuando en realidad no se agregó nada.
+function mostrarToastBloqueo(texto) {
+    const toast = document.getElementById('toastCarrito');
+    const msg   = document.getElementById('toast-mensaje');
+    toast.classList.add('toast-carrito-error');
+    msg.innerText = texto;
+    toast.style.display = 'block';
+    setTimeout(() => {
+        toast.style.display = 'none';
+        toast.classList.remove('toast-carrito-error');
+    }, 2500);
 }
 
 // Obtener productos con paginación
@@ -77,7 +93,10 @@ function renderizarProductos(productos) {
         if (!p.imagen && p.imagen_principal) p.imagen = p.imagen_principal;
         const imgVal = p.imagen ? p.imagen.trim() : '';
         const img = imgVal ? (imgVal.startsWith('http') ? imgVal : `${RUTA_IMG}${imgVal}`) : IMG_ERROR;
-        const stockBadge = p.stock_actual <= 5
+        const agotado = (parseInt(p.stock_actual) || 0) <= 0;
+        const stockBadge = agotado
+            ? `<span class="stock-badge-low stock-badge-agotado"><i class="bi bi-x-circle-fill me-1"></i>Agotado</span>`
+            : p.stock_actual <= 5
             ? `<span class="stock-badge-low"><i class="bi bi-exclamation-triangle-fill me-1"></i>Poco stock</span>`
             : '';
         return `
@@ -96,8 +115,8 @@ function renderizarProductos(productos) {
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <span class="producto-precio">S/. ${parseFloat(p.precio_venta).toFixed(2)}</span>
                     </div>
-                    <button class="btn-add" data-accion="agregar-carrito" data-id="${p.id_producto}">
-                        <i class="bi bi-cart-plus"></i>Agregar
+                    <button class="btn-add ${agotado ? 'btn-add-agotado' : ''}" data-accion="agregar-carrito" data-id="${p.id_producto}">
+                        <i class="bi ${agotado ? 'bi-x-circle' : 'bi-cart-plus'}"></i>${agotado ? 'Agotado' : 'Agregar'}
                     </button>
                 </div>
             </div>
@@ -271,7 +290,10 @@ function agregarAlCarrito(event, id) {
     if (!p.imagen && p.imagen_principal) p.imagen = p.imagen_principal;
 
     const stock = parseInt(p.stock_actual) || 0;
-    if (stock <= 0) { mostrarToast('Producto agotado'); return; }
+    if (stock <= 0) {
+        mostrarToastBloqueo('Producto agotado, no se puede agregar al carrito');
+        return;
+    }
 
     let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
     const existe = carrito.find(item => item.id_producto === id);

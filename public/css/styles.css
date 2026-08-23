@@ -201,6 +201,29 @@ body {
 }
 .auth-divider span { background: white; padding: 0 12px; position: relative; z-index: 1; }
 
+/* ── TOGGLE MOSTRAR/OCULTAR CONTRASEÑA ──────────────────────── */
+.auth-card .input-group .form-control { border-right: none !important; }
+.toggle-password {
+  border: 1.5px solid #e2e8f0 !important;
+  border-left: none !important;
+  background-color: #fafafa !important;
+  color: var(--agro-text-muted) !important;
+  cursor: pointer;
+}
+.toggle-password:hover  { color: var(--agro-green) !important; background-color: #f0f0f0 !important; }
+.toggle-password:focus  { box-shadow: none !important; z-index: 3; }
+.input-group:focus-within .toggle-password { border-color: var(--agro-green) !important; }
+
+/* ── BOTÓN "CONTINUAR CON GOOGLE" ────────────────────────────── */
+.btn-google {
+  border: 1.5px solid #e2e8f0; background: white; color: #3c4043;
+  font-weight: 600; border-radius: 10px; padding: 10px 0;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+.btn-google:hover { background-color: #f8f9fa; box-shadow: 0 1px 6px rgba(0,0,0,0.15); color: #3c4043; }
+.btn-google img { width: 18px; height: 18px; }
+
 /* ── STEPPER DE CHECKOUT ─────────────────────────────────────── */
 .checkout-steps { display: flex; align-items: center; justify-content: center; gap: 0; }
 .checkout-step  { display: flex; flex-direction: column; align-items: center; flex: 1; }
@@ -254,6 +277,13 @@ body {
 @keyframes agro-slide-in {
   from { transform: translateX(120px); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
+}
+
+/* Variante roja del mismo toast, para avisos de bloqueo (ej. producto
+   agotado) en vez del verde de "agregado al carrito". */
+.toast-carrito.toast-carrito-error {
+  background: linear-gradient(135deg, #dc3545, #b02a37);
+  box-shadow: 0 12px 32px rgba(220,53,69,0.28);
 }
 
 /* ── RESPONSIVE ─────────────────────────────────────────────── */

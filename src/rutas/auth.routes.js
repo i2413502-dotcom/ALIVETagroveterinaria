@@ -18,6 +18,9 @@ const promocionController = require('../controladores/promocion.controller');
 
 // Públicas — no requieren sesión iniciada
 router.post('/login',              authController.login);
+// Login/registro con Google — verificado desde el frontend con Firebase,
+// el idToken se valida del lado del servidor en googleLogin.
+router.post('/google',             authController.googleLogin);
 // Se utiliza para el móvil
 router.post('/login-verificar-otp', authController.loginVerificarOtp);
 router.post('/registro',           authController.register);

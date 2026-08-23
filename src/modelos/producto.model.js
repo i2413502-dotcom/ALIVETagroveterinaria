@@ -19,8 +19,19 @@ exports.obtenerProductos = async (filtros = {}) => {
     const limite = parseInt(filtros.limite) || 20;
     const offset = (pagina - 1) * limite;
 
-    // El catálogo público solo ve ACTIVO; el panel admin puede incluir inactivos
-    const filtroEstado = filtros.incluirInactivos ? 'WHERE 1=1' : "WHERE p.estado = 'ACTIVO'";
+    // El catálogo público solo ve ACTIVO. El panel admin tiene dos
+    // pestañas, igual que Ventas (Activos/Historial): "activos" (todo
+    // menos lo archivado) y "archivados" (solo lo archivado). Así los
+    // productos de prueba archivados dejan de ensuciar la vista
+    // principal, sin perder el historial de ventas que los referencia.
+    let filtroEstado;
+    if (!filtros.incluirInactivos) {
+        filtroEstado = "WHERE p.estado = 'ACTIVO'";
+    } else if (filtros.vista === 'archivados') {
+        filtroEstado = "WHERE p.estado = 'ARCHIVADO'";
+    } else {
+        filtroEstado = "WHERE p.estado != 'ARCHIVADO'";
+    }
 
     let sql = `
         SELECT p.id_producto, p.nombre, p.descripcion, p.precio_venta,
@@ -297,5 +308,13 @@ exports.eliminarProductoFisico = async (id) => {
 // Cambio de estado lógico ACTIVO/INACTIVO (activar/desactivar)
 exports.cambiarEstadoProducto = async (id, estado) => {
     const [result] = await db.query('UPDATE producto SET estado = ? WHERE id_producto = ?', [estado, id]);
+    return result;
+};
+
+// Archivar: se usa cuando no se puede eliminar de verdad (tiene pedidos
+// asociados no entregados) — desaparece de la vista "Activos" pero el
+// registro sigue intacto, así el historial de esas ventas no se rompe.
+exports.archivarProducto = async (id) => {
+    const [result] = await db.query("UPDATE producto SET estado = 'ARCHIVADO' WHERE id_producto = ?", [id]);
     return result;
 };

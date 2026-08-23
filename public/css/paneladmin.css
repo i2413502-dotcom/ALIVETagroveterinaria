@@ -67,3 +67,24 @@
             font-weight: 600; border: 1px solid rgba(255,107,107,0.4);
         }
         .sidebar .nav-link.btn-logout:hover { background: #e74c3c; color: #fff !important; border-color: #e74c3c; }
+
+        /* Pestañas "Activos/Archivados" (Productos) y "Activos/Historial"
+           (Ventas) — son <ul class="nav nav-pills"> de Bootstrap, que sin
+           esta regla caen al azul por defecto en vez del verde de marca
+           que ya usa la app móvil para el mismo control. */
+        #tabs-vista-productos .nav-link,
+        #tabs-vista .nav-link {
+            color: var(--agro-green-dark);
+            border: 1px solid var(--agro-green);
+            font-weight: 600;
+        }
+        #tabs-vista-productos .nav-link.active,
+        #tabs-vista .nav-link.active {
+            background-color: var(--agro-green) !important;
+            border-color: var(--agro-green) !important;
+            color: #fff !important;
+        }
+        #tabs-vista-productos .nav-link:not(.active):hover,
+        #tabs-vista .nav-link:not(.active):hover {
+            background-color: var(--agro-green-light);
+        }

@@ -1,4 +1,5 @@
 const dashboardModel = require('../modelos/dashboard.model');
+const minioService   = require('../servicios/minio.service');
 
 exports.getDashboardData = async (req, res) => {
     try {
@@ -58,6 +59,47 @@ exports.actualizarEstadoPedido = async (req, res) => {
         res.json({ mensaje: "Estado actualizado" });
     } catch (error) {
         res.status(500).json({ mensaje: "Error al actualizar estado" });
+    }
+};
+
+// GET /api/pedidos/buscar-codigo/:codigo — usado por "Evidencia" (acceso
+// rápido del móvil): identifica el pedido por su N° de boleta/factura
+// ANTES de subir la foto, para no subir nada a R2 si el código no existe.
+exports.buscarPedidoPorCodigo = async (req, res) => {
+    try {
+        const { codigo } = req.params;
+        if (!codigo) return res.status(400).json({ mensaje: 'Código requerido' });
+        const pedido = await dashboardModel.buscarPorCodigoComprobante(codigo);
+        if (!pedido) return res.status(404).json({ mensaje: 'No se encontró ningún pedido con ese código' });
+        res.json(pedido);
+    } catch (error) {
+        console.error('Error buscando pedido por código:', error);
+        res.status(500).json({ mensaje: 'Error al buscar el pedido' });
+    }
+};
+
+// PUT /api/pedidos/:id/evidencia-cancelacion — sube la foto a R2 y en el
+// mismo paso marca el pedido como CANCELADO (ver dashboard.model.js ->
+// guardarEvidenciaCancelacion). Pensado para el repartidor: cuando no
+// pudo entregar (cliente ausente, rechazó el producto, etc.), deja
+// evidencia fotográfica junto con el cambio de estado, en vez de
+// cancelar "a ciegas" desde Gestión de Ventas sin ninguna prueba.
+exports.subirEvidenciaCancelacion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!req.file) return res.status(400).json({ mensaje: 'No se recibió ninguna foto' });
+
+        const url = await minioService.uploadFile(
+            req.file.buffer,
+            req.file.originalname,
+            'evidencias-pedido'
+        );
+
+        await dashboardModel.guardarEvidenciaCancelacion(id, url);
+        res.json({ mensaje: 'Pedido cancelado con evidencia guardada', url });
+    } catch (error) {
+        console.error('Error subiendo evidencia de cancelación:', error);
+        res.status(500).json({ mensaje: 'Error al guardar la evidencia' });
     }
 };
 exports.getDetallePedido = async (req, res) => {

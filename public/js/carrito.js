@@ -1,11 +1,32 @@
 const RUTA_IMG = '/img/productos/';
 const IMG_ERROR = 'https://via.placeholder.com/70x70?text=Sin+Imagen';
 
-function actualizarContadorCarrito() {
+// Stock REAL más reciente por producto, consultado contra el backend
+// (id_producto -> { stock_actual, estado }). El carrito vive en
+// localStorage y nunca se actualizaba solo — si el producto se agotó
+// o se desactivó DESPUÉS de agregarlo al carrito, seguía apareciendo
+// disponible para comprar hasta que el pedido fallaba recién al
+// finalizar. Ahora se revalida cada vez que se entra a esta página.
+let _stockReal = {};
+
+async function revalidarStockCarrito() {
     const carrito = JSON.parse(localStorage.getItem('carrito')) || [];
-    const total = carrito.reduce((sum, i) => sum + (i.cantidad || 0), 0);
-    const badge = document.getElementById('cart-count');
-    if (badge) badge.innerText = total;
+    const idsUnicos = [...new Set(carrito.map(i => i.id_producto))];
+    const resultados = await Promise.all(idsUnicos.map(async (id) => {
+        try {
+            // GET /api/productos/:id (público) ya responde 404 si el
+            // producto no está ACTIVO o su stock_actual es 0 (ver
+            // producto.controller.js -> obtenerPorId) — un 404 aquí
+            // significa directamente "ya no se puede comprar".
+            const res = await fetch(`/api/productos/${id}`);
+            if (!res.ok) return [id, { stock_actual: 0, estado: 'INACTIVO' }];
+            const p = await res.json();
+            return [id, { stock_actual: Number(p.stock_actual) || 0, estado: p.estado }];
+        } catch (_) {
+            return [id, { stock_actual: 0, estado: 'INACTIVO' }];
+        }
+    }));
+    _stockReal = Object.fromEntries(resultados);
 }
 
 function renderizarCarrito() {
@@ -27,12 +48,22 @@ function renderizarCarrito() {
     }
 
     let subtotal = 0;
+    let hayAgotados = false;
     container.innerHTML = '';
 
     carrito.forEach(item => {
         const precio    = parseFloat(item.precio) || 0;
         const cantidad  = parseInt(item.cantidad) || 1;
-        const itemSubtotal = precio * cantidad;
+
+        // Stock real consultado al backend — si no llegó a cargar por
+        // algún motivo, se asume 0 (más seguro que asumir disponible).
+        const info = _stockReal[item.id_producto] || { stock_actual: 0, estado: 'INACTIVO' };
+        const agotado = info.estado !== 'ACTIVO' || info.stock_actual <= 0;
+        const excedeStock = !agotado && cantidad > info.stock_actual;
+        if (agotado) hayAgotados = true;
+
+        // Los productos agotados no suman al total — no se pueden comprar.
+        const itemSubtotal = agotado ? 0 : precio * cantidad;
         subtotal += itemSubtotal;
 
         const imgVal = item.imagen ? item.imagen.trim() : '';
@@ -42,10 +73,12 @@ function renderizarCarrito() {
         const detalles = [];
         if (item.color) detalles.push(`<span class="badge bg-secondary me-1">Color: ${item.color}</span>`);
         if (item.talla) detalles.push(`<span class="badge bg-secondary me-1">Talla: ${item.talla}</span>`);
+        if (agotado) detalles.push(`<span class="badge bg-danger me-1">Agotado</span>`);
+        else if (excedeStock) detalles.push(`<span class="badge bg-warning text-dark me-1">Solo quedan ${info.stock_actual}</span>`);
         const detallesHTML = detalles.length ? `<div class="mt-1">${detalles.join('')}</div>` : '';
 
         const div = document.createElement('div');
-        div.className = 'card card-agro mb-3';
+        div.className = 'card card-agro mb-3' + (agotado ? ' opacity-50' : '');
         div.innerHTML = `
             <div class="card-body">
                 <div class="row align-items-center">
@@ -59,15 +92,15 @@ function renderizarCarrito() {
                         ${detallesHTML}
                     </div>
                     <div class="col-3 d-flex align-items-center gap-2">
-                        <button class="btn btn-sm btn-outline-secondary"
+                        <button class="btn btn-sm btn-outline-secondary" ${agotado ? 'disabled' : ''}
                                 data-accion="restar-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">-</button>
                         <input type="number" class="form-control form-control-sm cantidad-input"
-                               value="${cantidad}" min="1"
+                               value="${cantidad}" min="1" max="${agotado ? 0 : info.stock_actual}" ${agotado ? 'disabled' : ''}
                                data-accion="input-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">
-                        <button class="btn btn-sm btn-outline-secondary"
+                        <button class="btn btn-sm btn-outline-secondary" ${agotado || cantidad >= info.stock_actual ? 'disabled' : ''}
                                 data-accion="sumar-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">+</button>
                     </div>
-                    <div class="col-2 text-center fw-bold text-success">
+                    <div class="col-2 text-center fw-bold ${agotado ? 'text-muted' : 'text-success'}">
                         S/. ${itemSubtotal.toFixed(2)}
                     </div>
                     <div class="col-1 text-center">
@@ -83,6 +116,17 @@ function renderizarCarrito() {
 
     document.getElementById('subtotal').innerText = 'S/. ' + subtotal.toFixed(2);
     document.getElementById('total').innerText = 'S/. ' + subtotal.toFixed(2);
+
+    // Bloquea Finalizar Compra mientras haya algo agotado en el carrito
+    // — obliga a quitarlo antes de seguir, en vez de descubrirlo recién
+    // en el paso de pago.
+    const btnFinalizar = document.querySelector('[data-accion="finalizar-compra"]');
+    if (btnFinalizar) {
+        btnFinalizar.disabled = hayAgotados;
+        btnFinalizar.title = hayAgotados
+            ? 'Quita los productos agotados de tu carrito para continuar'
+            : '';
+    }
 }
 
 function cambiarCantidad(id, cantidad, color, talla) {
@@ -92,6 +136,19 @@ function cambiarCantidad(id, cantidad, color, talla) {
     if (cantidad < 1) {
         eliminarProducto(id, color, talla);
         return;
+    }
+    // Nunca dejar que la cantidad supere el stock real ya revalidado
+    // contra el backend (ver revalidarStockCarrito) — antes esto no
+    // se comprobaba y se podía subir la cantidad sin límite real.
+    const info = _stockReal[id];
+    if (info && cantidad > info.stock_actual) {
+        cantidad = info.stock_actual;
+        if (cantidad < 1) {
+            eliminarProducto(id, color, talla);
+            alert('Ese producto ya no tiene stock disponible y se quitó del carrito.');
+            return;
+        }
+        mostrarToastCarrito(`Solo quedan ${cantidad} unidades disponibles`);
     }
     let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
     const item = carrito.find(p => p.id_producto === id
@@ -123,6 +180,16 @@ function finalizarCompra() {
         alert('Tu carrito está vacío');
         return;
     }
+    // Doble chequeo por si el botón se llegó a habilitar igual
+    // (ej. estado viejo del DOM) — nunca dejar pasar un agotado.
+    const hayAgotados = carrito.some(item => {
+        const info = _stockReal[item.id_producto];
+        return !info || info.estado !== 'ACTIVO' || info.stock_actual <= 0;
+    });
+    if (hayAgotados) {
+        alert('Tienes productos agotados en tu carrito. Quítalos para poder continuar.');
+        return;
+    }
     const token = localStorage.getItem('token');
     if (!token) {
         localStorage.setItem('redirectAfterLogin', 'envio');
@@ -133,9 +200,32 @@ function finalizarCompra() {
     window.location.href = '/envio.html';
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    renderizarCarrito();
+// Toast simple reutilizando el mismo estilo que index.js/producto.js,
+// sin depender de que exista el mismo elemento fijo en esta página.
+function mostrarToastCarrito(texto) {
+    let toast = document.getElementById('toast-carrito-stock');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-carrito-stock';
+        toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;'
+            + 'background:#06A049;color:white;padding:12px 18px;border-radius:8px;'
+            + 'font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+        document.body.appendChild(toast);
+    }
+    toast.innerText = texto;
+    toast.style.display = 'block';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
     actualizarContadorCarrito();
+    // Se pinta primero con lo que ya hay en localStorage (para que no
+    // quede la pantalla en blanco esperando la red) y se vuelve a
+    // pintar apenas llega el stock real revalidado.
+    renderizarCarrito();
+    await revalidarStockCarrito();
+    renderizarCarrito();
 });
 
 
