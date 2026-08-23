@@ -115,13 +115,14 @@ async function cargarVentas() {
 
         if (!data.ventas || !data.ventas.length) {
             const msg = vistaActual === 'historial' ? 'No hay ventas en el historial' : 'No hay ventas activas';
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">${msg}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">${msg}</td></tr>`;
             document.getElementById('paginacion-ventas').innerHTML = '';
             return;
         }
 
         tbody.innerHTML = data.ventas.map(v => `
             <tr>
+                <td class="text-muted">#${v.id_pedido}</td>
                 <td><strong>${v.comprobante}</strong></td>
                 <td>${new Date(v.fecha).toLocaleDateString('es-PE')}</td>
                 <td>${v.cliente || '—'}</td>
@@ -140,7 +141,7 @@ async function cargarVentas() {
         renderPaginacion(data);
     } catch (err) {
         console.error('Error cargando ventas:', err);
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error al cargar ventas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Error al cargar ventas</td></tr>';
     }
 }
 
