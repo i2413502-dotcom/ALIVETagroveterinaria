@@ -944,8 +944,9 @@ async function eliminarProducto(id) {
     const ok = await confirmarAccion({
         tipo: 'peligro',
         titulo: 'Eliminar producto permanentemente',
-        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.`,
-        textoConfirmar: 'Sí, eliminar'
+        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.\n\n` +
+                 `Si solo quieres ocultarlo del catálogo (por ejemplo, dejó de venderse) pero conservar su historial, usa mejor el botón "Desactivar" (🔘) en vez de eliminar.`,
+        textoConfirmar: 'Sí, eliminar de todas formas'
     });
     if (!ok) return;
     try {
