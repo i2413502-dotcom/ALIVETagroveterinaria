@@ -68,7 +68,10 @@ exports.detalle = async (req, res) => {
                 // Persona real de contacto (no la razón social de la
                 // factura) — quien recibe/recoge el pedido físicamente.
                 contacto_nombre:    cab.cliente_persona || '',
-                contacto_telefono:  cab.cliente_telefono || ''
+                contacto_telefono:  cab.cliente_telefono || '',
+                // Nota de dirección guardada por el cliente (ej. "casa
+                // azul, al lado del grifo") — solo aplica a Delivery.
+                referencia:         cab.referencia_habitual || ''
             },
             productos: productos.map(p => ({
                 producto:        p.producto,
