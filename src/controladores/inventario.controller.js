@@ -12,13 +12,14 @@ exports.bajoPorStock = async (req, res) => {
             LEFT JOIN tipo_animal ta ON p.id_tipo_animal = ta.id_tipo_animal
             LEFT JOIN imagen_producto img ON img.id_producto = p.id_producto AND img.es_principal = 1
             WHERE p.stock_actual <= p.stock_minimo
+              AND p.estado = 'ACTIVO'
         `;
         const params = [];
         if (id_tipo_animal) {
             sql += ' AND p.id_tipo_animal = ?';
             params.push(id_tipo_animal);
         }
-        sql += " ORDER BY (p.estado = 'ACTIVO') DESC, p.stock_actual ASC";
+        sql += ' ORDER BY p.stock_actual ASC';
         const [rows] = await db.query(sql, params);
         res.json(rows);
     } catch (error) {
