@@ -5,6 +5,7 @@ const emailService = require('../servicios/email.service');
 const { validarPassword } = require('../utils/passwordPolicy');
 const { validarCorreoExiste } = require('../utils/emailValidator');
 const responder = require('../utils/responder');
+const firebaseAdmin = require('../config/firebase');
 
 // Almacén temporal de registros pendientes de verificación por OTP
 // (en producción conviene usar Redis con expiración nativa en vez de memoria)
@@ -299,4 +300,92 @@ const validarCorreo = async (req, res) => {
     res.json(resultado);
 };
 
-module.exports = { login, loginVerificarOtp, register, verifyOtp, validarCorreo };
+// Login/registro con Google (Firebase Auth) — se usa desde login.html
+// y registro.html vía public/js/auth/google-auth.js. El frontend ya
+// hizo el signInWithPopup con Firebase y nos manda el idToken resultante;
+// aquí lo verificamos del lado del servidor (nunca confiar en un correo
+// que mande el cliente sin verificar) y emitimos el MISMO tipo de JWT
+// que genera el login normal, reutilizando generarTokenParaPersona().
+const googleLogin = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) {
+            return res.status(400).json({ mensaje: 'Falta el token de Google' });
+        }
+
+        let decoded;
+        try {
+            decoded = await firebaseAdmin.auth().verifyIdToken(idToken);
+        } catch (err) {
+            console.error('Token de Google inválido:', err.message);
+            return res.status(401).json({ mensaje: 'No se pudo verificar tu cuenta de Google' });
+        }
+
+        const correo = decoded.email;
+        if (!correo) {
+            return res.status(400).json({ mensaje: 'Tu cuenta de Google no tiene un correo asociado' });
+        }
+
+        let persona = await authModel.findByEmail(correo);
+        let colaborador = null;
+        let cliente = null;
+
+        if (!persona) {
+            // Primera vez que este correo entra (por Google, sin haberse
+            // registrado antes): se crea como CLIENTE automáticamente,
+            // igual que el registro normal pero sin pedir OTP (Google ya
+            // verificó la identidad). La contraseña queda aleatoria/no
+            // usable — este correo entra por Google, o por "¿Olvidaste tu
+            // contraseña?" si más adelante quiere ponerle una.
+            const passwordAleatoria = await bcrypt.hash(
+                Math.random().toString(36) + Date.now(), 10
+            );
+            const nombreCompleto = (decoded.name || correo.split('@')[0]).trim();
+            const partes = nombreCompleto.split(' ').filter(Boolean);
+            const nombres = partes[0] || 'Cliente';
+            const apellidoPaterno = partes.slice(1).join(' ') || '-';
+
+            const idPersona = await authModel.createPersona({
+                nombres,
+                apellidoPaterno,
+                apellidoMaterno: null,
+                telefono: null,
+                correo,
+                password: passwordAleatoria
+            });
+            // Tipo de documento por defecto (1 = DNI); sin número aún —
+            // el cliente lo completa si en algún momento pide factura/boleta.
+            await authModel.createCliente(idPersona, 1, null);
+
+            persona = await authModel.findPersonaById(idPersona);
+            cliente = persona;
+
+            try {
+                await emailService.sendWelcomeEmail(correo, nombres);
+            } catch (e) {
+                console.error('Error al enviar bienvenida (Google):', e.message);
+            }
+        } else {
+            if (persona.estado === 'INACTIVO') {
+                return res.status(403).json({
+                    mensaje: 'Tu cuenta está desactivada. Contacta con la tienda si crees que es un error.'
+                });
+            }
+            colaborador = await authModel.findColaborador(persona.id_persona);
+            cliente = await authModel.findCliente(persona.id_persona);
+        }
+
+        const rol = colaborador ? 'COLABORADOR' : 'CLIENTE';
+
+        // A diferencia del login con contraseña, aquí NO se exige el OTP
+        // adicional de colaborador: Google ya verificó la identidad de la
+        // cuenta, así que el token final se entrega directo.
+        res.json(generarTokenParaPersona(persona, colaborador, rol));
+
+    } catch (error) {
+        console.error('Error en login con Google:', error);
+        res.status(500).json({ mensaje: 'Error al iniciar sesión con Google' });
+    }
+};
+
+module.exports = { login, loginVerificarOtp, register, verifyOtp, validarCorreo, googleLogin };
