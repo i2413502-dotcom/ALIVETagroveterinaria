@@ -133,6 +133,10 @@ exports.obtenerComprobante = async (idPedido) => {
         SELECT pe.id_pedido, pe.fecha_pedido, pe.total AS total_pedido,
                pe.costo_envio, pe.estado,
                pe.tipo_entrega, pe.direccion_entrega,
+               -- Foto de evidencia (solo existe si el pedido se
+               -- canceló desde "Evidencia" en el móvil) — se muestra
+               -- en el mismo bloque de Detalle de entrega.
+               pe.evidencia_url,
                co.serie, co.numero, co.tipo, co.fecha_emision,
                co.nombre_cliente, co.razon_social, co.dni_cliente, co.ruc_cliente,
                co.subtotal, co.igv, co.total AS total_comprobante,

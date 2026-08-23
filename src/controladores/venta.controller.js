@@ -65,6 +65,10 @@ exports.detalle = async (req, res) => {
                 // ALIVET (...)" que arma el checkout.
                 tipo_entrega:       cab.tipo_entrega || 'DELIVERY',
                 direccion_entrega:  cab.direccion_entrega || '',
+                // Foto de evidencia de cancelación (repartidor no pudo
+                // entregar, cliente rechazó el producto, etc.) — null
+                // si el pedido nunca se canceló con evidencia.
+                evidencia_url:      cab.evidencia_url || null,
                 // Persona real de contacto (no la razón social de la
                 // factura) — quien recibe/recoge el pedido físicamente.
                 // Persona real de contacto. Si el pedido es de un

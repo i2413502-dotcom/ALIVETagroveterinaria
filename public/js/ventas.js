@@ -204,7 +204,15 @@ async function verDetalle(idPedido) {
             ${!esRecojo && c.referencia ? `<p class="mb-1"><strong>Referencia:</strong> ${c.referencia}</p>` : ''}
             ${!esRecojo ? `<p class="mb-1"><strong>Costo de envío:</strong> ${soles(c.costo_envio)}</p>` : ''}
             <p class="mb-1"><strong>${esRecojo ? 'Quién recoge' : 'Quién recibe'}:</strong> ${c.contacto_nombre || '—'}</p>
-            <p class="mb-0"><strong>Teléfono:</strong> ${c.contacto_telefono || 'No registrado'}</p>`;
+            <p class="mb-0"><strong>Teléfono:</strong> ${c.contacto_telefono || 'No registrado'}</p>
+            ${c.evidencia_url ? `
+                <hr class="my-2">
+                <p class="mb-1 fw-bold text-danger"><i class="bi bi-camera me-1"></i>Evidencia de cancelación</p>
+                <a href="${c.evidencia_url}" target="_blank" rel="noopener">
+                    <img src="${c.evidencia_url}" alt="Evidencia de cancelación"
+                         style="max-width:100%; max-height:180px; border-radius:8px; cursor:zoom-in;">
+                </a>
+            ` : ''}`;
 
         document.getElementById('det-estado-select').value = c.estado || 'PENDIENTE';
 
