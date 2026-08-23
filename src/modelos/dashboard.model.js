@@ -65,9 +65,13 @@ exports.getTopClientes = async (limite = 10) => {
         FROM pedido pe
         JOIN cliente c  ON pe.id_cliente = c.id_cliente
         JOIN persona per ON c.id_persona = per.id_persona
-        WHERE pe.estado IN ('PAGADO','ENVIADO','ENTREGADO')
+        -- Antes solo contaba PAGADO/ENVIADO/ENTREGADO — con datos
+        -- reales eso deja fuera a casi todos los clientes (la mayoría
+        -- de pedidos quedan PENDIENTE o CANCELADO en este negocio
+        -- todavía). Se cuenta CUALQUIER pedido para que el ranking
+        -- realmente refleje "quién más pide", no solo lo cobrado.
         GROUP BY per.id_persona, per.correo, per.nombres
-        ORDER BY total_gastado DESC
+        ORDER BY total_pedidos DESC, total_gastado DESC
         LIMIT ${n}
     `);
     return rows;
