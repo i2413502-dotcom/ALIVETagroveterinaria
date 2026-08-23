@@ -350,6 +350,7 @@ function limpiarFormularioProducto() {
         'prod-id','prod-nombre','prod-descripcion','prod-precio','prod-stock',
         'prod-imagen-file','prod-imagen-url','prod-imagen-final',
         'prod-categoria','prod-subcategoria','prod-grupo-animal','prod-animal',
+        'prod-codigo-barra',
         'prod-imagen-sec-1-file','prod-imagen-sec-1','prod-imagen-sec-2-file','prod-imagen-sec-2',
         // medicamento
         'prod-marca-med','prod-presentacion','prod-vencimiento','prod-composicion','prod-modo-uso','prod-ficha-tecnica',
@@ -601,6 +602,7 @@ async function editarProducto(id) {
     document.getElementById('prod-precio').value            = p.precio_venta;
     document.getElementById('prod-stock').value             = p.stock_actual;
     document.getElementById('prod-categoria').value         = p.id_categoria;
+    document.getElementById('prod-codigo-barra').value      = p.codigo_barra || '';
 
     // Cascada Grupo → Tipo de Animal: primero ubicamos a qué grupo
     // pertenece el animal ya asignado y lo pre-seleccionamos.
@@ -793,6 +795,7 @@ async function guardarProducto() {
         id_subcategoria:   document.getElementById('prod-subcategoria').value || null,
         id_tipo_animal:    document.getElementById('prod-animal').value,
         imagen:            imagenFinal,
+        codigo_barra:      document.getElementById('prod-codigo-barra')?.value.trim() || null,
         imagenes_secundarias: [
             document.getElementById('prod-imagen-sec-1').value,
             document.getElementById('prod-imagen-sec-2').value
@@ -941,22 +944,12 @@ async function cambiarEstadoProducto(id, nuevoEstado) {
 // producto tiene pedidos que aún no fueron entregados (ver módulo 1).
 async function eliminarProducto(id) {
     const prod = productosLista.find(x => x.id_producto === id);
-
-    // No se deja eliminar directamente un producto ACTIVO — primero
-    // hay que desactivarlo. Esto evita borrar por error algo que
-    // todavía se está vendiendo; reutiliza el mismo flujo de
-    // "Desactivar" que ya existe, con su propia confirmación.
-    if (prod && prod.estado === 'ACTIVO') {
-        mostrarAlerta(`"${prod.nombre}" está Activo. Primero hay que desactivarlo antes de poder eliminarlo.`, 'info');
-        await cambiarEstadoProducto(id, 'INACTIVO');
-        return;
-    }
-
     const ok = await confirmarAccion({
         tipo: 'peligro',
         titulo: 'Eliminar producto permanentemente',
-        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.`,
-        textoConfirmar: 'Sí, eliminar'
+        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.\n\n` +
+                 `Si solo quieres ocultarlo del catálogo (por ejemplo, dejó de venderse) pero conservar su historial, usa mejor el botón "Desactivar" (🔘) en vez de eliminar.`,
+        textoConfirmar: 'Sí, eliminar de todas formas'
     });
     if (!ok) return;
     try {
