@@ -128,3 +128,37 @@ exports.getPedidos = async () => {
 exports.actualizarEstadoPedido = async (id, estado) => {
     await db.query("UPDATE pedido SET estado=? WHERE id_pedido=?", [estado, id]);
 };
+
+// Evidencia fotográfica de cancelación (ej. repartidor no pudo entregar,
+// cliente rechazó el producto, etc.) — guarda la URL de la foto (ya
+// subida a R2) y cambia el estado a CANCELADO en un solo UPDATE, para
+// que quede registrado el motivo visual junto con el cambio de estado.
+exports.guardarEvidenciaCancelacion = async (id, urlEvidencia) => {
+    await db.query(
+        "UPDATE pedido SET evidencia_url = ?, estado = 'CANCELADO' WHERE id_pedido = ?",
+        [urlEvidencia, id]
+    );
+};
+
+// Buscar un pedido por su código de boleta/factura (ej. "F001-000065",
+// solo la serie, o solo el número) — para identificar a qué pedido
+// pertenece la evidencia antes de subirla. Reutiliza el mismo patrón
+// de búsqueda flexible que ya usa venta.model.js -> listarVentas.
+exports.buscarPorCodigoComprobante = async (codigo) => {
+    const like = `%${codigo}%`;
+    const [rows] = await db.query(
+        `SELECT pe.id_pedido, pe.estado, pe.tipo_entrega,
+                CONCAT(COALESCE(co.serie,''),'-',COALESCE(co.numero,'')) AS comprobante,
+                COALESCE(per.nombres, cli.razon_social, co.nombre_cliente, co.razon_social) AS cliente
+         FROM pedido pe
+         LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
+         LEFT JOIN cliente cli    ON cli.id_cliente = pe.id_cliente
+         LEFT JOIN persona per    ON per.id_persona = cli.id_persona
+         WHERE co.numero LIKE ? OR co.serie LIKE ?
+            OR CONCAT(COALESCE(co.serie,''),'-',COALESCE(co.numero,'')) LIKE ?
+         ORDER BY pe.id_pedido DESC
+         LIMIT 1`,
+        [like, like, like]
+    );
+    return rows[0] || null;
+};
