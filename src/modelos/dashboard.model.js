@@ -58,8 +58,8 @@ exports.getTopClientes = async (limite = 10) => {
     const n = Math.max(1, Math.min(parseInt(limite) || 10, 50));
     const [rows] = await db.query(`
         SELECT
-            documento,
-            -- Nombre y correo del pedido MÁS RECIENTE de ese documento —
+            identidad,
+            -- Nombre y correo del pedido MÁS RECIENTE de esa identidad —
             -- si la persona se registró varias veces, se usa el dato
             -- más actual en vez de mezclar todos.
             SUBSTRING_INDEX(GROUP_CONCAT(nombres ORDER BY fecha_pedido DESC SEPARATOR '||'), '||', 1) AS nombres,
@@ -69,23 +69,26 @@ exports.getTopClientes = async (limite = 10) => {
         FROM (
             SELECT
                 pe.id_pedido, pe.fecha_pedido, pe.total,
-                -- El DNI/RUC de la boleta es el mismo sin importar con
-                -- qué correo se registró la persona — así se detecta
-                -- que "Merly" con 5 correos distintos es la MISMA
-                -- persona real, en vez de contarla 5 veces.
-                COALESCE(co.dni_cliente, co.ruc_cliente, CONCAT('SIN-DOC-', pe.id_cliente)) AS documento,
+                -- DNI con el que se REGISTRÓ la cuenta (cliente.numero_
+                -- documento) — a diferencia del DNI/RUC de cada boleta,
+                -- este no cambia entre boleta y factura de la misma
+                -- cuenta, y sí une varias cuentas registradas con el
+                -- mismo DNI real (aunque tengan correos distintos).
+                COALESCE(NULLIF(c.numero_documento, ''), CONCAT('SIN-DOC-', pe.id_cliente)) AS identidad,
                 COALESCE(co.razon_social, co.nombre_cliente, per.nombres) AS nombres,
                 per.correo AS correo
             FROM pedido pe
             JOIN cliente    c   ON pe.id_cliente = c.id_cliente
             JOIN persona    per ON c.id_persona  = per.id_persona
             LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
-            -- Un pedido cancelado nunca fue una compra real — y en este
-            -- negocio los cancelados de prueba traen montos absurdos
-            -- (ej. S/. 1,069,160.00) que rompían el ranking.
-            WHERE pe.estado != 'CANCELADO'
+            -- Se cuenta CUALQUIER pedido (incluso cancelado). El orden
+            -- es por CANTIDAD de pedidos, no por dinero — así un
+            -- pedido de prueba con un monto absurdo (ej. S/. 1,069,160
+            -- en un pedido cancelado) no se cuela arriba del ranking
+            -- ni rompe la escala del gráfico, porque cuenta como 1
+            -- pedido igual que cualquier otro.
         ) datos
-        GROUP BY documento
+        GROUP BY identidad
         ORDER BY total_pedidos DESC, total_gastado DESC
         LIMIT ${n}
     `);

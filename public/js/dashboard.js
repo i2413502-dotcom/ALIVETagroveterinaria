@@ -188,34 +188,41 @@ async function cargarGraficoTopClientes() {
             return;
         }
 
+        // Colores — mismo criterio que "Productos Más Vendidos", con
+        // más tonos para llegar a 10 clientes sin repetir color.
+        const colores = [
+            '#06A049', '#28a745', '#17a2b8', '#ffc107', '#fd7e14',
+            '#20c997', '#6f42c1', '#0dcaf0', '#e83e8c', '#adb5bd'
+        ];
+
         chartTopClientes = new Chart(ctx, {
-            type: 'bar',
+            type: 'doughnut',
             data: {
-                labels: data.map(d => (d.nombres || d.correo || 'Cliente').length > 18
-                    ? (d.nombres || d.correo).substring(0, 18) + '…'
-                    : (d.nombres || d.correo)),
+                labels: data.map(d => d.nombres || d.correo || 'Cliente'),
                 datasets: [{
-                    label:           'Total comprado (S/.)',
-                    data:            data.map(d => Number(d.total_gastado) || 0),
-                    backgroundColor: 'rgba(6,160,73,0.7)',
-                    borderRadius:    4
+                    // Tamaño de cada porción = CANTIDAD de pedidos, no
+                    // dinero — así un pedido de prueba con un monto
+                    // absurdo (ej. S/. 1,069,160 cancelado) no revienta
+                    // el gráfico: cuenta como 1 pedido, igual que
+                    // cualquier otro.
+                    data:            data.map(d => d.total_pedidos),
+                    backgroundColor: colores,
+                    borderWidth:     2
                 }]
             },
             options: {
-                indexAxis: 'y', // barras horizontales — se leen mejor con 10 nombres
                 responsive: true,
                 plugins: {
-                    legend: { display: false },
+                    legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } },
                     tooltip: {
                         callbacks: {
-                            // Se agrega el total de pedidos en el tooltip,
-                            // no solo el monto — mismo dato extra que ya
-                            // muestra Promociones en su lista.
-                            afterLabel: (ctx) => `${data[ctx.dataIndex].total_pedidos} pedido(s)`
+                            label:      (ctx) => `${ctx.label}: ${ctx.raw} pedido(s)`,
+                            // El monto gastado se muestra aparte, como
+                            // dato extra, no como tamaño de la porción.
+                            afterLabel: (ctx) => `S/. ${Number(data[ctx.dataIndex].total_gastado).toFixed(2)}`
                         }
                     }
-                },
-                scales: { x: { beginAtZero: true } }
+                }
             }
         });
     } catch (err) { console.error('Error gráfico top clientes:', err); }
