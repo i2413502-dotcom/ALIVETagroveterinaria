@@ -4,44 +4,16 @@ const db = require('../config/db');
 // PAGADO/ENTREGADO). Se mantiene la lista para validar el filtro
 // que llega por query string, ahora con los 5 estados reales.
 const ESTADOS_VENTA = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
-const TIPOS_ENTREGA = ['DELIVERY', 'RECOJO_TIENDA'];
 
-// Estados que corresponden a cada pestaña de la pantalla de Ventas.
-// "activos"   -> aún requieren gestión (se muestran por defecto)
-// "historial" -> ya se cerraron (entregado o cancelado), no se borran,
-//                solo se dejan de mostrar en la vista principal.
-const ESTADOS_POR_VISTA = {
-    activos:   ['PENDIENTE', 'PAGADO', 'ENVIADO'],
-    historial: ['ENTREGADO', 'CANCELADO']
-};
-
-// Construye el WHERE + params según filtros (estado / rango de fechas / vista / tipo de entrega)
+// Construye el WHERE + params según filtros (estado / rango de fechas)
 function construirFiltros(filtros = {}) {
     let where = 'WHERE 1=1';
     const params = [];
 
-    // Pestaña Activos / Historial. Si además viene un "estado" puntual
-    // (del <select> de Estado), este debe pertenecer a la vista actual;
-    // si no pertenece, se ignora el estado puntual y manda la vista.
-    if (filtros.vista && ESTADOS_POR_VISTA[filtros.vista]) {
-        const estadosVista = ESTADOS_POR_VISTA[filtros.vista];
-        if (filtros.estado && estadosVista.includes(filtros.estado)) {
-            where += ' AND pe.estado = ?';
-            params.push(filtros.estado);
-        } else {
-            where += ` AND pe.estado IN (${estadosVista.map(() => '?').join(',')})`;
-            params.push(...estadosVista);
-        }
-    } else if (filtros.estado && ESTADOS_VENTA.includes(filtros.estado)) {
+    if (filtros.estado && ESTADOS_VENTA.includes(filtros.estado)) {
         where += ' AND pe.estado = ?';
         params.push(filtros.estado);
     }
-
-    if (filtros.tipoEntrega && TIPOS_ENTREGA.includes(filtros.tipoEntrega)) {
-        where += ' AND pe.tipo_entrega = ?';
-        params.push(filtros.tipoEntrega);
-    }
-
     if (filtros.desde) {
         where += ' AND DATE(pe.fecha_pedido) >= ?';
         params.push(filtros.desde);
@@ -49,17 +21,6 @@ function construirFiltros(filtros = {}) {
     if (filtros.hasta) {
         where += ' AND DATE(pe.fecha_pedido) <= ?';
         params.push(filtros.hasta);
-    }
-    // Búsqueda por código de comprobante: acepta "B001-000069",
-    // solo la serie ("B001") o solo el número ("000069" o "69").
-    if (filtros.codigo && filtros.codigo.trim()) {
-        const like = `%${filtros.codigo.trim()}%`;
-        where += ` AND (
-            co.numero LIKE ? OR
-            co.serie LIKE ? OR
-            CONCAT(COALESCE(co.serie,''),'-',COALESCE(co.numero,'')) LIKE ?
-        )`;
-        params.push(like, like, like);
     }
     return { where, params };
 }
@@ -74,8 +35,7 @@ const SELECT_LISTA = `
            UPPER(COALESCE(co.tipo,'BOLETA'))                        AS tipo,
            pe.total,
            COALESCE(tp.nombre,'-')                                  AS metodo_pago,
-           pe.estado,
-           pe.tipo_entrega
+           pe.estado
     FROM pedido pe
     LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
     LEFT JOIN cliente    cl  ON pe.id_cliente = cl.id_cliente
@@ -97,15 +57,9 @@ exports.listarVentas = async (filtros = {}) => {
                  LIMIT ? OFFSET ?`;
     const [rows] = await db.query(sql, [...params, limite, offset]);
 
-    // El conteo ahora también puede depender del filtro por código de
-    // comprobante, así que necesita el mismo JOIN que la lista principal.
-    // COUNT(DISTINCT ...) evita duplicar si un pedido tuviera más de un
-    // registro de pago (mismo caso que el GROUP BY de arriba).
+    // El conteo solo depende de filtros sobre 'pedido'
     const [[count]] = await db.query(
-        `SELECT COUNT(DISTINCT pe.id_pedido) AS total
-         FROM pedido pe
-         LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
-         ${where}`, params
+        `SELECT COUNT(*) AS total FROM pedido pe ${where}`, params
     );
 
     return {

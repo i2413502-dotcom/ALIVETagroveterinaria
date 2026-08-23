@@ -20,6 +20,7 @@
     </div>
     <ul class="nav flex-column">
         <li class="nav-item"><a class="nav-link" href="/dashboard.html"><i class="bi bi-house me-2"></i>Inicio</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=pedidos"><i class="bi bi-bag me-2"></i>Pedidos</a></li>
         <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=productos"><i class="bi bi-box me-2"></i>Productos</a></li>
         <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=clientes"><i class="bi bi-people me-2"></i>Clientes</a></li>
         <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=categorias"><i class="bi bi-tags me-2"></i>Categorías</a></li>
@@ -27,7 +28,6 @@
         <li class="nav-item"><a class="nav-link" href="/dashboard.html?seccion=colaboradores"><i class="bi bi-person-badge me-2"></i>Colaboradores</a></li>
         <li class="nav-item"><a class="nav-link" href="/reportes.html"><i class="bi bi-graph-up-arrow me-2"></i>Reportes</a></li>
         <li class="nav-item"><a class="nav-link active" href="/ventas.html"><i class="bi bi-receipt-cutoff me-2"></i>Ventas</a></li>
-        <li class="nav-item"><a class="nav-link" href="/despachos.html"><i class="bi bi-truck me-2"></i>Por Entregar Hoy</a></li>
         <li class="nav-item mt-3">
             <a class="nav-link btn-logout" href="#" data-accion="cerrar-sesion">
                 <i class="bi bi-box-arrow-left me-2"></i>Cerrar Sesión
@@ -47,45 +47,25 @@
         </div>
     </div>
 
-    <!-- PESTAÑAS: Activos / Historial -->
-    <ul class="nav nav-pills mb-3" id="tabs-vista">
-        <li class="nav-item">
-            <button type="button" class="nav-link active" data-vista="activos" data-accion="cambiar-vista">
-                <i class="bi bi-hourglass-split me-1"></i>Activos
-            </button>
-        </li>
-        <li class="nav-item">
-            <button type="button" class="nav-link" data-vista="historial" data-accion="cambiar-vista">
-                <i class="bi bi-archive me-1"></i>Historial
-            </button>
-        </li>
-    </ul>
-
-    <!-- SUB-FILTRO: Tipo de entrega -->
-    <div class="btn-group mb-3" role="group" id="grupo-tipo-entrega">
-        <button type="button" class="btn btn-sm btn-outline-success active" data-tipo="" data-accion="cambiar-tipo-entrega">Todos</button>
-        <button type="button" class="btn btn-sm btn-outline-success" data-tipo="DELIVERY" data-accion="cambiar-tipo-entrega"><i class="bi bi-truck me-1"></i>Delivery</button>
-        <button type="button" class="btn btn-sm btn-outline-success" data-tipo="RECOJO_TIENDA" data-accion="cambiar-tipo-entrega"><i class="bi bi-shop me-1"></i>Recojo en Tienda</button>
-    </div>
-
     <!-- FILTROS -->
     <div class="filtros-bar mb-4">
         <div class="row g-3 align-items-end">
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="form-label">Estado</label>
                 <select id="filtro-estado" class="form-select">
                     <option value="">Todos</option>
+                    <option value="PENDIENTE">Pendiente</option>
+                    <option value="PAGADO">Pagado</option>
+                    <option value="ENVIADO">Enviado</option>
+                    <option value="ENTREGADO">Entregado</option>
+                    <option value="CANCELADO">Cancelado</option>
                 </select>
             </div>
             <div class="col-md-3">
-                <label class="form-label">N° Boleta/Factura</label>
-                <input type="text" id="filtro-codigo" class="form-control" placeholder="Ej. B001-000069">
-            </div>
-            <div class="col-md-2">
                 <label class="form-label">Desde</label>
                 <input type="date" id="filtro-desde" class="form-control">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
                 <label class="form-label">Hasta</label>
                 <input type="date" id="filtro-hasta" class="form-control">
             </div>
@@ -107,11 +87,11 @@
                 <thead>
                     <tr>
                         <th>N° Comprobante</th><th>Fecha</th><th>Cliente</th><th>Tipo</th>
-                        <th class="text-end">Total (S/.)</th><th>Método Pago</th><th>Entrega</th><th>Estado</th><th class="text-center">Acciones</th>
+                        <th class="text-end">Total (S/.)</th><th>Método Pago</th><th>Estado</th><th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tabla-ventas">
-                    <tr><td colspan="9" class="text-center">Cargando...</td></tr>
+                    <tr><td colspan="8" class="text-center">Cargando...</td></tr>
                 </tbody>
             </table>
         </div>

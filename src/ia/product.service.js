@@ -19,6 +19,8 @@ const normalizar = (texto) =>
 
 // ── Mapa de categorías según nombres EXACTOS en tu BD ───────────
 // tu BD tiene: 'Alimentos', 'Medicamentos', 'Accesorios'
+// Ampliado con más sinónimos/variantes para que más formas de
+// preguntar del cliente encuentren la categoría correcta.
 const MAPA_CATEGORIAS = {
     // Accesorios
     'accesorio':      'Accesorios',
@@ -26,19 +28,39 @@ const MAPA_CATEGORIAS = {
     'acsesorio':      'Accesorios',
     'acsesorios':     'Accesorios',
     'collar':         'Accesorios',
+    'collares':       'Accesorios',
     'correa':         'Accesorios',
+    'correas':        'Accesorios',
     'juguete':        'Accesorios',
     'juguetes':       'Accesorios',
     'cama':           'Accesorios',
     'camas':          'Accesorios',
     'rascador':       'Accesorios',
+    'rascadores':     'Accesorios',
     'transportadora': 'Accesorios',
+    'transportadoras':'Accesorios',
     'bebedero':       'Accesorios',
+    'bebederos':      'Accesorios',
     'comedero':       'Accesorios',
+    'comederos':      'Accesorios',
     'plato':          'Accesorios',
+    'platos':         'Accesorios',
     'arnés':          'Accesorios',
     'arnes':          'Accesorios',
+    'arneses':        'Accesorios',
     'jaula':          'Accesorios',
+    'jaulas':         'Accesorios',
+    'shampoo':        'Accesorios',
+    'champu':         'Accesorios',
+    'champú':         'Accesorios',
+    'peine':          'Accesorios',
+    'peines':         'Accesorios',
+    'cepillo':        'Accesorios',
+    'cepillos':       'Accesorios',
+    'ropa':           'Accesorios',
+    'ropita':         'Accesorios',
+    'chaqueta':       'Accesorios',
+    'disfraz':        'Accesorios',
     // Medicamentos
     'medicamento':    'Medicamentos',
     'medicamentos':   'Medicamentos',
@@ -49,24 +71,41 @@ const MAPA_CATEGORIAS = {
     'vacuna':         'Medicamentos',
     'vacunas':        'Medicamentos',
     'antiparasitario':'Medicamentos',
+    'antiparasitarios':'Medicamentos',
     'desparasitante': 'Medicamentos',
+    'desparasitantes':'Medicamentos',
+    'desparasitacion':'Medicamentos',
     'antibiotico':    'Medicamentos',
+    'antibioticos':   'Medicamentos',
     'vitamina':       'Medicamentos',
     'vitaminas':      'Medicamentos',
     'antipulgas':     'Medicamentos',
+    'pulguicida':     'Medicamentos',
+    'garrapaticida':  'Medicamentos',
     'antiinflamatorio':'Medicamentos',
+    'antiinflamatorios':'Medicamentos',
+    'pipeta':         'Medicamentos',
+    'pipetas':        'Medicamentos',
+    'suplemento':     'Medicamentos',
+    'suplementos':    'Medicamentos',
+    'complemento':    'Medicamentos',
     // Alimentos
     'alimento':       'Alimentos',
     'alimentos':      'Alimentos',
     'comida':         'Alimentos',
+    'comidas':        'Alimentos',
     'croqueta':       'Alimentos',
     'croquetas':      'Alimentos',
     'concentrado':    'Alimentos',
+    'concentrados':   'Alimentos',
     'balanceado':     'Alimentos',
+    'balanceados':    'Alimentos',
     'snack':          'Alimentos',
+    'snacks':         'Alimentos',
     'premio':         'Alimentos',
     'premios':        'Alimentos',
     'arena':          'Alimentos',
+    'arenas':         'Alimentos',
 };
 
 const detectarCategoria = (mensaje) => {
@@ -176,6 +215,25 @@ exports.buscarProductos = async (mensaje) => {
             } catch (err) {
                 console.error(`[AgroBot] Error general "${termino}":`, err.message);
             }
+        }
+    }
+
+    // ÚLTIMO RECURSO: nada encontrado con búsqueda exacta → intentar
+    // búsqueda difusa (fonética + descripción) con las palabras clave.
+    // Esto es lo que resuelve el caso "el cliente escribió distinto a
+    // como está el producto en la BD" (typo, sinónimo no mapeado, etc.).
+    if (encontrados.size === 0 && palabrasClave.length > 0) {
+        for (const termino of palabrasClave.slice(0, 3)) {
+            try {
+                const productos = await iaModel.searchProductosFuzzy(termino, categoria);
+                for (const p of productos) {
+                    if (!encontrados.has(p.id) && esProductoValido(p))
+                        encontrados.set(p.id, p);
+                }
+            } catch (err) {
+                console.error(`[AgroBot] Error búsqueda difusa "${termino}":`, err.message);
+            }
+            if (encontrados.size >= 5) break;
         }
     }
 

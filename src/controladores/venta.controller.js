@@ -94,8 +94,7 @@ exports.exportarExcel = async (req, res) => {
             { header: 'Tipo',           key: 'tipo',          width: 12 },
             { header: 'Total',          key: 'total',         width: 14 },
             { header: 'Método de Pago', key: 'metodo_pago',   width: 18 },
-            { header: 'Estado',         key: 'estado',        width: 14 },
-            { header: 'Entrega',        key: 'tipo_entrega',  width: 16 }
+            { header: 'Estado',         key: 'estado',        width: 14 }
         ];
         // Cabecera: negrita, fondo verde, letra blanca
         const h = ws.getRow(1);
@@ -103,7 +102,7 @@ exports.exportarExcel = async (req, res) => {
         h.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF06A049' } };
         h.alignment = { vertical: 'middle', horizontal: 'center' };
         h.height    = 20;
-        ws.autoFilter = 'A1:H1';
+        ws.autoFilter = 'A1:G1';
         ws.views = [{ state: 'frozen', ySplit: 1 }];
 
         ventas.forEach(v => ws.addRow({
@@ -113,8 +112,7 @@ exports.exportarExcel = async (req, res) => {
             tipo:        v.tipo,
             total:       Number(v.total),
             metodo_pago: v.metodo_pago,
-            estado:      v.estado,
-            tipo_entrega: v.tipo_entrega === 'RECOJO_TIENDA' ? 'Recojo en tienda' : 'Delivery'
+            estado:      v.estado
         }));
         ws.getColumn('total').numFmt = '"S/. "#,##0.00';
 

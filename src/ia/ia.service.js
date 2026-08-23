@@ -203,11 +203,17 @@ Nunca contradigas las reglas anteriores.`.trim();
 // ── Formateadores ────────────────────────────────────────────────
 const formatearResultados = (productos) => {
     if (!productos.length) return '[RESULTADOS_BD]\n(ninguno)';
-    const lineas = productos.slice(0, 4).map(p =>
-        `- ${p.nombre} | S/ ${Number(p.precio).toFixed(2)} | Stock: ${p.stock_actual}` +
-        (p.categoria ? ` | Categoría: ${p.categoria}` : '') +
-        (p.total_vendido != null ? ` | Vendidos: ${p.total_vendido} unidades` : '')
-    );
+    const lineas = productos.slice(0, 4).map(p => {
+        let linea = `- ${p.nombre} | S/ ${Number(p.precio).toFixed(2)} | Stock: ${p.stock_actual}` +
+            (p.categoria ? ` | Categoría: ${p.categoria}` : '') +
+            (p.total_vendido != null ? ` | Vendidos: ${p.total_vendido} unidades` : '');
+        // Ficha técnica SOLO para medicamentos — es la info aprobada/oficial
+        // del producto, para que el bot no describa el uso "de memoria".
+        if (p.categoria === 'Medicamentos' && p.ficha_tecnica) {
+            linea += ` | Ficha técnica: ${p.ficha_tecnica}`;
+        }
+        return linea;
+    });
     return '[RESULTADOS_BD]\n' + lineas.join('\n');
 };
 
