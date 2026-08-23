@@ -10,7 +10,7 @@
 // ═══════════════════════════════════════════════════
 //  VARIABLES GLOBALES
 // ══════════════════════════════════════════════════
-let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalSubcategorias;
+let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalOtpColaborador, modalSubcategorias;
 let productosLista = [], categoriasLista = [], animalesLista = [], colaboradoresLista = [];
 let chartProductos = null, chartStock = null, chartTopClientes = null;
 
@@ -1522,6 +1522,9 @@ async function mostrarModalColaborador() {
     document.getElementById('campo-col-password').classList.remove('d-none');
     document.getElementById('campo-col-reset').classList.add('d-none');
     document.getElementById('campo-col-estado-wrap').style.display = 'none';
+    // Al crear, el botón pasa a pedir el código de verificación en vez
+    // de guardar directo — mismo texto que ya usa el móvil.
+    document.getElementById('btn-guardar-colaborador-texto').innerText = 'Enviar código de verificación';
     await cargarSelectCargos();
     modalColaborador.show();
 }
@@ -1543,6 +1546,9 @@ function editarColaborador(id) {
     document.getElementById('reset-pass-form').classList.add('d-none');
     document.getElementById('campo-col-estado-wrap').style.display = 'block';
     document.getElementById('col-estado').value    = c.estado;
+    // Al editar sigue siendo un guardado directo (sin OTP) — el
+    // correo no se puede cambiar desde este modal.
+    document.getElementById('btn-guardar-colaborador-texto').innerText = 'Guardar';
     cargarSelectCargos().then(() => {
         document.getElementById('col-cargo').value = c.id_cargo;
     });
@@ -1566,11 +1572,17 @@ async function guardarColaborador() {
     const id = document.getElementById('col-id').value;
 
     if (!id) {
-        // CREAR
+        // CREAR — ya no se crea directo: primero se pide el código de
+        // verificación al correo (mismo flujo de 2 pasos que el móvil:
+        // solicitar-creacion -> modal OTP -> confirmar-creacion). Así
+        // no se puede cargar un correo inventado que nunca recibe nada.
         const pass  = document.getElementById('col-password').value;
         const pass2 = document.getElementById('col-password2').value;
         if (!pass) { mostrarAlerta('Ingresa una contraseña'); return; }
         if (pass !== pass2) { mostrarAlerta('Las contraseñas no coinciden'); return; }
+
+        const correo = document.getElementById('col-correo').value;
+        if (!correo) { mostrarAlerta('Ingresa el correo del colaborador'); return; }
 
         const data = {
             nombres:         document.getElementById('col-nombres').value,
@@ -1578,19 +1590,38 @@ async function guardarColaborador() {
             apellido_materno:document.getElementById('col-apellido-m').value,
             dni:             document.getElementById('col-dni').value,
             telefono:        document.getElementById('col-telefono').value,
-            correo:          document.getElementById('col-correo').value,
+            correo:          correo,
             usuario:         document.getElementById('col-usuario').value,
             id_cargo:        document.getElementById('col-cargo').value,
             password:        pass
         };
+        const btn = document.getElementById('btn-guardar-colaborador');
+        const textoOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/colaboradores', {
+            const res = await fetch('/api/colaboradores/solicitar-creacion', {
                 method:'POST', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data)
             });
-            if (res.ok) { modalColaborador.hide(); cargarColaboradores(); mostrarAlerta('Colaborador creado correctamente'); }
-            else { const e = await res.json(); mostrarAlerta(e.mensaje || 'Error al crear'); }
-        } catch (err) { mostrarAlerta('Error al crear colaborador'); }
+            const resultado = await res.json();
+            if (res.ok) {
+                document.getElementById('otp-colab-pending-id').value = resultado.pendingId;
+                document.getElementById('otp-colab-codigo').value = '';
+                document.getElementById('otp-colab-error').classList.add('d-none');
+                document.getElementById('otp-colab-texto').innerText =
+                    `Mandamos un código de 5 dígitos a ${correo}. Pídeselo al nuevo colaborador y escríbelo acá para confirmar que el correo es real y crear su cuenta.`;
+                modalColaborador.hide();
+                modalOtpColaborador.show();
+            } else {
+                mostrarAlerta(resultado.mensaje || 'No se pudo enviar el código');
+            }
+        } catch (err) {
+            mostrarAlerta('Error al solicitar la creación del colaborador');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = textoOriginal;
+        }
 
     } else {
         // EDITAR
@@ -1627,6 +1658,50 @@ async function guardarColaborador() {
     }
 }
 
+// Paso 2 del flujo de creación: valida el código contra
+// /api/colaboradores/confirmar-creacion — recién ahí se crea el
+// colaborador de verdad (mismo endpoint que ya usa el móvil).
+async function confirmarOtpColaborador() {
+    const pendingId = document.getElementById('otp-colab-pending-id').value;
+    const otp = document.getElementById('otp-colab-codigo').value.trim();
+    const errorEl = document.getElementById('otp-colab-error');
+    errorEl.classList.add('d-none');
+
+    if (otp.length !== 5) {
+        errorEl.innerText = 'Ingresa el código de 5 dígitos';
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    const btn = document.getElementById('btn-confirmar-otp-colaborador');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Confirmando...';
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/colaboradores/confirmar-creacion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ pendingId, otp })
+        });
+        const resultado = await res.json();
+        if (res.ok) {
+            modalOtpColaborador.hide();
+            cargarColaboradores();
+            mostrarAlerta('Colaborador creado correctamente', 'exito');
+        } else {
+            errorEl.innerText = resultado.mensaje || 'No se pudo confirmar el código';
+            errorEl.classList.remove('d-none');
+        }
+    } catch (err) {
+        errorEl.innerText = 'Error al confirmar el código';
+        errorEl.classList.remove('d-none');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    }
+}
+
 // ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
@@ -1651,8 +1726,13 @@ window.addEventListener('DOMContentLoaded', () => {
     modalCategoria   = new bootstrap.Modal(document.getElementById('modalCategoria'));
     modalAnimal      = new bootstrap.Modal(document.getElementById('modalAnimal'));
     modalColaborador = new bootstrap.Modal(document.getElementById('modalColaborador'));
+    modalOtpColaborador = new bootstrap.Modal(document.getElementById('modalOtpColaborador'));
     modalSubcategorias = new bootstrap.Modal(document.getElementById('modalSubcategorias'));
     // modalConfirmacion ya se instancia en ui-mensajes.js (compartido con ventas/reportes)
+
+    document.getElementById('otp-colab-codigo')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); confirmarOtpColaborador(); }
+    });
 
     cargarEstadisticas();
     cargarGraficoProductos();
@@ -1702,6 +1782,7 @@ document.addEventListener('click', function (e) {
         case 'guardar-animal':      guardarAnimal(); break;
         case 'reset-password':      mostrarResetPassword(); break;
         case 'guardar-colaborador': guardarColaborador(); break;
+        case 'confirmar-otp-colaborador': confirmarOtpColaborador(); break;
         case 'cambiar-vista-productos': cambiarVistaProductos(el.dataset.vistaProducto); break;
 
         // Generadas dinámicamente en las filas de tablas (antes onclick embebido en el template string)

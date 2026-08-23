@@ -888,8 +888,44 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" data-accion="guardar-colaborador">
-                    <i class="bi bi-check-lg me-1"></i>Guardar
+                <button type="button" class="btn btn-success" id="btn-guardar-colaborador" data-accion="guardar-colaborador">
+                    <i class="bi bi-check-lg me-1"></i><span id="btn-guardar-colaborador-texto">Guardar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL VERIFICAR CORREO (solo al CREAR un colaborador nuevo) —
+     mismo flujo de 2 pasos que ya usa el móvil: solicitar-creacion
+     manda el código al correo, y recién con confirmar-creacion se
+     crea de verdad al colaborador (así no se puede cargar un correo
+     inventado que nunca recibe nada). -->
+<div class="modal fade" id="modalOtpColaborador" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-success">
+                    <i class="bi bi-envelope-check me-1"></i>Verificar correo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small" id="otp-colab-texto">
+                    Mandamos un código de 5 dígitos al correo. Pídeselo al nuevo
+                    colaborador y escríbelo acá para confirmar que el correo es
+                    real y crear su cuenta.
+                </p>
+                <input type="hidden" id="otp-colab-pending-id">
+                <input type="text" class="form-control form-control-lg text-center fs-3"
+                       id="otp-colab-codigo" maxlength="5" inputmode="numeric"
+                       placeholder="00000" style="letter-spacing:8px;">
+                <div id="otp-colab-error" class="text-danger small mt-2 d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-confirmar-otp-colaborador" data-accion="confirmar-otp-colaborador">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar y crear colaborador
                 </button>
             </div>
         </div>
