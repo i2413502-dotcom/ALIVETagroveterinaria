@@ -12,7 +12,7 @@
 // ══════════════════════════════════════════════════
 let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalSubcategorias;
 let productosLista = [], categoriasLista = [], animalesLista = [], colaboradoresLista = [];
-let chartVentas = null, chartProductos = null, chartStock = null;
+let chartVentas = null, chartProductos = null, chartStock = null, chartTopClientes = null;
 
 // NOTA: confirmarAccion() y mostrarAlerta() (reemplazos de confirm()/alert()
 // nativos) viven en /js/ui-mensajes.js, compartido con ventas.html y
@@ -203,6 +203,59 @@ async function cargarGraficoStock() {
             }
         });
     } catch (err) { console.error('Error gráfico stock:', err); }
+}
+
+// ═══════════════════════════════════════════════════
+//  GRÁFICO — TOP 10 CLIENTES QUE MÁS COMPRAN
+//  Mismo endpoint que usa Promociones para las mismas listas
+//  (GET /api/dashboard/top-clientes), solo que aquí se grafica
+//  en vez de mostrarse como checkboxes.
+// ═══════════════════════════════════════════════════
+async function cargarGraficoTopClientes() {
+    try {
+        const token = localStorage.getItem('token');
+        const res  = await fetch('/api/dashboard/top-clientes?limite=10', { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        const ctx  = document.getElementById('chartTopClientes').getContext('2d');
+        if (chartTopClientes) chartTopClientes.destroy();
+
+        if (!data.length) {
+            // Sin clientes con compras confirmadas todavía — se deja el
+            // canvas vacío en vez de un gráfico sin datos que confunda.
+            return;
+        }
+
+        chartTopClientes = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => (d.nombres || d.correo || 'Cliente').length > 18
+                    ? (d.nombres || d.correo).substring(0, 18) + '…'
+                    : (d.nombres || d.correo)),
+                datasets: [{
+                    label:           'Total comprado (S/.)',
+                    data:            data.map(d => Number(d.total_gastado) || 0),
+                    backgroundColor: 'rgba(6,160,73,0.7)',
+                    borderRadius:    4
+                }]
+            },
+            options: {
+                indexAxis: 'y', // barras horizontales — se leen mejor con 10 nombres
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            // Se agrega el total de pedidos en el tooltip,
+                            // no solo el monto — mismo dato extra que ya
+                            // muestra Promociones en su lista.
+                            afterLabel: (ctx) => `${data[ctx.dataIndex].total_pedidos} pedido(s)`
+                        }
+                    }
+                },
+                scales: { x: { beginAtZero: true } }
+            }
+        });
+    } catch (err) { console.error('Error gráfico top clientes:', err); }
 }
 // ═══════════════════════════════════════════════════
 //  PRODUCTOS
@@ -1631,6 +1684,7 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarGraficoVentas();
     cargarGraficoProductos();
     cargarGraficoStock();
+    cargarGraficoTopClientes();
 
     // Si llega ?seccion=, abrir esa sección del panel (navegación desde Reportes/Ventas)
     const seccionURL = new URLSearchParams(location.search).get('seccion');
