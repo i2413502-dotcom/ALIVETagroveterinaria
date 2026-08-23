@@ -57,20 +57,35 @@ exports.getProductosMasVendidos = async () => {
 exports.getTopClientes = async (limite = 10) => {
     const n = Math.max(1, Math.min(parseInt(limite) || 10, 50));
     const [rows] = await db.query(`
-        SELECT 
-            per.correo,
-            per.nombres,
-            COUNT(*)                 AS total_pedidos,
-            COALESCE(SUM(pe.total), 0) AS total_gastado
-        FROM pedido pe
-        JOIN cliente c  ON pe.id_cliente = c.id_cliente
-        JOIN persona per ON c.id_persona = per.id_persona
-        -- Antes solo contaba PAGADO/ENVIADO/ENTREGADO — con datos
-        -- reales eso deja fuera a casi todos los clientes (la mayoría
-        -- de pedidos quedan PENDIENTE o CANCELADO en este negocio
-        -- todavía). Se cuenta CUALQUIER pedido para que el ranking
-        -- realmente refleje "quién más pide", no solo lo cobrado.
-        GROUP BY per.id_persona, per.correo, per.nombres
+        SELECT
+            documento,
+            -- Nombre y correo del pedido MÁS RECIENTE de ese documento —
+            -- si la persona se registró varias veces, se usa el dato
+            -- más actual en vez de mezclar todos.
+            SUBSTRING_INDEX(GROUP_CONCAT(nombres ORDER BY fecha_pedido DESC SEPARATOR '||'), '||', 1) AS nombres,
+            SUBSTRING_INDEX(GROUP_CONCAT(correo  ORDER BY fecha_pedido DESC SEPARATOR '||'), '||', 1) AS correo,
+            COUNT(*)                    AS total_pedidos,
+            COALESCE(SUM(total), 0)     AS total_gastado
+        FROM (
+            SELECT
+                pe.id_pedido, pe.fecha_pedido, pe.total,
+                -- El DNI/RUC de la boleta es el mismo sin importar con
+                -- qué correo se registró la persona — así se detecta
+                -- que "Merly" con 5 correos distintos es la MISMA
+                -- persona real, en vez de contarla 5 veces.
+                COALESCE(co.dni_cliente, co.ruc_cliente, CONCAT('SIN-DOC-', pe.id_cliente)) AS documento,
+                COALESCE(co.razon_social, co.nombre_cliente, per.nombres) AS nombres,
+                per.correo AS correo
+            FROM pedido pe
+            JOIN cliente    c   ON pe.id_cliente = c.id_cliente
+            JOIN persona    per ON c.id_persona  = per.id_persona
+            LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
+            -- Un pedido cancelado nunca fue una compra real — y en este
+            -- negocio los cancelados de prueba traen montos absurdos
+            -- (ej. S/. 1,069,160.00) que rompían el ranking.
+            WHERE pe.estado != 'CANCELADO'
+        ) datos
+        GROUP BY documento
         ORDER BY total_pedidos DESC, total_gastado DESC
         LIMIT ${n}
     `);

@@ -12,7 +12,7 @@
 // ══════════════════════════════════════════════════
 let modalProducto, modalCategoria, modalAnimal, modalColaborador, modalSubcategorias;
 let productosLista = [], categoriasLista = [], animalesLista = [], colaboradoresLista = [];
-let chartVentas = null, chartProductos = null, chartStock = null, chartTopClientes = null;
+let chartProductos = null, chartStock = null, chartTopClientes = null;
 
 // NOTA: confirmarAccion() y mostrarAlerta() (reemplazos de confirm()/alert()
 // nativos) viven en /js/ui-mensajes.js, compartido con ventas.html y
@@ -99,43 +99,6 @@ async function cargarEstadisticas() {
         document.getElementById('stat-productos').innerText  = data.productos;
         document.getElementById('stat-ventas').innerText     = 'S/. ' + parseFloat(data.ventasTotal || 0).toFixed(2);
     } catch (err) { console.error('Error estadísticas:', err); }
-}
-
-// ═══════════════════════════════════════════════════
-//  GRÁFICO — VENTAS POR MES
-// ═══════════════════════════════════════════════════
-async function cargarGraficoVentas() {
-    try {
-        const token = localStorage.getItem('token');
-        const res  = await fetch('/api/dashboard/ventas-mes', { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        const ctx  = document.getElementById('chartVentas').getContext('2d');
-        if (chartVentas) chartVentas.destroy();
-        chartVentas = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels:   data.map(d => d.mes_label),
-                datasets: [{
-                    label:           'Ventas (S/.)',
-                    data:            data.map(d => parseFloat(d.total_ventas)),
-                    borderColor:     '#06A049',
-                    backgroundColor: 'rgba(6,160,73,0.1)',
-                    borderWidth:     3,
-                    fill:            true,
-                    tension:         0.4,
-                    pointBackgroundColor: '#06A049',
-                    pointRadius:     5
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { callback: v => 'S/. '+v } }
-                }
-            }
-        });
-    } catch (err) { console.error('Error gráfico ventas:', err); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1681,7 +1644,6 @@ window.addEventListener('DOMContentLoaded', () => {
     // modalConfirmacion ya se instancia en ui-mensajes.js (compartido con ventas/reportes)
 
     cargarEstadisticas();
-    cargarGraficoVentas();
     cargarGraficoProductos();
     cargarGraficoStock();
     cargarGraficoTopClientes();
