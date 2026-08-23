@@ -941,12 +941,22 @@ async function cambiarEstadoProducto(id, nuevoEstado) {
 // producto tiene pedidos que aún no fueron entregados (ver módulo 1).
 async function eliminarProducto(id) {
     const prod = productosLista.find(x => x.id_producto === id);
+
+    // No se deja eliminar directamente un producto ACTIVO — primero
+    // hay que desactivarlo. Esto evita borrar por error algo que
+    // todavía se está vendiendo; reutiliza el mismo flujo de
+    // "Desactivar" que ya existe, con su propia confirmación.
+    if (prod && prod.estado === 'ACTIVO') {
+        mostrarAlerta(`"${prod.nombre}" está Activo. Primero hay que desactivarlo antes de poder eliminarlo.`, 'info');
+        await cambiarEstadoProducto(id, 'INACTIVO');
+        return;
+    }
+
     const ok = await confirmarAccion({
         tipo: 'peligro',
         titulo: 'Eliminar producto permanentemente',
-        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.\n\n` +
-                 `Si solo quieres ocultarlo del catálogo (por ejemplo, dejó de venderse) pero conservar su historial, usa mejor el botón "Desactivar" (🔘) en vez de eliminar.`,
-        textoConfirmar: 'Sí, eliminar de todas formas'
+        mensaje: `¿Eliminar "${prod ? prod.nombre : 'este producto'}" de forma PERMANENTE? Esta acción no se puede deshacer y borra también su imagen.`,
+        textoConfirmar: 'Sí, eliminar'
     });
     if (!ok) return;
     try {
