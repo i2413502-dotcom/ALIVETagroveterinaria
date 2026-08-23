@@ -67,7 +67,13 @@ exports.detalle = async (req, res) => {
                 direccion_entrega:  cab.direccion_entrega || '',
                 // Persona real de contacto (no la razón social de la
                 // factura) — quien recibe/recoge el pedido físicamente.
-                contacto_nombre:    cab.cliente_persona || '',
+                // Persona real de contacto. Si el pedido es de un
+                // cliente registrado, se usa su nombre real
+                // (cliente_persona). Si fue una compra como invitado
+                // (sin cuenta), no hay persona que unir — se usa
+                // entonces el nombre que se escribió en el comprobante,
+                // en vez de dejarlo vacío.
+                contacto_nombre:    cab.cliente_persona || cab.nombre_cliente || cab.razon_social || '',
                 contacto_telefono:  cab.cliente_telefono || '',
                 // Nota de dirección guardada por el cliente (ej. "casa
                 // azul, al lado del grifo") — solo aplica a Delivery.
