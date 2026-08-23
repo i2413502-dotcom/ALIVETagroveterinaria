@@ -730,6 +730,12 @@ async function guardarProducto() {
         mostrarAlerta('Selecciona el Tipo de Animal.');
         return;
     }
+    // Código de barra ahora es obligatorio (antes era opcional) — se
+    // usa para el escaneo desde la app móvil.
+    if (!document.getElementById('prod-codigo-barra').value.trim()) {
+        mostrarAlerta('Ingresa el código de barra del producto.');
+        return;
+    }
 
     const esMed = txt.includes('medic') || txt.includes('farmac');
     const esAcc = txt.includes('acces') || txt.includes('collar') || txt.includes('juguete');
