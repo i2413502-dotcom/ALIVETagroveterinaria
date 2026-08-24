@@ -8,6 +8,38 @@
 let paginaVentas = 1;
 let modalDetalle = null;
 let idPedidoDetalleActual = null;
+let vistaActual = 'activos';       // 'activos' | 'historial'
+let tipoEntregaActual = '';        // '' | 'DELIVERY' | 'RECOJO_TIENDA'
+
+// Opciones del <select> Estado, según la pestaña activa. En "activos" solo
+// tiene sentido filtrar por los estados que aún requieren gestión; en
+// "historial" solo por los que ya se cerraron.
+const ESTADOS_POR_VISTA = {
+    activos:   [['PENDIENTE', 'Pendiente'], ['PAGADO', 'Pagado'], ['ENVIADO', 'Enviado']],
+    historial: [['ENTREGADO', 'Entregado'], ['CANCELADO', 'Cancelado']]
+};
+
+function pintarOpcionesEstado() {
+    const sel = document.getElementById('filtro-estado');
+    const opciones = ESTADOS_POR_VISTA[vistaActual];
+    sel.innerHTML = '<option value="">Todos</option>' +
+        opciones.map(([v, txt]) => `<option value="${v}">${txt}</option>`).join('');
+}
+
+function cambiarVista(vista) {
+    vistaActual = vista;
+    document.querySelectorAll('#tabs-vista [data-vista]').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.vista === vista));
+    pintarOpcionesEstado();
+    aplicarFiltros();
+}
+
+function cambiarTipoEntrega(tipo) {
+    tipoEntregaActual = tipo;
+    document.querySelectorAll('#grupo-tipo-entrega [data-tipo]').forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.tipo === tipo));
+    aplicarFiltros();
+}
 
 const soles = n => 'S/. ' + (Number(n) || 0).toFixed(2);
 
@@ -22,12 +54,48 @@ function badgeEstado(estado) {
     return `<span class="badge bg-${c[estado] || 'secondary'}">${estado}</span>`;
 }
 
+// Colores de fondo por estado, para que el <select> se note a simple
+// vista igual que antes el badge (mismo criterio de colores).
+const ESTADOS_COLOR_FONDO = {
+    PENDIENTE: '#fff3cd',
+    PAGADO:    '#cff4fc',
+    ENVIADO:   '#cfe2ff',
+    ENTREGADO: '#d1e7dd',
+    CANCELADO: '#f8d7da'
+};
+const ESTADOS_VENTA = ['PENDIENTE', 'PAGADO', 'ENVIADO', 'ENTREGADO', 'CANCELADO'];
+
+// Reemplaza el badge de solo lectura por un <select> editable directo
+// en la tabla (antes solo se podía cambiar el estado abriendo el modal
+// de detalle). data-anterior guarda el valor previo por si el PUT falla
+// y hay que revertir la selección visualmente.
+function selectEstado(idPedido, estadoActual) {
+    const opciones = ESTADOS_VENTA.map(e =>
+        `<option value="${e}" ${e === estadoActual ? 'selected' : ''}>${e}</option>`
+    ).join('');
+    const color = ESTADOS_COLOR_FONDO[estadoActual] || '#e9ecef';
+    return `<select class="form-select form-select-sm estado-select"
+                     data-id="${idPedido}" data-anterior="${estadoActual}"
+                     style="background:${color}; font-weight:600; min-width:130px;">
+                ${opciones}
+            </select>`;
+}
+
 function filtrosActuales() {
     return {
-        estado: document.getElementById('filtro-estado').value,
-        desde:  document.getElementById('filtro-desde').value,
-        hasta:  document.getElementById('filtro-hasta').value
+        vista:       vistaActual,
+        tipoEntrega: tipoEntregaActual,
+        estado:      document.getElementById('filtro-estado').value,
+        codigo:      document.getElementById('filtro-codigo').value.trim(),
+        desde:       document.getElementById('filtro-desde').value,
+        hasta:       document.getElementById('filtro-hasta').value
     };
+}
+
+function badgeEntrega(tipo) {
+    return tipo === 'RECOJO_TIENDA'
+        ? '<span class="badge bg-secondary"><i class="bi bi-shop me-1"></i>Recojo</span>'
+        : '<span class="badge bg-success"><i class="bi bi-truck me-1"></i>Delivery</span>';
 }
 
 function queryString(extra = {}) {
@@ -46,12 +114,8 @@ async function cargarVentas() {
         const data = await res.json();
 
         if (!data.ventas || !data.ventas.length) {
-<<<<<<< HEAD
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay ventas</td></tr>';
-=======
             const msg = vistaActual === 'historial' ? 'No hay ventas en el historial' : 'No hay ventas activas';
             tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">${msg}</td></tr>`;
->>>>>>> d2f7cc5ecb8a03c73c73a590bc00bbc834f921ee
             document.getElementById('paginacion-ventas').innerHTML = '';
             return;
         }
@@ -65,7 +129,8 @@ async function cargarVentas() {
                 <td><span class="badge bg-light text-dark border">${v.tipo}</span></td>
                 <td class="text-end fw-bold text-success">${soles(v.total)}</td>
                 <td>${v.metodo_pago}</td>
-                <td>${badgeEstado(v.estado)}</td>
+                <td>${badgeEntrega(v.tipo_entrega)}</td>
+                <td>${selectEstado(v.id_pedido, v.estado)}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-success" title="Ver detalle" data-accion="ver-detalle" data-id="${v.id_pedido}">
                         <i class="bi bi-eye"></i>
@@ -76,11 +141,7 @@ async function cargarVentas() {
         renderPaginacion(data);
     } catch (err) {
         console.error('Error cargando ventas:', err);
-<<<<<<< HEAD
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar ventas</td></tr>';
-=======
         tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Error al cargar ventas</td></tr>';
->>>>>>> d2f7cc5ecb8a03c73c73a590bc00bbc834f921ee
     }
 }
 
@@ -195,6 +256,35 @@ async function cambiarEstadoDetalle(nuevoEstado) {
     }
 }
 
+// ── Cambiar estado directo desde el <select> de la tabla (sin abrir el modal) ──
+// Mismo endpoint PUT /api/pedidos/:id/estado que ya usa el modal de detalle.
+async function cambiarEstadoFila(idPedido, nuevoEstado, selectEl) {
+    const anterior = selectEl.dataset.anterior;
+    selectEl.disabled = true;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/pedidos/${idPedido}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        if (!res.ok) throw new Error('No se pudo actualizar el estado');
+
+        // Éxito: se actualiza el color y se guarda el nuevo valor como
+        // "anterior" para la próxima vez.
+        selectEl.style.background = ESTADOS_COLOR_FONDO[nuevoEstado] || '#e9ecef';
+        selectEl.dataset.anterior = nuevoEstado;
+        mostrarAlerta(`Pedido #${idPedido} → ${nuevoEstado}`, 'exito');
+    } catch (err) {
+        // Falla: se revierte la selección al valor que tenía antes,
+        // para que la tabla no muestre un estado que no se guardó.
+        selectEl.value = anterior;
+        mostrarAlerta('Error al cambiar estado: ' + err.message, 'error');
+    } finally {
+        selectEl.disabled = false;
+    }
+}
+
 // ── Exportar a Excel ──
 async function exportarVentas(btn) {
     const original = btn.innerHTML;
@@ -224,9 +314,23 @@ window.addEventListener('DOMContentLoaded', () => {
     modalDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
     document.getElementById('det-estado-select')
         .addEventListener('change', (e) => cambiarEstadoDetalle(e.target.value));
+    document.getElementById('filtro-codigo')
+        .addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarFiltros(); });
+    pintarOpcionesEstado();
     cargarVentas();
 });
 
+
+// ═══════════════════════════════════════════════════
+//  Cambio de estado desde la tabla — los <select> se generan
+//  dinámicamente en cada render de cargarVentas(), así que se
+//  escucha por delegación en vez de enlazar uno por fila.
+// ═══════════════════════════════════════════════════
+document.addEventListener('change', function (e) {
+    const el = e.target.closest('.estado-select');
+    if (!el) return;
+    cambiarEstadoFila(Number(el.dataset.id), el.value, el);
+});
 
 // ═══════════════════════════════════════════════════
 //  DESPACHADOR DE EVENTOS (mismo patrón que dashboard.js/index.js)
@@ -242,5 +346,7 @@ document.addEventListener('click', function (e) {
         case 'exportar-ventas':  exportarVentas(el); break;
         case 'ver-detalle':      verDetalle(Number(el.dataset.id)); break;
         case 'ir-pagina':        irPagina(Number(el.dataset.pagina)); break;
+        case 'cambiar-vista':          cambiarVista(el.dataset.vista); break;
+        case 'cambiar-tipo-entrega':    cambiarTipoEntrega(el.dataset.tipo); break;
     }
 });
