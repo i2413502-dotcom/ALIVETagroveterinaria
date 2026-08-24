@@ -27,11 +27,21 @@
                         <form id="formRestablecer">
                             <div class="mb-3">
                                 <label for="password" class="form-label">Nueva contraseña</label>
-                                <input type="password" class="form-control" id="password" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                                <div class="input-group">
+                                    <input type="password" class="form-control js-password" id="password" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                                    <button type="button" class="btn btn-outline-secondary toggle-password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label for="confirmar" class="form-label">Confirmar contraseña</label>
-                                <input type="password" class="form-control" id="confirmar" placeholder="Repite la contraseña" minlength="6" required>
+                                <div class="input-group">
+                                    <input type="password" class="form-control js-password" id="confirmar" placeholder="Repite la contraseña" minlength="6" required>
+                                    <button type="button" class="btn btn-outline-secondary toggle-password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                             <button type="submit" class="btn w-100 text-white" style="background-color: var(--agro-green);">
                                 <i class="bi bi-shield-check"></i> Restablecer contraseña
@@ -43,6 +53,7 @@
         </div>
     </div>
 
+    <script src="/js/auth/toggle-password.js"></script>
     <script src="/js/restablecer.js"></script>
 </body>
 </html>
