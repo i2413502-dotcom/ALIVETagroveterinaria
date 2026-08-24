@@ -94,17 +94,17 @@ function renderizarCarrito() {
         div.className = 'card card-agro mb-3' + (agotado ? ' opacity-50' : '');
         div.innerHTML = `
             <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-2">
+                <div class="row align-items-center g-2">
+                    <div class="col-3 col-md-2">
                         <img src="${img}" alt="${item.nombre}" class="cart-img"
                              onerror="this.onerror=null;this.src='${IMG_ERROR}';">
                     </div>
-                    <div class="col-4">
+                    <div class="col-9 col-md-4">
                         <h6 class="fw-bold mb-1">${item.nombre}</h6>
                         <p class="text-muted mb-0 small">S/. ${precio.toFixed(2)} c/u</p>
                         ${detallesHTML}
                     </div>
-                    <div class="col-3 d-flex align-items-center gap-2">
+                    <div class="col-7 col-md-3 d-flex align-items-center gap-2">
                         <button class="btn btn-sm btn-outline-secondary" ${agotado ? 'disabled' : ''}
                                 data-accion="restar-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">-</button>
                         <input type="number" class="form-control form-control-sm cantidad-input"
@@ -113,10 +113,10 @@ function renderizarCarrito() {
                         <button class="btn btn-sm btn-outline-secondary" ${agotado || cantidad >= info.stock_actual ? 'disabled' : ''}
                                 data-accion="sumar-cantidad" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">+</button>
                     </div>
-                    <div class="col-2 text-center fw-bold ${agotado ? 'text-muted' : 'text-success'}">
+                    <div class="col-3 col-md-2 text-center fw-bold ${agotado ? 'text-muted' : 'text-success'}">
                         S/. ${itemSubtotal.toFixed(2)}
                     </div>
-                    <div class="col-1 text-center">
+                    <div class="col-2 col-md-1 text-center">
                         <button class="btn btn-sm btn-danger"
                                 data-accion="eliminar-producto" data-id="${item.id_producto}" data-color="${item.color || ''}" data-talla="${item.talla || ''}">
                             <i class="bi bi-trash"></i>
