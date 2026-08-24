@@ -127,11 +127,18 @@ async function cargarVentas() {
         const codigoBuscado = document.getElementById('filtro-codigo').value.trim().toUpperCase();
         const estadosValidos = ESTADOS_POR_VISTA[vistaActual].map(([v]) => v);
         const ventasFiltradas = (data.ventas || []).filter(v => {
-            const pasaVista   = estadosValidos.includes(v.estado);
-            const pasaTipo    = !tipoEntregaActual || v.tipo_entrega === tipoEntregaActual;
+            const pasaVista   = estadosValidos.includes((v.estado || '').toUpperCase().trim());
+            const pasaTipo    = !tipoEntregaActual ||
+                (v.tipo_entrega || '').toUpperCase().trim() === tipoEntregaActual.toUpperCase().trim();
             const pasaCodigo  = !codigoBuscado || (v.comprobante || '').toUpperCase().includes(codigoBuscado);
             return pasaVista && pasaTipo && pasaCodigo;
         });
+        // Diagnóstico temporal — se puede borrar después. Abre la
+        // consola (F12 -> Console) para ver exactamente qué llegó
+        // del servidor vs. qué se filtró, si algo sigue sin cuadrar.
+        console.log('[Ventas] filtro activo:', { vistaActual, tipoEntregaActual, codigoBuscado });
+        console.log('[Ventas] recibidos del servidor:', (data.ventas || []).length, data.ventas);
+        console.log('[Ventas] después de filtrar:', ventasFiltradas.length, ventasFiltradas);
         data.ventas = ventasFiltradas;
 
         if (!data.ventas || !data.ventas.length) {
