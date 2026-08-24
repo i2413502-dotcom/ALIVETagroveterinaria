@@ -44,6 +44,7 @@ exports.porVencer = async (req, res) => {
               AND p.fecha_vencimiento >= NOW()
               AND p.fecha_vencimiento <= DATE_ADD(NOW(), INTERVAL ? DAY)
               AND p.estado != 'ARCHIVADO'
+              AND p.stock_actual > 0
         `;
         const params = [dias];
         if (id_tipo_animal) {
