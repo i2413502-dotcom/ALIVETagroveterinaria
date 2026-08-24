@@ -110,8 +110,29 @@ async function cargarVentas() {
     const tbody = document.getElementById('tabla-ventas');
     try {
         const token = localStorage.getItem('token');
-        const res  = await fetch('/api/ventas?' + queryString({ pagina: paginaVentas, limite: 20 }), { headers: { 'Authorization': 'Bearer ' + token } });
+        const res  = await fetch('/api/ventas?' + queryString({ pagina: paginaVentas, limite: 20 }), {
+            headers: { 'Authorization': 'Bearer ' + token, 'Cache-Control': 'no-cache' },
+            cache: 'no-store'
+        });
         const data = await res.json();
+
+        // ── Filtro de respaldo, del lado del navegador ──
+        // El servidor YA filtra por vista/tipoEntrega/código
+        // (venta.model.js -> construirFiltros), pero por seguridad se
+        // vuelve a filtrar acá antes de mostrar: si por cualquier
+        // motivo la respuesta trae de más (deploy desincronizado,
+        // caché intermedio, etc.), la pantalla solo muestra lo que
+        // de verdad corresponde a la pestaña/filtro activo. Mismo
+        // patrón que ya usa la app móvil en gestion_ventas_screen.dart.
+        const codigoBuscado = document.getElementById('filtro-codigo').value.trim().toUpperCase();
+        const estadosValidos = ESTADOS_POR_VISTA[vistaActual].map(([v]) => v);
+        const ventasFiltradas = (data.ventas || []).filter(v => {
+            const pasaVista   = estadosValidos.includes(v.estado);
+            const pasaTipo    = !tipoEntregaActual || v.tipo_entrega === tipoEntregaActual;
+            const pasaCodigo  = !codigoBuscado || (v.comprobante || '').toUpperCase().includes(codigoBuscado);
+            return pasaVista && pasaTipo && pasaCodigo;
+        });
+        data.ventas = ventasFiltradas;
 
         if (!data.ventas || !data.ventas.length) {
             const msg = vistaActual === 'historial' ? 'No hay ventas en el historial' : 'No hay ventas activas';
