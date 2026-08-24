@@ -35,7 +35,8 @@ const SELECT_LISTA = `
            UPPER(COALESCE(co.tipo,'BOLETA'))                        AS tipo,
            pe.total,
            COALESCE(tp.nombre,'-')                                  AS metodo_pago,
-           pe.estado
+           pe.estado,
+           pe.tipo_entrega
     FROM pedido pe
     LEFT JOIN comprobante co ON co.id_pedido = pe.id_pedido
     LEFT JOIN cliente    cl  ON pe.id_cliente = cl.id_cliente
