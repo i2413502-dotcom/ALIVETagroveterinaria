@@ -126,9 +126,17 @@ async function cargarVentas() {
         // patrón que ya usa la app móvil en gestion_ventas_screen.dart.
         const codigoBuscado = document.getElementById('filtro-codigo').value.trim().toUpperCase();
         const estadosValidos = ESTADOS_POR_VISTA[vistaActual].map(([v]) => v);
+
+        // Si NINGUNA fila trae el campo tipo_entrega, es porque el
+        // servidor en vivo todavía no lo está mandando (versión vieja
+        // del backend desplegada) — en ese caso NO se filtra por tipo
+        // de entrega (mejor mostrar de más que esconder todo por un
+        // campo que ni siquiera llegó).
+        const backendMandaTipoEntrega = (data.ventas || []).some(v => v.tipo_entrega);
+
         const ventasFiltradas = (data.ventas || []).filter(v => {
             const pasaVista   = estadosValidos.includes((v.estado || '').toUpperCase().trim());
-            const pasaTipo    = !tipoEntregaActual ||
+            const pasaTipo    = !tipoEntregaActual || !backendMandaTipoEntrega ||
                 (v.tipo_entrega || '').toUpperCase().trim() === tipoEntregaActual.toUpperCase().trim();
             const pasaCodigo  = !codigoBuscado || (v.comprobante || '').toUpperCase().includes(codigoBuscado);
             return pasaVista && pasaTipo && pasaCodigo;
@@ -137,6 +145,7 @@ async function cargarVentas() {
         // consola (F12 -> Console) para ver exactamente qué llegó
         // del servidor vs. qué se filtró, si algo sigue sin cuadrar.
         console.log('[Ventas] filtro activo:', { vistaActual, tipoEntregaActual, codigoBuscado });
+        console.log('[Ventas] ¿el servidor manda tipo_entrega?:', backendMandaTipoEntrega);
         console.log('[Ventas] recibidos del servidor:', (data.ventas || []).length, data.ventas);
         console.log('[Ventas] después de filtrar:', ventasFiltradas.length, ventasFiltradas);
         data.ventas = ventasFiltradas;
