@@ -1,6 +1,19 @@
 const RUTA_IMG = '/img/productos/';
 const IMG_ERROR = 'https://via.placeholder.com/70x70?text=Sin+Imagen';
 
+// Esta función faltaba en este archivo — carrito.html solo carga
+// carrito.js, y esta función solo estaba definida en index.js/
+// perfil.js/producto.js (que NO se cargan acá). Al llamarla sin
+// existir, tiraba "actualizarContadorCarrito is not defined" antes
+// de llegar a renderizarCarrito(), y por eso la pantalla se quedaba
+// congelada para siempre en "Cargando carrito...".
+function actualizarContadorCarrito() {
+    const carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+    const total   = carrito.reduce((sum, i) => sum + (i.cantidad || 0), 0);
+    const badge   = document.getElementById('cart-count');
+    if (badge) badge.innerText = total;
+}
+
 // Stock REAL más reciente por producto, consultado contra el backend
 // (id_producto -> { stock_actual, estado }). El carrito vive en
 // localStorage y nunca se actualizaba solo — si el producto se agotó
