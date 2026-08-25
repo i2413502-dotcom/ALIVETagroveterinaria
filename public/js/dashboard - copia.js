@@ -431,30 +431,7 @@ function filtrarAnimalesPorGrupo(grupo, valorSeleccionado = '') {
 // Trae las subcategorías activas de la categoría elegida y rellena el
 // <select> de Subcategoría. Categorías sin subcategorías registradas
 // simplemente dejan el select vacío (la subcategoría es opcional).
-// Para la categoría Alimentos, la subcategoría relevante es la etapa del
-// animal (Cachorro/Adulto) y no las genéricas de ganadería (Crecimiento,
-// Engorde, etc.). Perro admite Cachorro y Adulto; Gato solo Adulto.
-// Si el admin todavía no creó esas subcategorías para Alimentos (ver
-// modal "Subcategorías" del dashboard), no se filtra nada — así no se
-// rompe el flujo mientras se actualiza esa data.
-function filtroSubcategoriaPorAnimal(idTipoAnimal) {
-    const selCat = document.getElementById('prod-categoria');
-    const textoCategoria = (selCat.options[selCat.selectedIndex]?.text || '').toLowerCase();
-    const esAlimento = textoCategoria.includes('aliment') || textoCategoria.includes('comida') || textoCategoria.includes('nutrici');
-    if (!esAlimento || !idTipoAnimal) return null;
-
-    const animal = animalesCatalogo.find(a => String(a.id_tipo_animal) === String(idTipoAnimal));
-    if (!animal) return null;
-    const nombreAnimal = (animal.nombre || '').toLowerCase();
-    const esPerro = nombreAnimal.includes('perro') || nombreAnimal.includes('canino');
-    const esGato  = nombreAnimal.includes('gato')  || nombreAnimal.includes('felino');
-
-    if (esGato)  return ['adulto'];
-    if (esPerro) return ['cachorro', 'adulto'];
-    return null;
-}
-
-async function cargarSubcategorias(idCategoria, valorSeleccionado = '', idTipoAnimal = '') {
+async function cargarSubcategorias(idCategoria, valorSeleccionado = '') {
     const sel = document.getElementById('prod-subcategoria');
     if (!idCategoria) {
         sel.innerHTML = '<option value="">-- Elige primero una categoría --</option>';
@@ -463,14 +440,7 @@ async function cargarSubcategorias(idCategoria, valorSeleccionado = '', idTipoAn
     }
     try {
         const res  = await fetch(`/api/categorias/${idCategoria}/subcategorias`);
-        let data = await res.json();
-
-        const filtro = filtroSubcategoriaPorAnimal(idTipoAnimal);
-        if (filtro) {
-            const filtradas = data.filter(sc => filtro.some(f => sc.nombre.toLowerCase().includes(f)));
-            if (filtradas.length) data = filtradas;
-        }
-
+        const data = await res.json();
         if (!data.length) {
             sel.innerHTML = '<option value="">-- Sin subcategorías --</option>';
             sel.disabled = true;
@@ -643,7 +613,7 @@ async function editarProducto(id) {
     }
 
     // Cascada Categoría → Subcategoría
-    await cargarSubcategorias(p.id_categoria, p.id_subcategoria || '', p.id_tipo_animal || '');
+    await cargarSubcategorias(p.id_categoria, p.id_subcategoria || '');
 
     document.getElementById('prod-imagen-url').value        = p.imagen || '';
     document.getElementById('prod-imagen-final').value      = p.imagen || '';
@@ -750,20 +720,15 @@ async function guardarProducto() {
     const id  = document.getElementById('prod-id').value;
     const sel = document.getElementById('prod-categoria');
     const txt = (sel.options[sel.selectedIndex]?.text || '').toLowerCase();
-    const esInstrumento = esCategoriaSinAnimal(txt);
 
-    // Validación de la cascada Grupo → Tipo de Animal (ambos obligatorios,
-    // salvo en categorías de uso general como Instrumentos Veterinarios,
-    // que no se clasifican por animal — ver toggleCamposAnimal()).
-    if (!esInstrumento) {
-        if (!document.getElementById('prod-grupo-animal').value) {
-            mostrarAlerta('Selecciona el Grupo de Animal (Mayor / Menor).');
-            return;
-        }
-        if (!document.getElementById('prod-animal').value) {
-            mostrarAlerta('Selecciona el Tipo de Animal.');
-            return;
-        }
+    // Validación de la cascada Grupo → Tipo de Animal (ambos obligatorios)
+    if (!document.getElementById('prod-grupo-animal').value) {
+        mostrarAlerta('Selecciona el Grupo de Animal (Mayor / Menor).');
+        return;
+    }
+    if (!document.getElementById('prod-animal').value) {
+        mostrarAlerta('Selecciona el Tipo de Animal.');
+        return;
     }
     // Código de barra vuelve a ser opcional — se usa para el escaneo
     // desde la app móvil, pero no bloquea guardar el producto si no
@@ -831,7 +796,7 @@ async function guardarProducto() {
         stock_actual:      document.getElementById('prod-stock').value,
         id_categoria:      document.getElementById('prod-categoria').value,
         id_subcategoria:   document.getElementById('prod-subcategoria').value || null,
-        id_tipo_animal:    esInstrumento ? null : document.getElementById('prod-animal').value,
+        id_tipo_animal:    document.getElementById('prod-animal').value,
         imagen:            imagenFinal,
         codigo_barra:      document.getElementById('prod-codigo-barra')?.value.trim() || null,
         imagenes_secundarias: [
@@ -939,19 +904,12 @@ async function buscarFicha() {
 // Agregar listener al selector de categoría (campos dinámicos + subcategorías en cascada)
 document.getElementById('prod-categoria')?.addEventListener('change', (e) => {
     actualizarCamposCategoria();
-    cargarSubcategorias(e.target.value, '', document.getElementById('prod-animal').value);
+    cargarSubcategorias(e.target.value);
 });
 
 // Agregar listener al selector de Grupo de Animal (filtra el select de especie)
 document.getElementById('prod-grupo-animal')?.addEventListener('change', (e) => {
     filtrarAnimalesPorGrupo(e.target.value);
-});
-
-// Agregar listener al selector de Tipo de Animal (Alimentos: recalcula
-// Cachorro/Adulto según Perro/Gato — ver filtroSubcategoriaPorAnimal)
-document.getElementById('prod-animal')?.addEventListener('change', (e) => {
-    const idCategoria = document.getElementById('prod-categoria').value;
-    cargarSubcategorias(idCategoria, '', e.target.value);
 });
 
 // Cambiar estado lógico del producto (activar/desactivar)
@@ -1321,36 +1279,6 @@ function actualizarCamposCategoria() {
     document.getElementById('campos-medicamento').style.display = esMed ? 'block' : 'none';
     document.getElementById('campos-accesorio').style.display   = esAcc ? 'block' : 'none';
     document.getElementById('campos-alimento').style.display    = esAli ? 'block' : 'none';
-
-    toggleCamposAnimal(texto);
-}
-
-// Categorías que NO se clasifican por animal (uso general, p.ej.
-// instrumentos veterinarios): ocultamos Grupo/Tipo de Animal y dejan
-// de ser obligatorios. El resto de categorías sigue exactamente igual.
-function esCategoriaSinAnimal(textoCategoriaLower) {
-    return textoCategoriaLower.includes('instrumento');
-}
-
-function toggleCamposAnimal(textoCategoriaLower) {
-    const fila       = document.getElementById('row-campos-animal');
-    const aviso      = document.getElementById('aviso-sin-animal');
-    const selGrupo   = document.getElementById('prod-grupo-animal');
-    const selAnimal  = document.getElementById('prod-animal');
-    if (!fila || !selGrupo || !selAnimal) return;
-
-    const sinAnimal = esCategoriaSinAnimal(textoCategoriaLower || '');
-
-    fila.classList.toggle('d-none', sinAnimal);
-    aviso?.classList.toggle('d-none', !sinAnimal);
-
-    selGrupo.required  = !sinAnimal;
-    selAnimal.required = !sinAnimal;
-
-    if (sinAnimal) {
-        selGrupo.value = '';
-        filtrarAnimalesPorGrupo('');
-    }
 }
 
 // ── Sistema de tags para colores y tallas ──────────────────────

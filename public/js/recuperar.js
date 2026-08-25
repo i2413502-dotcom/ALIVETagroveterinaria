@@ -1,37 +1,35 @@
 // ============================================================
-//  FLUJO 1: Enlace de recuperación por correo
+//  Validación en vivo: ¿existe una cuenta con este correo?
+//  (mismo patrón que public/js/auth/login.js) — solo informativo,
+//  avisa antes de enviar el código para no hacer esperar al usuario
+//  por un correo que nunca le va a llegar.
 // ============================================================
-document.getElementById('formEnlace').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const correo = document.getElementById('correoEnlace').value.trim();
-    const alerta = document.getElementById('mensajeEnlace');
-    const btn = e.target.querySelector('button[type="submit"]');
+(function validarCorreoEnVivo() {
+    const correoInputEl = document.getElementById('correoOtp');
+    const aviso = document.getElementById('correo-no-registrado');
+    if (!correoInputEl || !aviso) return;
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
-
-    try {
-        const res = await fetch('/api/auth/forgot-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ correo })
-        });
-        const data = await res.json();
-
-        mostrarAlerta(alerta, 'success',
-            '<i class="bi bi-envelope-check me-1"></i>' + data.mensaje);
-        e.target.reset();
-    } catch {
-        mostrarAlerta(alerta, 'danger', 'Error de conexión. Intenta de nuevo.');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-envelope-arrow-up me-1"></i>Obtener enlace de recuperación';
-    }
-});
+    let debounceCorreo;
+    correoInputEl.addEventListener('input', () => {
+        clearTimeout(debounceCorreo);
+        aviso.classList.add('d-none');
+        debounceCorreo = setTimeout(async () => {
+            if (!correoInputEl.value.includes('@')) return;
+            try {
+                const res = await fetch(`/api/auth/correo-registrado?correo=${encodeURIComponent(correoInputEl.value.trim())}`);
+                const data = await res.json();
+                aviso.classList.toggle('d-none', data.registrado !== false);
+            } catch {
+                // Si falla la verificación, no se muestra nada — el
+                // envío del código sigue funcionando normal igual.
+            }
+        }, 600);
+    });
+})();
 
 
 // ============================================================
-//  FLUJO 2: Código OTP
+//  Código OTP
 // ============================================================
 let pendingId = null;
 let correoGuardado = null;

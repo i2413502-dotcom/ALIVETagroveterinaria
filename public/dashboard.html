@@ -370,7 +370,10 @@
                         </select>
                     </div>
                 </div>
-                <div class="row">
+                <!-- Grupo/Tipo de Animal: se ocultan para categorías que no se
+                     clasifican por animal (p.ej. Instrumentos Veterinarios,
+                     que son de uso general). Ver toggleCamposAnimal() en dashboard.js -->
+                <div class="row" id="row-campos-animal">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Grupo de Animal <span class="text-danger">*</span></label>
                         <select class="form-select" id="prod-grupo-animal" required>
@@ -385,6 +388,9 @@
                             <option value="">-- Elige primero un grupo --</option>
                         </select>
                     </div>
+                </div>
+                <div id="aviso-sin-animal" class="alert alert-secondary py-2 small d-none">
+                    <i class="bi bi-info-circle me-1"></i>Esta categoría no se clasifica por animal.
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
