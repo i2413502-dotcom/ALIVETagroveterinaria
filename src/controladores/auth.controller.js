@@ -300,6 +300,24 @@ const validarCorreo = async (req, res) => {
     res.json(resultado);
 };
 
+// Distinto al de arriba (validarCorreo solo revisa formato/dominio, NO
+// si ya existe una cuenta) — este dice si ESE correo ya tiene una
+// cuenta registrada. Se usa en vivo mientras se escribe, tanto en
+// login.html (para avisar "no tienes cuenta, ¿quieres registrarte?")
+// como en registro.html (para avisar "ya existe, inicia sesión").
+// GET /api/auth/correo-registrado?correo=...
+const correoRegistrado = async (req, res) => {
+    const { correo } = req.query;
+    if (!correo) return res.status(400).json({ registrado: false, mensaje: 'Falta el correo' });
+    try {
+        const persona = await authModel.findByEmail(correo.trim());
+        res.json({ registrado: !!persona });
+    } catch (err) {
+        console.error('Error al verificar si el correo está registrado:', err);
+        res.status(500).json({ registrado: false, mensaje: 'Error al verificar el correo' });
+    }
+};
+
 // Login/registro con Google (Firebase Auth) — se usa desde login.html
 // y registro.html vía public/js/auth/google-auth.js. El frontend ya
 // hizo el signInWithPopup con Firebase y nos manda el idToken resultante;
@@ -388,4 +406,4 @@ const googleLogin = async (req, res) => {
     }
 };
 
-module.exports = { login, loginVerificarOtp, register, verifyOtp, validarCorreo, googleLogin };
+module.exports = { login, loginVerificarOtp, register, verifyOtp, validarCorreo, correoRegistrado, googleLogin };
