@@ -201,7 +201,56 @@ function renderPaginacion(data) {
 
 function irPagina(p) { paginaVentas = p; cargarVentas(); }
 
-function aplicarFiltros() { paginaVentas = 1; cargarVentas(); }
+// Fecha de HOY en hora de Perú (America/Lima, UTC-5, sin horario de
+// verano) en formato 'YYYY-MM-DD' — se usa como tope máximo del
+// calendario, sin importar en qué zona horaria esté el reloj del
+// navegador de quien está usando el panel.
+function fechaHoyPeru() {
+    const partes = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Lima',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(new Date());
+    const obj = {};
+    partes.forEach(p => { obj[p.type] = p.value; });
+    return `${obj.year}-${obj.month}-${obj.day}`; // en-CA ya da YYYY-MM-DD
+}
+
+// Al abrir la página, ningún calendario deja elegir un día después de
+// "hoy" en Perú — se recalcula cada vez que se carga, así que el 1 de
+// enero de 2027 el tope ya es 2027-01-01 solo, sin tocar código.
+function limitarFechasAHoyPeru() {
+    const hoy = fechaHoyPeru();
+    const desde = document.getElementById('filtro-desde');
+    const hasta = document.getElementById('filtro-hasta');
+    if (desde) desde.max = hoy;
+    if (hasta) hasta.max = hoy;
+}
+
+function aplicarFiltros() {
+    const hoy   = fechaHoyPeru();
+    const desde = document.getElementById('filtro-desde').value;
+    const hasta = document.getElementById('filtro-hasta').value;
+
+    // El <input type="date"> con max="" ya bloquea que el usuario elija
+    // a mano una fecha futura desde el calendario visual, pero esto
+    // valida también si la escribió directo con el teclado (el browser
+    // no siempre lo impide al tipear) o si vino de un valor viejo.
+    if (desde && desde > hoy) {
+        mostrarAlerta('La fecha "Desde" no puede ser posterior a hoy (' + hoy + ').', 'error');
+        return;
+    }
+    if (hasta && hasta > hoy) {
+        mostrarAlerta('La fecha "Hasta" no puede ser posterior a hoy (' + hoy + ').', 'error');
+        return;
+    }
+    if (desde && hasta && desde > hasta) {
+        mostrarAlerta('La fecha "Desde" no puede ser posterior a la fecha "Hasta".', 'error');
+        return;
+    }
+
+    paginaVentas = 1;
+    cargarVentas();
+}
 
 // ── Detalle (modal) ──
 async function verDetalle(idPedido) {
@@ -324,6 +373,24 @@ async function cambiarEstadoFila(idPedido, nuevoEstado, selectEl) {
 
 // ── Exportar a Excel ──
 async function exportarVentas(btn) {
+    // Mismo chequeo que aplicarFiltros(): no se exporta con un rango
+    // de fechas inválido (futuro o "desde" después de "hasta").
+    const hoy   = fechaHoyPeru();
+    const desde = document.getElementById('filtro-desde').value;
+    const hasta = document.getElementById('filtro-hasta').value;
+    if (desde && desde > hoy) {
+        mostrarAlerta('La fecha "Desde" no puede ser posterior a hoy (' + hoy + ').', 'error');
+        return;
+    }
+    if (hasta && hasta > hoy) {
+        mostrarAlerta('La fecha "Hasta" no puede ser posterior a hoy (' + hoy + ').', 'error');
+        return;
+    }
+    if (desde && hasta && desde > hasta) {
+        mostrarAlerta('La fecha "Desde" no puede ser posterior a la fecha "Hasta".', 'error');
+        return;
+    }
+
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando...';
@@ -353,6 +420,7 @@ window.addEventListener('DOMContentLoaded', () => {
         .addEventListener('change', (e) => cambiarEstadoDetalle(e.target.value));
     document.getElementById('filtro-codigo')
         .addEventListener('keydown', (e) => { if (e.key === 'Enter') aplicarFiltros(); });
+    limitarFechasAHoyPeru();
     pintarOpcionesEstado();
     cargarVentas();
 });

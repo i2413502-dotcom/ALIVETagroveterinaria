@@ -8,6 +8,36 @@ function cargarDependencia(nombre) {
     catch (e) { return null; }
 }
 
+// Fecha de HOY en hora de Perú (America/Lima, UTC-5 fijo, sin horario
+// de verano) en 'YYYY-MM-DD' — mismo criterio que public/js/ventas.js
+// (fechaHoyPeru), pero acá del lado del servidor: no depende de qué
+// hora tenga puesta el reloj de quien llama a la API directamente
+// (ej. con Postman), es siempre la hora real de Perú.
+function fechaHoyPeru() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(new Date());
+}
+
+// Respaldo del lado del servidor de la misma validación que ya hace
+// ventas.js en el navegador — por si alguien llama a la API directo
+// (sin pasar por la web) con un rango de fechas inválido.
+function validarRangoFechas(query, res) {
+    const hoy = fechaHoyPeru();
+    const { desde, hasta } = query;
+    if (desde && desde > hoy) {
+        res.status(400).json({ mensaje: `La fecha "desde" no puede ser posterior a hoy (${hoy}).` });
+        return false;
+    }
+    if (hasta && hasta > hoy) {
+        res.status(400).json({ mensaje: `La fecha "hasta" no puede ser posterior a hoy (${hoy}).` });
+        return false;
+    }
+    if (desde && hasta && desde > hasta) {
+        res.status(400).json({ mensaje: 'La fecha "desde" no puede ser posterior a la fecha "hasta".' });
+        return false;
+    }
+    return true;
+}
+
 // Calcula subtotal (op. gravada) e IGV asumiendo precios con IGV incluido (18%)
 function calcularTotales(totalConIgv) {
     const total     = Number(totalConIgv) || 0;
@@ -19,6 +49,7 @@ function calcularTotales(totalConIgv) {
 // ── GET /api/ventas ──
 exports.listar = async (req, res) => {
     try {
+        if (!validarRangoFechas(req.query, res)) return;
         const resultado = await Venta.listarVentas(req.query);
         res.json(resultado);
     } catch (err) {
@@ -104,6 +135,7 @@ exports.exportarExcel = async (req, res) => {
     const ExcelJS = cargarDependencia('exceljs');
     if (!ExcelJS) return res.status(503).json({ mensaje: ERR_DEP });
     try {
+        if (!validarRangoFechas(req.query, res)) return;
         const ventas = await Venta.listarVentasParaExportar(req.query);
 
         const wb = new ExcelJS.Workbook();
