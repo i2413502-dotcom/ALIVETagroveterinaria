@@ -69,13 +69,10 @@ exports.obtenerParaAdmin = async (req, res) => {
 
 exports.crear = async (req, res) => {
     try {
-        // Código de barra ahora es obligatorio (antes era opcional) —
-        // se usa para el escaneo desde la app móvil, así que un
-        // producto sin código no se puede buscar así.
-        if (!req.body.codigo_barra || !req.body.codigo_barra.toString().trim()) {
-            return res.status(400).json({ mensaje: 'El código de barra es obligatorio' });
-        }
-
+        // Código de barra vuelve a ser OPCIONAL — se usa para el escaneo
+        // desde la app móvil (buscarPorCodigo), pero un producto sin
+        // código todavía se puede buscar/editar normal por su nombre o
+        // ID; solo no aparecerá al escanear un código físico.
         const idProducto = await Producto.crearProducto(req.body);
 
         // Compatibilidad con el formulario actual de dashboard.html: ya
@@ -105,10 +102,6 @@ exports.crear = async (req, res) => {
 
 exports.actualizar = async (req, res) => {
     try {
-        if (!req.body.codigo_barra || !req.body.codigo_barra.toString().trim()) {
-            return res.status(400).json({ mensaje: 'El código de barra es obligatorio' });
-        }
-
         const producto = await Producto.obtenerProductoPorId(req.params.id);
         if (!producto) return res.status(404).json({ mensaje: 'Producto no encontrado' });
 
