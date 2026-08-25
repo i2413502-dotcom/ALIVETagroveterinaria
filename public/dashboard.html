@@ -883,6 +883,11 @@
                         </button>
                     </div>
                     <div id="reset-pass-form" class="d-none">
+                        <!-- Mensajes de este cambio de contraseña (error/éxito) van
+                             SOLO acá dentro, no como toast flotante en otra parte
+                             de la pantalla — así el usuario ve el aviso pegado
+                             al campo que está usando. -->
+                        <div id="reset-pass-mensaje" class="alert py-2 px-3 mb-2 d-none"></div>
                         <div class="row">
                             <div class="col-md-4 mb-2">
                                 <div class="input-group">

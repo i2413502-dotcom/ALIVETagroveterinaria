@@ -1508,9 +1508,40 @@ async function cargarColaboradores() {
                     <button class="btn btn-sm btn-outline-primary" data-accion="editar-colaborador" data-id="${c.id_colaborador}">
                         <i class="bi bi-pencil"></i>
                     </button>
+                    <button class="btn btn-sm btn-outline-danger ms-1" data-accion="eliminar-colaborador" data-id="${c.id_colaborador}">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </td>
             </tr>`).join('');
     } catch (err) { console.error('Error colaboradores:', err); }
+}
+
+// Igual que Productos/Categorías/Animales: primero hay que desactivar
+// (Estado = Inactivo) antes de poder eliminar — el backend lo bloquea
+// con 409 si el colaborador sigue ACTIVO (ver colaborador.controller.js
+// -> eliminar / colaborador.model.js -> eliminar).
+async function eliminarColaborador(id) {
+    const c = colaboradoresLista.find(x => x.id_colaborador === id);
+    const ok = await confirmarAccion({
+        tipo: 'peligro',
+        titulo: 'Eliminar colaborador',
+        mensaje: `¿Eliminar a "${c ? c.nombres : 'este colaborador'}"? No se podrá deshacer.`,
+        textoConfirmar: 'Sí, eliminar'
+    });
+    if (!ok) return;
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/colaboradores/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.ok) {
+            await cargarColaboradores();
+            mostrarAlerta('Colaborador eliminado correctamente', 'exito');
+        } else {
+            const e = await res.json();
+            mostrarAlerta(e.mensaje || 'No se puede eliminar', 'error');
+        }
+    } catch (err) {
+        mostrarAlerta('Error al eliminar', 'error');
+    }
 }
 
 async function mostrarModalColaborador() {
@@ -1555,6 +1586,7 @@ function editarColaborador(id) {
     document.getElementById('col-nueva-password').value  = '';
     document.getElementById('col-nueva-password2').value = '';
     document.getElementById('col-otp-reset-password').value = '';
+    document.getElementById('reset-pass-mensaje').classList.add('d-none');
     resetPasswordPendingId = null;
     document.getElementById('campo-col-estado-wrap').style.display = 'block';
     document.getElementById('col-estado').value    = c.estado;
@@ -1578,6 +1610,19 @@ async function cargarSelectCargos() {
 
 function mostrarResetPassword() {
     document.getElementById('reset-pass-form').classList.toggle('d-none');
+}
+
+// Muestra el mensaje DENTRO del cuadro de "Cambiar contraseña" (no como
+// toast flotante en otra parte de la pantalla) — tipo: 'error' | 'exito'.
+function mostrarMensajeResetPassword(mensaje, tipo = 'error') {
+    const el = document.getElementById('reset-pass-mensaje');
+    el.className = `alert py-2 px-3 mb-2 ${tipo === 'exito' ? 'alert-success' : 'alert-danger'}`;
+    el.innerText = mensaje;
+    el.classList.remove('d-none');
+}
+
+function ocultarMensajeResetPassword() {
+    document.getElementById('reset-pass-mensaje').classList.add('d-none');
 }
 
 async function guardarColaborador() {
@@ -1645,7 +1690,8 @@ async function guardarColaborador() {
             document.getElementById('col-nueva-password2').value !== '' ||
             resetPasswordPendingId !== null;
         if (huboIntentoDeCambio) {
-            mostrarAlerta('Primero confirma el código de verificación para terminar el cambio de contraseña, o borra esos campos si no quieres cambiarla.');
+            document.getElementById('reset-pass-form').classList.remove('d-none');
+            mostrarMensajeResetPassword('Primero confirma el código de verificación para terminar el cambio de contraseña, o borra esos campos si no quieres cambiarla.');
             return;
         }
 
@@ -1685,9 +1731,10 @@ async function solicitarOtpResetPasswordColaborador() {
     const nueva  = document.getElementById('col-nueva-password').value;
     const nueva2 = document.getElementById('col-nueva-password2').value;
 
-    if (!passwordActual) { mostrarAlerta('Ingresa la contraseña actual'); return; }
-    if (!nueva) { mostrarAlerta('Ingresa la nueva contraseña'); return; }
-    if (nueva !== nueva2) { mostrarAlerta('Las nuevas contraseñas no coinciden'); return; }
+    if (!passwordActual) { mostrarMensajeResetPassword('Ingresa tu contraseña actual'); return; }
+    if (!nueva) { mostrarMensajeResetPassword('Ingresa la nueva contraseña'); return; }
+    if (nueva !== nueva2) { mostrarMensajeResetPassword('Las nuevas contraseñas no coinciden'); return; }
+    ocultarMensajeResetPassword();
 
     try {
         const token = localStorage.getItem('token');
@@ -1701,20 +1748,20 @@ async function solicitarOtpResetPasswordColaborador() {
             resetPasswordPendingId = resultado.pendingId;
             document.getElementById('reset-pass-otp-form').classList.remove('d-none');
             document.getElementById('col-otp-reset-password').value = '';
-            mostrarAlerta(resultado.mensaje || 'Código enviado al correo del colaborador');
+            mostrarMensajeResetPassword(resultado.mensaje || 'Código enviado al correo del colaborador', 'exito');
         } else {
-            mostrarAlerta(resultado.mensaje || 'No se pudo enviar el código');
+            mostrarMensajeResetPassword(resultado.mensaje || 'No se pudo enviar el código');
         }
     } catch (err) {
-        mostrarAlerta('Error al solicitar el cambio de contraseña');
+        mostrarMensajeResetPassword('Error al solicitar el cambio de contraseña');
     }
 }
 
 async function confirmarOtpResetPasswordColaborador() {
     const id = document.getElementById('col-id').value;
     const otp = document.getElementById('col-otp-reset-password').value.trim();
-    if (!resetPasswordPendingId) { mostrarAlerta('Primero envía el código de verificación'); return; }
-    if (otp.length !== 5) { mostrarAlerta('Ingresa el código de 5 dígitos'); return; }
+    if (!resetPasswordPendingId) { mostrarMensajeResetPassword('Primero envía el código de verificación'); return; }
+    if (otp.length !== 5) { mostrarMensajeResetPassword('Ingresa el código de 5 dígitos'); return; }
 
     try {
         const token = localStorage.getItem('token');
@@ -1725,9 +1772,8 @@ async function confirmarOtpResetPasswordColaborador() {
         });
         const resultado = await res.json();
         if (res.ok) {
-            mostrarAlerta('Contraseña cambiada correctamente');
+            mostrarMensajeResetPassword('Contraseña cambiada correctamente', 'exito');
             resetPasswordPendingId = null;
-            document.getElementById('reset-pass-form').classList.add('d-none');
             document.getElementById('reset-pass-otp-form').classList.add('d-none');
             // Limpia los campos: ya se aplicó el cambio, así que no debe
             // seguir bloqueando el botón "Guardar" del resto del formulario.
@@ -1736,10 +1782,10 @@ async function confirmarOtpResetPasswordColaborador() {
             document.getElementById('col-nueva-password2').value = '';
             document.getElementById('col-otp-reset-password').value = '';
         } else {
-            mostrarAlerta(resultado.mensaje || 'No se pudo confirmar el cambio');
+            mostrarMensajeResetPassword(resultado.mensaje || 'No se pudo confirmar el cambio');
         }
     } catch (err) {
-        mostrarAlerta('Error al confirmar el cambio de contraseña');
+        mostrarMensajeResetPassword('Error al confirmar el cambio de contraseña');
     }
 }
 
@@ -1889,5 +1935,6 @@ document.addEventListener('click', function (e) {
         case 'editar-animal':           editarAnimal(Number(el.dataset.id)); break;
         case 'eliminar-animal':         eliminarAnimal(Number(el.dataset.id)); break;
         case 'editar-colaborador':      editarColaborador(Number(el.dataset.id)); break;
+        case 'eliminar-colaborador':    eliminarColaborador(Number(el.dataset.id)); break;
     }
 });
