@@ -129,7 +129,31 @@
                 <div class="export-icon text-danger"><i class="bi bi-file-earmark-pdf"></i></div>
                 <h6 class="fw-bold mt-2">Reporte de Ventas</h6>
                 <p class="text-muted small">Documento PDF con el detalle tabular de ventas.</p>
-                <button class="btn btn-danger w-100" data-accion="exportar" data-endpoint="ventas-pdf" data-archivo="reporte-ventas.pdf">
+                <div class="row g-2 mb-2">
+                    <div class="col-7">
+                        <select class="form-select form-select-sm" id="ventas-pdf-mes">
+                            <option value="">Todos los meses</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <select class="form-select form-select-sm" id="ventas-pdf-anio">
+                            <option value="">Año</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-danger w-100" data-accion="exportar-ventas-pdf">
                     <i class="bi bi-download me-1"></i>Descargar PDF
                 </button>
             </div>

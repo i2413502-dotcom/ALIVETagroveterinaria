@@ -26,8 +26,9 @@ exports.productosStockBajo = async (req, res) => {
 
 exports.exportarVentasPDF = async (req, res) => {
     try {
-        const ventas = await Reporte.getVentasDetalladas();
-        const ok = pdfService.generarPdfVentas(res, ventas);
+        const { mes, anio } = req.query;
+        const ventas = await Reporte.getVentasDetalladas({ mes, anio });
+        const ok = pdfService.generarPdfVentas(res, ventas, { mes, anio });
         if (!ok) res.status(503).json({ mensaje: ERR_DEP });
     } catch (e) {
         console.error('Error PDF ventas:', e);
@@ -48,7 +49,11 @@ exports.exportarVentasExcel = async (req, res) => {
 
 exports.exportarProductosExcel = async (req, res) => {
     try {
-        const items = await Reporte.getInventario();
+        // Solo productos ACTIVOS — lo mismo que se ve en la tienda web.
+        // (El export genérico de la pestaña "Productos" del panel admin
+        // sigue usando getInventario() completo, para que el admin
+        // pueda seguir viendo inactivos/archivados ahí si lo necesita.)
+        const items = await Reporte.getInventarioActivos();
         const ok = await excelService.generarExcelProductos(res, items);
         if (!ok) res.status(503).json({ mensaje: ERR_DEP });
     } catch (e) {

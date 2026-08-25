@@ -72,7 +72,15 @@ exports.getProductosStockBajo = async () => {
 };
 
 // ── Ventas detalladas (PDF / Excel) ──
-exports.getVentasDetalladas = async () => {
+// Se puede pedir el historial completo (sin argumentos, comportamiento
+// de siempre) o filtrado por mes/año — si solo se manda uno de los dos,
+// filtra solo por ese (ej: anio=2025 sin mes trae todo ese año).
+exports.getVentasDetalladas = async ({ mes, anio } = {}) => {
+    let filtroFecha = '';
+    const params = [];
+    if (mes) { filtroFecha += ' AND MONTH(pe.fecha_pedido) = ?'; params.push(mes); }
+    if (anio) { filtroFecha += ' AND YEAR(pe.fecha_pedido) = ?'; params.push(anio); }
+
     const [rows] = await db.query(`
         SELECT pe.id_pedido, pe.fecha_pedido, per.nombres AS cliente, pe.estado,
                p.nombre AS producto, COALESCE(c.nombre,'-') AS categoria,
@@ -83,8 +91,8 @@ exports.getVentasDetalladas = async () => {
         LEFT JOIN categoria_producto c ON p.id_categoria=c.id_categoria
         JOIN cliente cl  ON pe.id_cliente=cl.id_cliente
         JOIN persona per ON cl.id_persona=per.id_persona
-        WHERE pe.estado IN ${ESTADOS_VENTA}
-        ORDER BY pe.fecha_pedido DESC`);
+        WHERE pe.estado IN ${ESTADOS_VENTA} ${filtroFecha}
+        ORDER BY pe.fecha_pedido DESC`, params);
     return rows;
 };
 
@@ -97,6 +105,24 @@ exports.getInventario = async () => {
         FROM producto p
         LEFT JOIN categoria_producto c ON p.id_categoria=c.id_categoria
         LEFT JOIN tipo_animal ta ON p.id_tipo_animal=ta.id_tipo_animal
+        ORDER BY p.nombre ASC`);
+    return rows;
+};
+
+// ── Inventario SOLO de productos activos (los que se ven en la web) ──
+// Usado por el botón "Inventario Completo" de Reportes — a diferencia de
+// getInventario() (que trae todo, incluye inactivos/archivados, y se usa
+// en el export genérico del panel de Productos para uso interno del
+// admin), este es específicamente "lo que el cliente ve en la tienda".
+exports.getInventarioActivos = async () => {
+    const [rows] = await db.query(`
+        SELECT p.id_producto, p.nombre, COALESCE(c.nombre,'-') AS categoria,
+               COALESCE(ta.nombre,'-') AS tipo_animal, COALESCE(p.marca,'-') AS marca,
+               p.precio_venta, p.stock_actual, p.stock_minimo, p.estado
+        FROM producto p
+        LEFT JOIN categoria_producto c ON p.id_categoria=c.id_categoria
+        LEFT JOIN tipo_animal ta ON p.id_tipo_animal=ta.id_tipo_animal
+        WHERE p.estado = 'ACTIVO'
         ORDER BY p.nombre ASC`);
     return rows;
 };

@@ -22,10 +22,21 @@ function dibujarEncabezado(doc, subtitulo) {
     doc.moveTo(40, 100).lineTo(555, 100).strokeColor(VERDE).lineWidth(1).stroke();
 }
 
+const NOMBRES_MES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
 // PDF específico del reporte de ventas (columnas fijas: fecha, pedido, cliente...)
-function generarPdfVentas(res, ventas) {
+// filtro: { mes, anio } — opcional, si vienen vacíos se ve todo el historial
+// (mismo comportamiento que antes de agregar el filtro).
+function generarPdfVentas(res, ventas, filtro = {}) {
     const PDFDocument = cargarPdfkit();
     if (!PDFDocument) return false;
+
+    const { mes, anio } = filtro;
+    let subtitulo = 'Reporte de Ventas — Todo el historial';
+    if (mes && anio)      subtitulo = `Reporte de Ventas — ${NOMBRES_MES[mes]} ${anio}`;
+    else if (anio)        subtitulo = `Reporte de Ventas — Año ${anio}`;
+    else if (mes)         subtitulo = `Reporte de Ventas — ${NOMBRES_MES[mes]} (todos los años)`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="reporte-ventas.pdf"');
@@ -33,7 +44,7 @@ function generarPdfVentas(res, ventas) {
     const doc = new PDFDocument({ margin: 40, size: 'A4' });
     doc.pipe(res);
 
-    dibujarEncabezado(doc, 'Reporte de Ventas');
+    dibujarEncabezado(doc, subtitulo);
 
     const cols = [
         { t: 'Fecha',    x: 40,  w: 70 },

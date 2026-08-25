@@ -93,12 +93,47 @@ async function exportar(endpoint, filename, btn) {
     }
 }
 
+// Llena el select de años con el actual + los 4 anteriores (suficiente
+// para el historial normal de la tienda; si hace falta más, se agranda
+// este rango a mano).
+function llenarSelectAnioVentas() {
+    const sel = document.getElementById('ventas-pdf-anio');
+    if (!sel) return;
+    const actual = new Date().getFullYear();
+    for (let a = actual; a >= actual - 4; a--) {
+        sel.insertAdjacentHTML('beforeend', `<option value="${a}">${a}</option>`);
+    }
+}
+
+const NOMBRES_MES = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+// Descarga el PDF de ventas, con el filtro de mes/año que haya elegido
+// (si deja ambos en blanco, trae todo el historial, igual que antes).
+async function exportarVentasPdf(btn) {
+    const mes  = document.getElementById('ventas-pdf-mes').value;
+    const anio = document.getElementById('ventas-pdf-anio').value;
+
+    const params = new URLSearchParams();
+    if (mes)  params.set('mes', mes);
+    if (anio) params.set('anio', anio);
+
+    let nombreArchivo = 'reporte-ventas.pdf';
+    if (mes && anio)      nombreArchivo = `reporte-ventas-${NOMBRES_MES[mes]}-${anio}.pdf`;
+    else if (anio)        nombreArchivo = `reporte-ventas-${anio}.pdf`;
+    else if (mes)         nombreArchivo = `reporte-ventas-${NOMBRES_MES[mes]}.pdf`;
+
+    const endpoint = 'ventas-pdf' + (params.toString() ? '?' + params.toString() : '');
+    await exportar(endpoint, nombreArchivo, btn);
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     const nombre = localStorage.getItem('nombre');
     if (nombre) document.getElementById('nombre-admin').innerText = nombre;
     cargarResumen();
     cargarVentasPorCategoria();
     cargarStockBajo();
+    llenarSelectAnioVentas();
 });
 
 // ═══════════════════════════════════════════════════
@@ -112,5 +147,6 @@ document.addEventListener('click', function (e) {
     switch (el.dataset.accion) {
         case 'cerrar-sesion': cerrarSesion(); break;
         case 'exportar':      exportar(el.dataset.endpoint, el.dataset.archivo, el); break;
+        case 'exportar-ventas-pdf': exportarVentasPdf(el); break;
     }
 });
