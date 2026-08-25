@@ -39,6 +39,9 @@
                                     <label for="correoOtp" class="form-label">Correo electrónico</label>
                                     <input type="email" class="form-control" id="correoOtp"
                                         placeholder="tu@correo.com" required autocomplete="email">
+                                    <!-- Validación en vivo del dominio (ej. detecta "gmial.com"),
+                                         mismo patrón que registro.html — endpoint /api/auth/validar-correo. -->
+                                    <small id="correo-estado" class="mt-1 d-block small"></small>
                                     <!-- Validación en vivo: avisa si no hay cuenta con ese correo
                                          ANTES de enviar el código, para no hacer esperar al usuario
                                          por un código que nunca le va a llegar (mismo patrón que

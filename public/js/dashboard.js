@@ -374,6 +374,7 @@ function limpiarFormularioProducto() {
     // que se elija Categoría / Grupo (cascada)
     filtrarAnimalesPorGrupo('');
     cargarSubcategorias('');
+    poblarEtapaAlimentacion('');
 
     // Ocultar las secciones dinámicas por categoría
     ['campos-medicamento','campos-accesorio','campos-alimento'].forEach(id => {
@@ -641,6 +642,7 @@ async function editarProducto(id) {
         document.getElementById('prod-grupo-animal').value = animalActual.grupo;
         filtrarAnimalesPorGrupo(animalActual.grupo, p.id_tipo_animal);
     }
+    poblarEtapaAlimentacion(p.id_tipo_animal, p.etapa_alimentacion || '');
 
     // Cascada Categoría → Subcategoría
     await cargarSubcategorias(p.id_categoria, p.id_subcategoria || '', p.id_tipo_animal || '');
@@ -711,7 +713,6 @@ async function editarProducto(id) {
     const elVencAli  = document.getElementById('prod-vencimiento-ali');
     const elCompAli  = document.getElementById('prod-composicion-ali');
     const elFichaAli = document.getElementById('prod-ficha-ali');
-    const elEtapaAli = document.getElementById('prod-etapa-ali');
     if (elMarcaAli) elMarcaAli.value = p.marca        || '';
     if (elPesoAli)  elPesoAli.value  = p.presentacion || '';
     if (elVencAli && p.fecha_vencimiento) {
@@ -719,7 +720,8 @@ async function editarProducto(id) {
     }
     if (elCompAli)  elCompAli.value  = p.composicion   || '';
     if (elFichaAli) elFichaAli.value = p.ficha_tecnica || '';
-    if (elEtapaAli) elEtapaAli.value = p.etapa_alimentacion || '';
+    // Nota: prod-etapa-ali ya se llenó arriba con poblarEtapaAlimentacion(),
+    // que arma las opciones según el animal ANTES de fijar el valor guardado.
 
     // ✅ Cargar tags de colores y tallas
     if (p.colores) cargarTags('color', p.colores);
@@ -936,6 +938,40 @@ async function buscarFicha() {
 }
 
 
+// Etapa de Alimentación (campo del bloque "Alimento"): antes mostraba
+// siempre etapas de ganadería (Inicio/Crecimiento/Engorde/Producción/
+// Acabado) sin importar el animal. Ahora se arma según el Tipo de Animal
+// elegido — Perro y Gato usan sus propias etapas; el resto de animales
+// (ganado, aves, etc.) conserva la lista original tal cual, porque a
+// ellos sí les aplica.
+function etapasAlimentacionPara(idTipoAnimal) {
+    const animal = animalesCatalogo.find(a => String(a.id_tipo_animal) === String(idTipoAnimal));
+    const nombreAnimal = (animal?.nombre || '').toLowerCase();
+
+    if (nombreAnimal.includes('perro') || nombreAnimal.includes('canino')) {
+        return ['Cachorro', 'Adulto'];
+    }
+    if (nombreAnimal.includes('gato') || nombreAnimal.includes('felino')) {
+        return ['Gato bebé', 'Adulto'];
+    }
+    // Sin animal elegido todavía, o animal de granja/ganadería: etapas originales
+    return ['Inicio', 'Crecimiento', 'Engorde', 'Producción', 'Acabado'];
+}
+
+function poblarEtapaAlimentacion(idTipoAnimal, valorSeleccionado = '') {
+    const sel = document.getElementById('prod-etapa-ali');
+    if (!sel) return;
+    const etapas = etapasAlimentacionPara(idTipoAnimal);
+    sel.innerHTML = '<option value="">-- No aplica --</option>' +
+        etapas.map(e => `<option value="${e}">${e}</option>`).join('');
+    // Si la etapa guardada ya no aplica a este animal (p.ej. venía de
+    // "Engorde" y ahora es Perro), se deja en "-- No aplica --" en vez
+    // de forzar un valor que no está en la lista.
+    if (valorSeleccionado && etapas.includes(valorSeleccionado)) {
+        sel.value = valorSeleccionado;
+    }
+}
+
 // Agregar listener al selector de categoría (campos dinámicos + subcategorías en cascada)
 document.getElementById('prod-categoria')?.addEventListener('change', (e) => {
     actualizarCamposCategoria();
@@ -948,10 +984,12 @@ document.getElementById('prod-grupo-animal')?.addEventListener('change', (e) => 
 });
 
 // Agregar listener al selector de Tipo de Animal (Alimentos: recalcula
-// Cachorro/Adulto según Perro/Gato — ver filtroSubcategoriaPorAnimal)
+// Cachorro/Adulto según Perro/Gato — ver filtroSubcategoriaPorAnimal —
+// y también recalcula la Etapa de Alimentación)
 document.getElementById('prod-animal')?.addEventListener('change', (e) => {
     const idCategoria = document.getElementById('prod-categoria').value;
     cargarSubcategorias(idCategoria, '', e.target.value);
+    poblarEtapaAlimentacion(e.target.value);
 });
 
 // Cambiar estado lógico del producto (activar/desactivar)

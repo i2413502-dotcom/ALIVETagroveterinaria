@@ -4,6 +4,7 @@ const jwt          = require('jsonwebtoken');
 const authModel     = require('../modelos/auth.model');
 const emailService  = require('../servicios/email.service');
 const { validarPassword } = require('../utils/passwordPolicy');
+const { validarCorreoExiste } = require('../utils/emailValidator');
 const responder = require('../utils/responder');
 
 // Almacén temporal de OTPs para recuperación de contraseña
@@ -75,6 +76,16 @@ const forgotPasswordOtp = async (req, res) => {
     try {
         const { correo } = req.body;
         if (!correo) return res.status(400).json({ mensaje: 'Correo requerido' });
+
+        // Antes de gastar un envío (y hacer esperar al usuario), se
+        // descarta un dominio inexistente o mal escrito (ej. "gmial.com").
+        // Esto NO revela si hay una cuenta con ese correo — solo si el
+        // dominio puede recibir mensajes — así que no rompe la política
+        // de seguridad de abajo ("si está registrado, recibirás un código").
+        const chequeoCorreo = await validarCorreoExiste(correo);
+        if (!chequeoCorreo.valido) {
+            return res.status(400).json({ mensaje: chequeoCorreo.motivo });
+        }
 
         const persona = await authModel.findByEmail(correo);
         if (!persona) {

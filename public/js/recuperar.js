@@ -1,4 +1,36 @@
 // ============================================================
+//  Validación en vivo del DOMINIO (ej. detecta "gmial.com",
+//  "hotmial.con") — mismo endpoint y patrón que registro.html.
+//  No revela si existe una cuenta, solo si el dominio puede
+//  recibir correo, así que no compromete la seguridad de abajo.
+// ============================================================
+(function validarDominioEnVivo() {
+    const correoInputEl = document.getElementById('correoOtp');
+    const estadoCorreo = document.getElementById('correo-estado');
+    if (!correoInputEl || !estadoCorreo) return;
+
+    let debounceDominio;
+    correoInputEl.addEventListener('input', () => {
+        clearTimeout(debounceDominio);
+        estadoCorreo.textContent = '';
+        debounceDominio = setTimeout(async () => {
+            if (!correoInputEl.value.includes('@')) return;
+            estadoCorreo.textContent = 'Verificando...';
+            estadoCorreo.style.color = '';
+            try {
+                const res = await fetch(`/api/auth/validar-correo?correo=${encodeURIComponent(correoInputEl.value.trim())}`);
+                const data = await res.json();
+                estadoCorreo.textContent = data.valido ? '✅ Correo válido' : `❌ ${data.motivo}`;
+                estadoCorreo.style.color = data.valido ? 'green' : 'crimson';
+            } catch {
+                estadoCorreo.textContent = '';
+            }
+        }, 600);
+    });
+})();
+
+
+// ============================================================
 //  Validación en vivo: ¿existe una cuenta con este correo?
 //  (mismo patrón que public/js/auth/login.js) — solo informativo,
 //  avisa antes de enviar el código para no hacer esperar al usuario
