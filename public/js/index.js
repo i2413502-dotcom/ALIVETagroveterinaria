@@ -172,14 +172,36 @@ function renderizarPaginacion(paginaActual, totalPaginas, totalProductos, filtro
     contenedor.innerHTML = html;
 }
 
+// Nunca deja pasar un precio negativo (por si el usuario lo escribe a mano,
+// pega texto, o el navegador lo cambia solo con el scroll del mouse sobre
+// el input — ver bloquearScrollEnNumeros()). Si el valor no es válido,
+// se descarta y el filtro queda vacío (sin límite).
+function precioValido(valorCrudo) {
+    if (valorCrudo === '' || valorCrudo === null || valorCrudo === undefined) return '';
+    const n = Number(valorCrudo);
+    if (isNaN(n) || n < 0) return '';
+    return String(n);
+}
+
 // Obtener filtros activos actualmente
 function obtenerFiltrosActuales() {
     return {
         categoria:    document.getElementById('filtroCategoria')?.value    || '',
         subcategoria: document.getElementById('filtroSubcategoria')?.value || '',
-        precio_min:   document.getElementById('filtroPrecioMin')?.value    || '',
-        precio_max:   document.getElementById('filtroPrecioMax')?.value    || '',
+        precio_min:   precioValido(document.getElementById('filtroPrecioMin')?.value),
+        precio_max:   precioValido(document.getElementById('filtroPrecioMax')?.value),
     };
+}
+
+// Evita el bug clásico de Chrome/Edge: si el input numérico está enfocado
+// y el usuario hace scroll con el mouse encima (sin querer, bajando la
+// página), el navegador suma/resta al valor solo — así aparecían cosas
+// como "-0" o "-5" en Precio mín./máx. Quitarle el foco al hacer scroll
+// deja que la página se desplace normal y no toca el valor del input.
+function bloquearScrollEnNumeros() {
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('wheel', () => input.blur(), { passive: true });
+    });
 }
 
 // Paso 1 de la cascada: filtrar por Grupo de animal (Mayor/Menor/Todos)
@@ -400,6 +422,7 @@ window.addEventListener('DOMContentLoaded', () => {
     cargarFiltrosGrupos();
     obtenerProductos();
     actualizarContadorCarrito();
+    bloquearScrollEnNumeros();
 
     // Paso 2 → 3 de la cascada: al cambiar categoría, recargar subcategorías
     document.getElementById('filtroCategoria')?.addEventListener('change', (e) => {

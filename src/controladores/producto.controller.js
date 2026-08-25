@@ -34,9 +34,15 @@ exports.obtenerPorId = async (req, res) => {
     try {
         const producto = await Producto.obtenerProductoPorId(req.params.id);
         if (!producto) return res.status(404).json({ mensaje: 'Producto no encontrado' });
-        // Ficha pública: si está inactivo o sin stock, no debe mostrarse
-        // en la tienda (aunque el registro siga existiendo en la BD).
-        if (producto.estado !== 'ACTIVO' || producto.stock_actual <= 0) {
+        // Ficha pública: solo lo inactivo/archivado se oculta del todo.
+        // El catálogo (listar()) SÍ muestra productos sin stock con su
+        // badge "Agotado", así que la ficha de detalle también debe
+        // poder abrirse — el frontend (producto.js -> sinStock) ya se
+        // encarga de deshabilitar el botón "Agregar" cuando corresponde.
+        // Antes esto devolvía 404 si stock_actual <= 0, y como la tarjeta
+        // del catálogo sí era clickeable, el usuario caía en una página
+        // de "Producto no encontrado" al entrar a un producto agotado.
+        if (producto.estado !== 'ACTIVO') {
             return res.status(404).json({ mensaje: 'Producto no disponible' });
         }
         res.json(producto);
