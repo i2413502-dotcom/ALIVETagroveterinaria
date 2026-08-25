@@ -16,6 +16,15 @@ exports.getAll = async () => {
     return rows;
 };
 
+// Usado al auto-generar "usuario" desde el correo, para no repetir uno
+// que ya existe (el formulario ya no pide este campo a mano).
+exports.usuarioExiste = async (usuario) => {
+    const [rows] = await db.query(
+        'SELECT 1 FROM colaborador WHERE usuario = ? LIMIT 1', [usuario]
+    );
+    return rows.length > 0;
+};
+
 // Se utiliza para el móvil
 exports.getCargos = async () => {
     const [rows] = await db.query("SELECT * FROM cargo WHERE estado='ACTIVO' ORDER BY nombre");
@@ -50,7 +59,7 @@ exports.update = async (id, data) => {
             telefono, id_cargo, usuario, estado } = data;
 
     const [[col]] = await db.query(
-        'SELECT id_persona FROM colaborador WHERE id_colaborador=?', [id]
+        'SELECT id_persona, usuario AS usuario_actual FROM colaborador WHERE id_colaborador=?', [id]
     );
     if (!col) throw new Error('Colaborador no encontrado');
 
@@ -60,9 +69,14 @@ exports.update = async (id, data) => {
         [nombres, apellido_paterno || null, apellido_materno || null,
          telefono || null, col.id_persona]
     );
+
+    // El formulario (web/móvil) ya no pide "Usuario" — si no llega,
+    // se conserva el que ya tenía (no se sobrescribe con NULL).
+    const usuarioFinal = (usuario && usuario.trim()) ? usuario.trim() : col.usuario_actual;
+
     await db.query(
         'UPDATE colaborador SET id_cargo=?, usuario=?, estado=? WHERE id_colaborador=?',
-        [id_cargo, usuario, estado, id]
+        [id_cargo, usuarioFinal, estado, id]
     );
 };
 

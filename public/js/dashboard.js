@@ -1522,7 +1522,6 @@ async function mostrarModalColaborador() {
     document.getElementById('col-dni').value       = '';
     document.getElementById('col-telefono').value  = '';
     document.getElementById('col-correo').value    = '';
-    document.getElementById('col-usuario').value   = '';
     document.getElementById('col-password').value  = '';
     document.getElementById('col-password2').value = '';
     document.getElementById('campo-col-password').classList.remove('d-none');
@@ -1546,10 +1545,17 @@ function editarColaborador(id) {
     document.getElementById('col-dni').value       = c.dni || '';
     document.getElementById('col-telefono').value  = c.telefono || '';
     document.getElementById('col-correo').value    = c.correo;
-    document.getElementById('col-usuario').value   = c.usuario;
     document.getElementById('campo-col-password').classList.add('d-none');
     document.getElementById('campo-col-reset').classList.remove('d-none');
     document.getElementById('reset-pass-form').classList.add('d-none');
+    // Reinicia el paso OTP del cambio de contraseña cada vez que se abre
+    // el modal, para que no quede colgado un código de una vez anterior.
+    document.getElementById('reset-pass-otp-form').classList.add('d-none');
+    document.getElementById('col-password-actual').value = '';
+    document.getElementById('col-nueva-password').value  = '';
+    document.getElementById('col-nueva-password2').value = '';
+    document.getElementById('col-otp-reset-password').value = '';
+    resetPasswordPendingId = null;
     document.getElementById('campo-col-estado-wrap').style.display = 'block';
     document.getElementById('col-estado').value    = c.estado;
     // Al editar sigue siendo un guardado directo (sin OTP) — el
@@ -1597,7 +1603,6 @@ async function guardarColaborador() {
             dni:             document.getElementById('col-dni').value,
             telefono:        document.getElementById('col-telefono').value,
             correo:          correo,
-            usuario:         document.getElementById('col-usuario').value,
             id_cargo:        document.getElementById('col-cargo').value,
             password:        pass
         };
@@ -1636,7 +1641,6 @@ async function guardarColaborador() {
             apellido_paterno:document.getElementById('col-apellido-p').value,
             apellido_materno:document.getElementById('col-apellido-m').value,
             telefono:        document.getElementById('col-telefono').value,
-            usuario:         document.getElementById('col-usuario').value,
             id_cargo:        document.getElementById('col-cargo').value,
             estado:          document.getElementById('col-estado').value
         };
@@ -1646,21 +1650,77 @@ async function guardarColaborador() {
                 method:'PUT', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token}, body: JSON.stringify(data)
             });
             if (res.ok) {
-                // Verificar si quiso cambiar contraseña
-                const newPass  = document.getElementById('col-nueva-password').value;
-                const newPass2 = document.getElementById('col-nueva-password2').value;
-                if (newPass) {
-                    if (newPass !== newPass2) { mostrarAlerta('Las nuevas contraseñas no coinciden'); return; }
-                    await fetch(`/api/colaboradores/${id}/reset-password`, {
-                        method:'PUT', headers:{'Content-Type':'application/json', 'Authorization': 'Bearer ' + token},
-                        body: JSON.stringify({ nuevaPassword: newPass })
-                    });
-                }
+                // El cambio de contraseña ya NO va pegado al botón
+                // "Guardar" — tiene su propio flujo con OTP (ver
+                // solicitarOtpResetPasswordColaborador / confirmarOtp...).
                 modalColaborador.hide();
                 cargarColaboradores();
                 mostrarAlerta('Colaborador actualizado correctamente');
             } else { const e = await res.json(); mostrarAlerta(e.mensaje || 'Error al actualizar'); }
         } catch (err) { mostrarAlerta('Error al actualizar colaborador'); }
+    }
+}
+
+// ── Cambio de contraseña de un colaborador (mismo flujo de "Mi perfil"):
+// 1) contraseña actual + nueva -> se manda OTP al correo del colaborador
+// 2) se confirma el OTP -> recién ahí se guarda la nueva contraseña
+let resetPasswordPendingId = null;
+
+async function solicitarOtpResetPasswordColaborador() {
+    const id = document.getElementById('col-id').value;
+    const passwordActual = document.getElementById('col-password-actual').value;
+    const nueva  = document.getElementById('col-nueva-password').value;
+    const nueva2 = document.getElementById('col-nueva-password2').value;
+
+    if (!passwordActual) { mostrarAlerta('Ingresa la contraseña actual'); return; }
+    if (!nueva) { mostrarAlerta('Ingresa la nueva contraseña'); return; }
+    if (nueva !== nueva2) { mostrarAlerta('Las nuevas contraseñas no coinciden'); return; }
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/colaboradores/${id}/solicitar-reset-password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ passwordActual, passwordNueva: nueva })
+        });
+        const resultado = await res.json();
+        if (res.ok) {
+            resetPasswordPendingId = resultado.pendingId;
+            document.getElementById('reset-pass-otp-form').classList.remove('d-none');
+            document.getElementById('col-otp-reset-password').value = '';
+            mostrarAlerta(resultado.mensaje || 'Código enviado al correo del colaborador');
+        } else {
+            mostrarAlerta(resultado.mensaje || 'No se pudo enviar el código');
+        }
+    } catch (err) {
+        mostrarAlerta('Error al solicitar el cambio de contraseña');
+    }
+}
+
+async function confirmarOtpResetPasswordColaborador() {
+    const id = document.getElementById('col-id').value;
+    const otp = document.getElementById('col-otp-reset-password').value.trim();
+    if (!resetPasswordPendingId) { mostrarAlerta('Primero envía el código de verificación'); return; }
+    if (otp.length !== 5) { mostrarAlerta('Ingresa el código de 5 dígitos'); return; }
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/colaboradores/${id}/confirmar-reset-password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ pendingId: resetPasswordPendingId, otp })
+        });
+        const resultado = await res.json();
+        if (res.ok) {
+            mostrarAlerta('Contraseña cambiada correctamente');
+            resetPasswordPendingId = null;
+            document.getElementById('reset-pass-form').classList.add('d-none');
+            document.getElementById('reset-pass-otp-form').classList.add('d-none');
+        } else {
+            mostrarAlerta(resultado.mensaje || 'No se pudo confirmar el cambio');
+        }
+    } catch (err) {
+        mostrarAlerta('Error al confirmar el cambio de contraseña');
     }
 }
 
@@ -1787,6 +1847,8 @@ document.addEventListener('click', function (e) {
         case 'guardar-categoria':   guardarCategoria(); break;
         case 'guardar-animal':      guardarAnimal(); break;
         case 'reset-password':      mostrarResetPassword(); break;
+        case 'enviar-otp-reset-password':    solicitarOtpResetPasswordColaborador(); break;
+        case 'confirmar-otp-reset-password': confirmarOtpResetPasswordColaborador(); break;
         case 'guardar-colaborador': guardarColaborador(); break;
         case 'confirmar-otp-colaborador': confirmarOtpColaborador(); break;
         case 'cambiar-vista-productos': cambiarVistaProductos(el.dataset.vistaProducto); break;
