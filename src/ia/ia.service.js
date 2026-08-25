@@ -67,6 +67,16 @@ const validarRespuesta = (respuestaIA, productosReales) => {
         return !tieneProducto; // true = respuesta válida
     }
 
+    // Falso negativo: SÍ hay productos reales en BD, pero la IA respondió
+    // como si no hubiera encontrado nada (p. ej. malinterpretó "para
+    // canino" como un filtro que el producto debía cumplir textualmente).
+    // Antes esto pasaba la validación sin problema porque solo se
+    // revisaban alucinaciones, nunca omisiones — el cliente veía "No
+    // encontré ese producto" aunque estuviera en el catálogo.
+    if (/no encontr[eé]\b.*(cat[aá]logo|producto)/i.test(respuestaIA)) {
+        return false;
+    }
+
     // Extraer líneas con formato de producto (guion o viñeta al inicio)
     const lineasProducto = respuestaIA
         .split('\n')
