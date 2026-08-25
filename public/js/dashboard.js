@@ -1635,7 +1635,20 @@ async function guardarColaborador() {
         }
 
     } else {
-        // EDITAR
+        // EDITAR — si el admin abrió "Cambiar contraseña" y ya escribió
+        // algo (o ya pidió el código) pero todavía no confirmó el OTP,
+        // NO se permite guardar el resto a medias: se le avisa y no se
+        // manda nada al backend hasta que termine o cancele ese cambio.
+        const huboIntentoDeCambio =
+            document.getElementById('col-password-actual').value !== '' ||
+            document.getElementById('col-nueva-password').value !== '' ||
+            document.getElementById('col-nueva-password2').value !== '' ||
+            resetPasswordPendingId !== null;
+        if (huboIntentoDeCambio) {
+            mostrarAlerta('Primero confirma el código de verificación para terminar el cambio de contraseña, o borra esos campos si no quieres cambiarla.');
+            return;
+        }
+
         const data = {
             nombres:         document.getElementById('col-nombres').value,
             apellido_paterno:document.getElementById('col-apellido-p').value,
@@ -1716,6 +1729,12 @@ async function confirmarOtpResetPasswordColaborador() {
             resetPasswordPendingId = null;
             document.getElementById('reset-pass-form').classList.add('d-none');
             document.getElementById('reset-pass-otp-form').classList.add('d-none');
+            // Limpia los campos: ya se aplicó el cambio, así que no debe
+            // seguir bloqueando el botón "Guardar" del resto del formulario.
+            document.getElementById('col-password-actual').value = '';
+            document.getElementById('col-nueva-password').value  = '';
+            document.getElementById('col-nueva-password2').value = '';
+            document.getElementById('col-otp-reset-password').value = '';
         } else {
             mostrarAlerta(resultado.mensaje || 'No se pudo confirmar el cambio');
         }

@@ -2,6 +2,7 @@ const model = require('../modelos/colaborador.model');
 
 const emailService = require('../servicios/email.service');
 const bcrypt = require('bcrypt');
+const authModel = require('../modelos/auth.model');
 const { validarPassword } = require('../utils/passwordPolicy');
 
 const pendingColaboradores = new Map();
@@ -135,22 +136,32 @@ exports.update = async (req, res) => {
 // Se guarda en memoria igual que pendingColaboradores, expira en 15 min.
 const pendingResetsColaborador = new Map();
 
-// Paso 1: valida la contraseña actual y la política de la nueva, y manda
-// el código OTP al correo del colaborador. NO cambia nada todavía.
+// Paso 1: valida TU contraseña (la del admin logueado, no la del
+// colaborador que estás editando — así funciona igual si editas tu
+// propia cuenta o la de otra persona) y la política de la nueva, y
+// manda el código OTP al correo del COLABORADOR (el que recibe el
+// cambio). NO cambia nada todavía.
 // Se utiliza para el móvil y para el panel web (Editar Colaborador).
 exports.solicitarResetPassword = async (req, res) => {
     try {
         const { passwordActual, passwordNueva } = req.body;
         if (!passwordActual || !passwordNueva) {
-            return res.status(400).json({ mensaje: 'Contraseña actual y nueva son requeridas' });
+            return res.status(400).json({ mensaje: 'Tu contraseña actual y la nueva son requeridas' });
         }
 
         const datos = await model.getDatosParaPassword(req.params.id);
         if (!datos) return res.status(404).json({ mensaje: 'Colaborador no encontrado' });
 
-        const passwordValida = await bcrypt.compare(passwordActual, datos.password);
+        // OJO: se valida la contraseña de QUIEN está haciendo el cambio
+        // (el admin logueado, req.usuario.id), no la del colaborador
+        // que se está editando — de lo contrario, un admin nunca podría
+        // resetearle la clave a otra persona sin saber la de ella.
+        const admin = await authModel.findPersonaById(req.usuario.id);
+        if (!admin) return res.status(404).json({ mensaje: 'No se pudo verificar tu usuario' });
+
+        const passwordValida = await bcrypt.compare(passwordActual, admin.password);
         if (!passwordValida) {
-            return res.status(400).json({ mensaje: 'La contraseña actual no es correcta' });
+            return res.status(400).json({ mensaje: 'Tu contraseña actual no es correcta' });
         }
 
         const check = validarPassword(passwordNueva, {
